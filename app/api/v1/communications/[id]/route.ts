@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
+import { withRateLimit, isValidUUID, createErrorResponse } from '@/lib/security'
 import type { Database } from '@/types/database'
 
-type Communication = Database['public']['Tables']['communication']['Row']
 type CommunicationUpdate = Database['public']['Tables']['communication']['Update']
 
 /**
@@ -14,9 +14,28 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit: 100 requests per minute
+  const rateLimitResponse = withRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
     const { id } = await params
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return createErrorResponse(400, 'Invalid communication ID format')
+    }
+
     const supabase = await createRouteHandlerClient(cookies)
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return createErrorResponse(401, 'Unauthorized')
+    }
 
     const { data, error } = await supabase
       .from('communication')
@@ -26,21 +45,14 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'not_found', message: 'Communication not found' },
-          { status: 404 }
-        )
+        return createErrorResponse(404, 'Communication not found')
       }
-      throw error
+      return createErrorResponse(500, 'Failed to fetch communication')
     }
 
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error fetching communication:', error)
-    return NextResponse.json(
-      { error: 'internal_error', message: 'An unexpected error occurred' },
-      { status: 500 }
-    )
+  } catch {
+    return createErrorResponse(500, 'Internal server error')
   }
 }
 
@@ -52,10 +64,35 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit: 50 updates per minute
+  const rateLimitResponse = withRateLimit(request, { maxRequests: 50, windowMs: 60000 })
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
     const { id } = await params
-    const body = await request.json()
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return createErrorResponse(400, 'Invalid communication ID format')
+    }
+
     const supabase = await createRouteHandlerClient(cookies)
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return createErrorResponse(401, 'Unauthorized')
+    }
+
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return createErrorResponse(400, 'Invalid JSON body')
+    }
 
     // Allowed update fields
     const allowedFields: (keyof CommunicationUpdate)[] = ['needs_reply', 'replied_at', 'replied_by']
@@ -63,15 +100,22 @@ export async function PATCH(
 
     for (const field of allowedFields) {
       if (field in body) {
+        // Validate specific fields
+        if (field === 'needs_reply' && typeof body[field] !== 'boolean') {
+          return createErrorResponse(400, 'needs_reply must be a boolean')
+        }
+        if (field === 'replied_at' && body[field] !== null && typeof body[field] !== 'string') {
+          return createErrorResponse(400, 'replied_at must be a string or null')
+        }
+        if (field === 'replied_by' && body[field] !== null && !isValidUUID(body[field])) {
+          return createErrorResponse(400, 'replied_by must be a valid UUID or null')
+        }
         (updates as Record<string, unknown>)[field] = body[field]
       }
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: 'validation_error', message: 'No valid fields to update' },
-        { status: 400 }
-      )
+      return createErrorResponse(400, 'No valid fields to update')
     }
 
     const { data, error } = await supabase
@@ -83,20 +127,13 @@ export async function PATCH(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'not_found', message: 'Communication not found' },
-          { status: 404 }
-        )
+        return createErrorResponse(404, 'Communication not found')
       }
-      throw error
+      return createErrorResponse(500, 'Failed to update communication')
     }
 
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error updating communication:', error)
-    return NextResponse.json(
-      { error: 'internal_error', message: 'An unexpected error occurred' },
-      { status: 500 }
-    )
+  } catch {
+    return createErrorResponse(500, 'Internal server error')
   }
 }

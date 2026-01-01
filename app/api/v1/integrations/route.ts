@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Return integrations without exposing tokens
-    const safeIntegrations = integrations.map(({ access_token, refresh_token, ...rest }) => rest)
+    const safeIntegrations = integrations.map(({ access_token: _at, refresh_token: _rt, ...rest }) => rest)
 
     return NextResponse.json({ data: safeIntegrations })
   } catch {
