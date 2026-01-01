@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,10 +21,11 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useAutomationsStore } from '@/stores/automations-store'
 import { AutomationCard } from './automation-card'
 import { TriggerSelector } from './trigger-selector'
 import { ActionBuilder } from './action-builder'
-import type { Workflow, WorkflowTrigger, WorkflowAction, WorkflowRun } from '@/types/workflow'
+import type { Workflow, WorkflowRun } from '@/types/workflow'
 
 interface AutomationsDashboardProps {
   pipelineStages?: string[]
@@ -35,64 +36,41 @@ export function AutomationsDashboard({
 }: AutomationsDashboardProps) {
   const { toast } = useToast()
 
-  // Workflows state
-  const [workflows, setWorkflows] = useState<Workflow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Get state and actions from store
+  const {
+    workflows,
+    isLoading,
+    error,
+    runs,
+    runsLoading,
+    showBuilder,
+    editingWorkflow,
+    builderName,
+    builderDescription,
+    builderTriggers,
+    builderActions,
+    isSaving,
+    fetchWorkflows,
+    fetchRuns,
+    toggleWorkflow,
+    openBuilder,
+    closeBuilder,
+    setBuilderName,
+    setBuilderDescription,
+    saveWorkflow,
+    addTrigger,
+    removeTrigger,
+    updateTrigger,
+    addAction,
+    removeAction,
+    updateAction,
+    reorderActions,
+    getActiveCount,
+    getTotalRuns,
+    getSuccessRate,
+  } = useAutomationsStore()
 
-  // Execution history state
-  const [runs, setRuns] = useState<WorkflowRun[]>([])
-  const [runsLoading, setRunsLoading] = useState(false)
-
-  // Builder state
-  const [showBuilder, setShowBuilder] = useState(false)
-  const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null)
-  const [builderName, setBuilderName] = useState('')
-  const [builderDescription, setBuilderDescription] = useState('')
-  const [builderTriggers, setBuilderTriggers] = useState<WorkflowTrigger[]>([])
-  const [builderActions, setBuilderActions] = useState<WorkflowAction[]>([])
-  const [saving, setSaving] = useState(false)
-
-  // Fetch workflows
-  const fetchWorkflows = useCallback(async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/v1/workflows')
-      if (!res.ok) throw new Error('Failed to fetch workflows')
-      const data = await res.json()
-      setWorkflows(data.workflows || [])
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load workflows')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Fetch recent runs
-  const fetchRuns = useCallback(async () => {
-    try {
-      setRunsLoading(true)
-      // Fetch runs for all workflows (most recent 20)
-      const res = await fetch('/api/v1/workflows?include_runs=true&runs_limit=20')
-      if (!res.ok) throw new Error('Failed to fetch runs')
-      const data = await res.json()
-      // Flatten runs from all workflows
-      const allRuns = (data.workflows || []).flatMap((w: Workflow & { runs?: WorkflowRun[] }) =>
-        (w.runs || []).map((r: WorkflowRun) => ({ ...r, workflow_name: w.name }))
-      )
-      // Sort by created_at desc
-      allRuns.sort((a: WorkflowRun, b: WorkflowRun) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
-      setRuns(allRuns.slice(0, 20))
-    } catch (err) {
-      console.error('Failed to fetch runs:', err)
-    } finally {
-      setRunsLoading(false)
-    }
-  }, [])
-
+  // Fetch data on mount
   useEffect(() => {
     fetchWorkflows()
     fetchRuns()
@@ -100,22 +78,13 @@ export function AutomationsDashboard({
 
   // Toggle workflow active state
   const handleToggle = async (id: string, isActive: boolean) => {
-    try {
-      const res = await fetch(`/api/v1/workflows/${id}/toggle`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: isActive }),
-      })
-      if (!res.ok) throw new Error('Failed to toggle workflow')
-
-      setWorkflows((prev) =>
-        prev.map((w) => (w.id === id ? { ...w, is_active: isActive } : w))
-      )
+    const success = await toggleWorkflow(id, isActive)
+    if (success) {
       toast({
         title: isActive ? 'Workflow enabled' : 'Workflow disabled',
         description: `The workflow has been ${isActive ? 'activated' : 'deactivated'}.`,
       })
-    } catch (err) {
+    } else {
       toast({
         title: 'Error',
         description: 'Failed to update workflow status',
@@ -126,32 +95,12 @@ export function AutomationsDashboard({
 
   // Open builder for editing
   const handleEdit = (workflow: Workflow) => {
-    setEditingWorkflow(workflow)
-    setBuilderName(workflow.name)
-    setBuilderDescription(workflow.description || '')
-    setBuilderTriggers(workflow.triggers as unknown as WorkflowTrigger[])
-    setBuilderActions(workflow.actions as unknown as WorkflowAction[])
-    setShowBuilder(true)
+    openBuilder(workflow)
   }
 
   // Open builder for new workflow
   const handleCreate = () => {
-    setEditingWorkflow(null)
-    setBuilderName('')
-    setBuilderDescription('')
-    setBuilderTriggers([])
-    setBuilderActions([])
-    setShowBuilder(true)
-  }
-
-  // Close builder
-  const handleCloseBuilder = () => {
-    setShowBuilder(false)
-    setEditingWorkflow(null)
-    setBuilderName('')
-    setBuilderDescription('')
-    setBuilderTriggers([])
-    setBuilderActions([])
+    openBuilder()
   }
 
   // Save workflow
@@ -169,89 +118,19 @@ export function AutomationsDashboard({
       return
     }
 
-    try {
-      setSaving(true)
-
-      const payload = {
-        name: builderName.trim(),
-        description: builderDescription.trim() || null,
-        triggers: builderTriggers,
-        actions: builderActions,
-        is_active: editingWorkflow?.is_active ?? true,
-      }
-
-      const url = editingWorkflow
-        ? `/api/v1/workflows/${editingWorkflow.id}`
-        : '/api/v1/workflows'
-      const method = editingWorkflow ? 'PATCH' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+    const success = await saveWorkflow()
+    if (success) {
+      toast({
+        title: editingWorkflow ? 'Workflow updated' : 'Workflow created',
+        description: editingWorkflow ? 'Your changes have been saved.' : 'Your new automation is ready.',
       })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to save workflow')
-      }
-
-      const saved = await res.json()
-
-      if (editingWorkflow) {
-        setWorkflows((prev) =>
-          prev.map((w) => (w.id === saved.id ? saved : w))
-        )
-        toast({ title: 'Workflow updated', description: 'Your changes have been saved.' })
-      } else {
-        setWorkflows((prev) => [saved, ...prev])
-        toast({ title: 'Workflow created', description: 'Your new automation is ready.' })
-      }
-
-      handleCloseBuilder()
-    } catch (err) {
+    } else {
       toast({
         title: 'Error',
-        description: err instanceof Error ? err.message : 'Failed to save workflow',
+        description: 'Failed to save workflow',
         variant: 'destructive',
       })
-    } finally {
-      setSaving(false)
     }
-  }
-
-  // Trigger handlers
-  const handleAddTrigger = (trigger: WorkflowTrigger) => {
-    setBuilderTriggers((prev) => [...prev, trigger])
-  }
-
-  const handleRemoveTrigger = (triggerId: string) => {
-    setBuilderTriggers((prev) => prev.filter((t) => t.id !== triggerId))
-  }
-
-  const handleUpdateTrigger = (triggerId: string, config: Record<string, unknown>) => {
-    setBuilderTriggers((prev) =>
-      prev.map((t) => (t.id === triggerId ? { ...t, config } : t)) as WorkflowTrigger[]
-    )
-  }
-
-  // Action handlers
-  const handleAddAction = (action: WorkflowAction) => {
-    setBuilderActions((prev) => [...prev, action])
-  }
-
-  const handleRemoveAction = (actionId: string) => {
-    setBuilderActions((prev) => prev.filter((a) => a.id !== actionId))
-  }
-
-  const handleUpdateAction = (actionId: string, updates: Partial<WorkflowAction>) => {
-    setBuilderActions((prev) =>
-      prev.map((a) => (a.id === actionId ? { ...a, ...updates } : a)) as WorkflowAction[]
-    )
-  }
-
-  const handleReorderActions = (reorderedActions: WorkflowAction[]) => {
-    setBuilderActions(reorderedActions)
   }
 
   // Format relative time
@@ -270,11 +149,10 @@ export function AutomationsDashboard({
     return `${diffDays}d ago`
   }
 
-  // Stats
-  const activeCount = workflows.filter((w) => w.is_active).length
-  const totalRuns = workflows.reduce((sum, w) => sum + w.run_count, 0)
-  const successCount = workflows.reduce((sum, w) => sum + w.success_count, 0)
-  const overallSuccessRate = totalRuns > 0 ? Math.round((successCount / totalRuns) * 100) : 0
+  // Computed stats from store
+  const activeCount = getActiveCount()
+  const totalRuns = getTotalRuns()
+  const overallSuccessRate = getSuccessRate()
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -349,7 +227,7 @@ export function AutomationsDashboard({
 
         {/* Workflows Tab */}
         <TabsContent value="workflows" className="space-y-4 mt-6">
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -466,7 +344,7 @@ export function AutomationsDashboard({
       </Tabs>
 
       {/* Workflow Builder Sheet */}
-      <Sheet open={showBuilder} onOpenChange={setShowBuilder}>
+      <Sheet open={showBuilder} onOpenChange={(open) => !open && closeBuilder()}>
         <SheetContent
           side="right"
           className="w-full sm:max-w-[700px] bg-background border-border overflow-y-auto"
@@ -480,9 +358,9 @@ export function AutomationsDashboard({
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={isSaving}
               >
-                {saving ? (
+                {isSaving ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Play className="h-3 w-3 mr-2" />
@@ -518,9 +396,9 @@ export function AutomationsDashboard({
             <div className="pt-4 border-t border-border">
               <TriggerSelector
                 triggers={builderTriggers}
-                onAdd={handleAddTrigger}
-                onRemove={handleRemoveTrigger}
-                onUpdate={handleUpdateTrigger}
+                onAdd={addTrigger}
+                onRemove={removeTrigger}
+                onUpdate={updateTrigger}
                 pipelineStages={pipelineStages}
                 maxTriggers={2}
               />
@@ -530,10 +408,10 @@ export function AutomationsDashboard({
             <div className="pt-4 border-t border-border">
               <ActionBuilder
                 actions={builderActions}
-                onAdd={handleAddAction}
-                onRemove={handleRemoveAction}
-                onUpdate={handleUpdateAction}
-                onReorder={handleReorderActions}
+                onAdd={addAction}
+                onRemove={removeAction}
+                onUpdate={updateAction}
+                onReorder={reorderActions}
               />
             </div>
           </div>
