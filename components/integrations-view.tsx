@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
@@ -18,10 +17,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Settings, CheckCircle2, XCircle, RefreshCw, ExternalLink, Building2, Users } from "lucide-react"
+import { Settings, CheckCircle2, XCircle, RefreshCw, ExternalLink, Building2, Users, Loader2, AlertCircle, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { mockClients } from "@/lib/mock-data"
+import { useIntegrationsStore, type IntegrationWithMeta } from "@/lib/store"
+import type { IntegrationProvider } from "@/types/database"
+import { INTEGRATION_META } from "@/lib/integrations/mcp-fallback"
 
+// Provider icons
 function SlackIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -54,121 +56,299 @@ function GoogleAdsIcon({ className }: { className?: string }) {
   )
 }
 
-function ZoomIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M4.585 4.585C2.048 4.585 0 6.633 0 9.17v5.66c0 2.537 2.048 4.585 4.585 4.585h9.83c2.537 0 4.585-2.048 4.585-4.585V14l5 3.75V6.25L19 10V9.17c0-2.537-2.048-4.585-4.585-4.585h-9.83z" />
-    </svg>
-  )
+const PROVIDER_ICONS: Record<IntegrationProvider, React.ReactNode> = {
+  slack: <SlackIcon className="h-6 w-6 text-[#4A154B]" />,
+  gmail: <GmailIcon className="h-6 w-6 text-rose-500" />,
+  google_ads: <GoogleAdsIcon className="h-6 w-6 text-amber-500" />,
+  meta_ads: <MetaIcon className="h-6 w-6 text-blue-500" />,
 }
 
-interface Integration {
-  id: string
-  name: string
-  description: string
-  icon: React.ReactNode
-  connected: boolean
-  lastSync?: string
+const PROVIDER_COLORS: Record<IntegrationProvider, string> = {
+  slack: "text-[#4A154B]",
+  gmail: "text-rose-500",
+  google_ads: "text-amber-500",
+  meta_ads: "text-blue-500",
 }
 
 interface ConfigModalState {
   isOpen: boolean
-  integrationId: string | null
-  integrationName: string
+  integration: IntegrationWithMeta | null
 }
 
 export function IntegrationsView() {
   const { toast } = useToast()
-
   const [scopeView, setScopeView] = useState<"agency" | "client">("agency")
-  const [selectedClient, setSelectedClient] = useState<string>(mockClients[0]?.id || "")
+
+  // Zustand store
+  const {
+    integrations,
+    isLoading,
+    isTesting,
+    isSyncing,
+    setIntegrations,
+    setLoading,
+    setTesting,
+    setSyncing,
+    updateIntegration,
+    setIntegrationStatus,
+  } = useIntegrationsStore()
 
   const [configModal, setConfigModal] = useState<ConfigModalState>({
     isOpen: false,
-    integrationId: null,
-    integrationName: "",
+    integration: null,
   })
   const [connectionTested, setConnectionTested] = useState(false)
 
-  const [integrations, setIntegrations] = useState<Integration[]>([
-    {
-      id: "slack",
-      name: "Slack",
-      description: "Sync client channels and messages",
-      icon: <SlackIcon className="h-6 w-6 text-[#4A154B]" />,
-      connected: true,
-      lastSync: "2 minutes ago",
-    },
-    {
-      id: "gmail",
-      name: "Gmail",
-      description: "Import client email communications",
-      icon: <GmailIcon className="h-6 w-6 text-rose-500" />,
-      connected: true,
-      lastSync: "5 minutes ago",
-    },
-    {
-      id: "meta",
-      name: "Meta Ads",
-      description: "Pull ad performance metrics",
-      icon: <MetaIcon className="h-6 w-6 text-blue-500" />,
-      connected: true,
-      lastSync: "1 hour ago",
-    },
-    {
-      id: "google-ads",
-      name: "Google Ads",
-      description: "Import Google advertising data",
-      icon: <GoogleAdsIcon className="h-6 w-6 text-amber-500" />,
-      connected: true,
-      lastSync: "1 hour ago",
-    },
-    {
-      id: "zoom",
-      name: "Zoom",
-      description: "Sync meeting recordings and transcripts",
-      icon: <ZoomIcon className="h-6 w-6 text-blue-600" />,
-      connected: false,
-    },
-  ])
+  // Fetch integrations on mount
+  const fetchIntegrations = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/v1/integrations')
+      if (!response.ok) {
+        throw new Error('Failed to fetch integrations')
+      }
+      const { data } = await response.json()
+      setIntegrations(data || [])
+    } catch (error) {
+      console.error('Error fetching integrations:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load integrations",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [setIntegrations, setLoading, toast])
 
-  const [aiSettings, setAiSettings] = useState({
-    autoTag: true,
-    draftReplies: true,
-    flagNegative: true,
-  })
+  useEffect(() => {
+    fetchIntegrations()
+  }, [fetchIntegrations])
 
-  const toggleConnection = (id: string) => {
-    setIntegrations((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, connected: !i.connected, lastSync: i.connected ? undefined : "Just now" } : i,
-      ),
-    )
-    const integration = integrations.find((i) => i.id === id)
-    toast({
-      title: integration?.connected ? "Disconnected" : "Connected",
-      description: `${integration?.name} has been ${integration?.connected ? "disconnected" : "connected"}.`,
-    })
+  // Check URL params for OAuth callback results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const success = params.get('success')
+    const error = params.get('error')
+
+    if (success) {
+      toast({
+        title: "Connected!",
+        description: `${success} integration connected successfully`,
+      })
+      fetchIntegrations()
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    if (error) {
+      toast({
+        title: "Connection Failed",
+        description: error.replace(/_/g, ' '),
+        variant: "destructive",
+      })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [toast, fetchIntegrations])
+
+  // Connect integration (initiate OAuth)
+  const handleConnect = async (provider: IntegrationProvider) => {
+    try {
+      const response = await fetch('/api/v1/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      })
+
+      const { data, error } = await response.json()
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Redirect to OAuth URL
+      if (data.oauthUrl) {
+        window.location.href = data.oauthUrl
+      }
+    } catch (error) {
+      console.error('Connect error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to initiate connection",
+        variant: "destructive",
+      })
+    }
   }
 
-  const openConfigModal = (integration: Integration) => {
-    setConfigModal({
-      isOpen: true,
-      integrationId: integration.id,
-      integrationName: integration.name,
-    })
+  // Disconnect integration
+  const handleDisconnect = async (id: string) => {
+    try {
+      const response = await fetch(`/api/v1/integrations/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect')
+      }
+
+      toast({
+        title: "Disconnected",
+        description: "Integration has been disconnected",
+      })
+
+      fetchIntegrations()
+    } catch (error) {
+      console.error('Disconnect error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to disconnect integration",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Test connection
+  const handleTestConnection = async (id: string) => {
+    setTesting(id, true)
+    try {
+      const response = await fetch(`/api/v1/integrations/${id}/test`, {
+        method: 'POST',
+      })
+
+      const { data } = await response.json()
+
+      if (data.status === 'healthy') {
+        toast({
+          title: "Connection Healthy",
+          description: `Response time: ${data.responseTime}ms`,
+        })
+        setConnectionTested(true)
+      } else {
+        toast({
+          title: "Connection Issue",
+          description: data.suggestedAction || data.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Test connection error:', error)
+      toast({
+        title: "Test Failed",
+        description: "Unable to test connection",
+        variant: "destructive",
+      })
+    } finally {
+      setTesting(id, false)
+    }
+  }
+
+  // Trigger sync
+  const handleSync = async (id: string) => {
+    setSyncing(id, true)
+    try {
+      const response = await fetch(`/api/v1/integrations/${id}/sync`, {
+        method: 'POST',
+      })
+
+      const { data, error } = await response.json()
+
+      if (error) {
+        throw new Error(error)
+      }
+
+      toast({
+        title: "Sync Complete",
+        description: data.message,
+      })
+
+      updateIntegration(id, { last_sync_at: data.syncedAt })
+    } catch (error) {
+      console.error('Sync error:', error)
+      toast({
+        title: "Sync Failed",
+        description: "Unable to sync integration",
+        variant: "destructive",
+      })
+    } finally {
+      setSyncing(id, false)
+    }
+  }
+
+  const openConfigModal = (integration: IntegrationWithMeta) => {
+    setConfigModal({ isOpen: true, integration })
     setConnectionTested(false)
   }
 
-  const handleTestConnection = () => {
-    setConnectionTested(true)
-    toast({
-      title: "Connection Successful",
-      description: `${configModal.integrationName} connection verified.`,
-    })
+  // Format relative time
+  const formatRelativeTime = (dateString: string | null) => {
+    if (!dateString) return 'Never'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}d ago`
   }
 
-  const selectedClientData = mockClients.find((c) => c.id === selectedClient)
+  // All available providers (even if not connected)
+  const allProviders: IntegrationProvider[] = ['slack', 'gmail', 'google_ads', 'meta_ads']
+
+  // Build display list with connected + available
+  const displayIntegrations = allProviders.map(provider => {
+    const existing = integrations.find(i => i.provider === provider)
+    const meta = INTEGRATION_META[provider]
+
+    if (existing) {
+      return {
+        ...existing,
+        name: meta.name,
+        description: meta.description,
+        icon: PROVIDER_ICONS[provider],
+        supportsMcpFallback: meta.supportsMcpFallback,
+        mcpFallbackNote: meta.mcpFallbackNote,
+      }
+    }
+
+    // Not connected - show as available
+    return {
+      id: `available-${provider}`,
+      provider,
+      name: meta.name,
+      description: meta.description,
+      icon: PROVIDER_ICONS[provider],
+      is_connected: false,
+      status: 'disconnected' as const,
+      syncStatus: 'idle' as const,
+      supportsMcpFallback: meta.supportsMcpFallback,
+      mcpFallbackNote: meta.mcpFallbackNote,
+      last_sync_at: null,
+      agency_id: '',
+      access_token: null,
+      refresh_token: null,
+      token_expires_at: null,
+      config: null,
+      created_at: '',
+      updated_at: '',
+    }
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -176,7 +356,7 @@ export function IntegrationsView() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Integrations</h1>
-          <p className="text-muted-foreground">Manage your connected services and AI settings</p>
+          <p className="text-muted-foreground">Manage your connected services and sync settings</p>
         </div>
 
         <div className="flex items-center bg-secondary rounded-lg p-1">
@@ -201,154 +381,139 @@ export function IntegrationsView() {
         </div>
       </div>
 
-      {scopeView === "client" && (
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <Label className="text-foreground shrink-0">Select Client:</Label>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger className="w-[280px] bg-secondary border-border">
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockClients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-medium text-primary">{client.logo}</span>
-                        </div>
-                        {client.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedClientData && (
-                <span className="text-xs text-muted-foreground">
-                  Stage: <span className="text-foreground">{selectedClientData.stage}</span>
-                </span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Integration Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {displayIntegrations.map((integration) => {
+          const isConnected = integration.is_connected
+          const isTestingThis = isTesting[integration.id] || false
+          const isSyncingThis = isSyncing[integration.id] || false
+          const isAvailable = integration.id.startsWith('available-')
 
-      {/* Integration Cards Grid - Made cards clickable */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {integrations.map((integration) => (
-          <Card
-            key={integration.id}
-            className={cn(
-              "bg-card border-border transition-all cursor-pointer",
-              "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
-            )}
-            onClick={() => openConfigModal(integration)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-secondary">{integration.icon}</div>
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground">{integration.name}</h4>
-                    <p className="text-xs text-muted-foreground">{integration.description}</p>
+          return (
+            <Card
+              key={integration.id}
+              className={cn(
+                "bg-card border-border transition-all",
+                isConnected && "cursor-pointer hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
+              )}
+              onClick={() => isConnected && openConfigModal(integration as IntegrationWithMeta)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-secondary">{integration.icon}</div>
+                    <div>
+                      <h4 className="text-sm font-medium text-foreground">{integration.name}</h4>
+                      <p className="text-xs text-muted-foreground">{integration.description}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {integration.connected ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      <span className="text-xs text-emerald-500">Connected</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Disconnected</span>
-                    </>
-                  )}
-                </div>
-                <Switch
-                  checked={integration.connected}
-                  onCheckedChange={() => toggleConnection(integration.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
+                {/* MCP Fallback Badge */}
+                {integration.supportsMcpFallback && !isConnected && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Zap className="h-3 w-3" />
+                    <span>MCP available: {integration.mcpFallbackNote}</span>
+                  </div>
+                )}
 
-              {integration.connected && integration.lastSync && (
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Last sync: {integration.lastSync}</span>
+                <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    </Button>
+                    {isConnected ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <span className="text-xs text-emerald-500">Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Not connected</span>
+                      </>
+                    )}
+                  </div>
+
+                  {isAvailable ? (
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
+                      size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        openConfigModal(integration)
+                        handleConnect(integration.provider as IntegrationProvider)
                       }}
                     >
-                      <Settings className="h-3.5 w-3.5" />
+                      Connect
                     </Button>
-                  </div>
+                  ) : (
+                    <Switch
+                      checked={isConnected}
+                      onCheckedChange={() => {
+                        if (isConnected) {
+                          handleDisconnect(integration.id)
+                        } else {
+                          handleConnect(integration.provider as IntegrationProvider)
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+
+                {isConnected && (
+                  <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Last sync: {formatRelativeTime(integration.last_sync_at)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={isSyncingThis}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSync(integration.id)
+                        }}
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", isSyncingThis && "animate-spin")} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openConfigModal(integration as IntegrationWithMeta)
+                        }}
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
+      {/* Config Modal */}
       <Dialog open={configModal.isOpen} onOpenChange={(open) => setConfigModal((prev) => ({ ...prev, isOpen: open }))}>
         <DialogContent className="bg-card border-border sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              Configure {configModal.integrationName}
-              {scopeView === "client" && selectedClientData && (
-                <span className="text-muted-foreground font-normal"> for {selectedClientData.name}</span>
-              )}
+              Configure {configModal.integration?.provider && INTEGRATION_META[configModal.integration.provider]?.name}
             </DialogTitle>
             <DialogDescription>
-              {scopeView === "agency"
-                ? "Configure agency-wide integration settings"
-                : `Set up ${configModal.integrationName} specifically for ${selectedClientData?.name}`}
+              Manage integration settings and test connection
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Meta Ads specific config */}
-            {configModal.integrationId === "meta" && (
+            {/* Provider-specific config fields */}
+            {configModal.integration?.provider === "meta_ads" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="adAccountId" className="text-foreground">
-                    Ad Account ID
-                  </Label>
-                  <Input
-                    id="adAccountId"
-                    placeholder="act_123456789"
-                    className="bg-secondary border-border"
-                    defaultValue={
-                      scopeView === "client" && selectedClientData ? "act_" + selectedClientData.id + "12345" : ""
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">Select Pixel</Label>
-                  <Select defaultValue={selectedClientData?.metaPixelId || "pixel1"}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Choose a pixel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={selectedClientData?.metaPixelId || "pixel1"}>
-                        {selectedClientData?.metaPixelId || "Primary Pixel"} (Production)
-                      </SelectItem>
-                      <SelectItem value="pixel2">Pixel 98765432 (Testing)</SelectItem>
-                      <SelectItem value="pixel3">Pixel 55667788 (Legacy)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="adAccountId" className="text-foreground">Ad Account ID</Label>
+                  <Input id="adAccountId" placeholder="act_123456789" className="bg-secondary border-border" />
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
                   <div>
@@ -360,23 +525,17 @@ export function IntegrationsView() {
               </>
             )}
 
-            {/* Slack specific config */}
-            {configModal.integrationId === "slack" && (
+            {configModal.integration?.provider === "slack" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="channelId" className="text-foreground">
-                    Default Channel
-                  </Label>
+                  <Label className="text-foreground">Default Channel</Label>
                   <Select defaultValue="channel1">
                     <SelectTrigger className="bg-secondary border-border">
                       <SelectValue placeholder="Select channel" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="channel1">
-                        #client-{selectedClientData?.name.toLowerCase().replace(/\s+/g, "-") || "general"}
-                      </SelectItem>
-                      <SelectItem value="channel2">#support-tickets</SelectItem>
-                      <SelectItem value="channel3">#team-alerts</SelectItem>
+                      <SelectItem value="channel1">#general</SelectItem>
+                      <SelectItem value="channel2">#support</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -390,23 +549,11 @@ export function IntegrationsView() {
               </>
             )}
 
-            {/* Gmail specific config */}
-            {configModal.integrationId === "gmail" && (
+            {configModal.integration?.provider === "gmail" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="emailFilter" className="text-foreground">
-                    Email Filter
-                  </Label>
-                  <Input
-                    id="emailFilter"
-                    placeholder="from:client@example.com"
-                    className="bg-secondary border-border"
-                    defaultValue={
-                      scopeView === "client"
-                        ? `from:*@${selectedClientData?.name.toLowerCase().replace(/\s+/g, "")}.com`
-                        : ""
-                    }
-                  />
+                  <Label htmlFor="emailFilter" className="text-foreground">Email Filter</Label>
+                  <Input id="emailFilter" placeholder="from:client@example.com" className="bg-secondary border-border" />
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
                   <div>
@@ -418,13 +565,10 @@ export function IntegrationsView() {
               </>
             )}
 
-            {/* Google Ads specific config */}
-            {configModal.integrationId === "google-ads" && (
+            {configModal.integration?.provider === "google_ads" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="customerId" className="text-foreground">
-                    Customer ID
-                  </Label>
+                  <Label htmlFor="customerId" className="text-foreground">Customer ID</Label>
                   <Input id="customerId" placeholder="123-456-7890" className="bg-secondary border-border" />
                 </div>
                 <div className="space-y-2">
@@ -437,28 +581,8 @@ export function IntegrationsView() {
                       <SelectItem value="all">All Campaigns</SelectItem>
                       <SelectItem value="search">Search Only</SelectItem>
                       <SelectItem value="display">Display Only</SelectItem>
-                      <SelectItem value="shopping">Shopping Only</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </>
-            )}
-
-            {/* Zoom specific config */}
-            {configModal.integrationId === "zoom" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="zoomEmail" className="text-foreground">
-                    Zoom Account Email
-                  </Label>
-                  <Input id="zoomEmail" placeholder="user@audienceos.com" className="bg-secondary border-border" />
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Auto-transcribe recordings</p>
-                    <p className="text-xs text-muted-foreground">Generate AI summaries from call recordings</p>
-                  </div>
-                  <Switch defaultChecked />
                 </div>
               </>
             )}
@@ -471,9 +595,15 @@ export function IntegrationsView() {
                   "w-full border-border",
                   connectionTested && "border-emerald-500 bg-emerald-500/10 text-emerald-400",
                 )}
-                onClick={handleTestConnection}
+                disabled={isTesting[configModal.integration?.id || '']}
+                onClick={() => configModal.integration && handleTestConnection(configModal.integration.id)}
               >
-                {connectionTested ? (
+                {isTesting[configModal.integration?.id || ''] ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Testing...
+                  </>
+                ) : connectionTested ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Connection Verified
@@ -495,7 +625,7 @@ export function IntegrationsView() {
                 setConfigModal((prev) => ({ ...prev, isOpen: false }))
                 toast({
                   title: "Configuration Saved",
-                  description: `${configModal.integrationName} settings have been updated.`,
+                  description: "Integration settings have been updated.",
                 })
               }}
             >
@@ -505,7 +635,7 @@ export function IntegrationsView() {
         </DialogContent>
       </Dialog>
 
-      {/* AI Settings */}
+      {/* AI Settings Card */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground">AI Settings</CardTitle>
@@ -515,14 +645,9 @@ export function IntegrationsView() {
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Auto-tag incoming messages</p>
-              <p className="text-xs text-muted-foreground">
-                Automatically categorize messages as Urgent, Bug, Feedback, etc.
-              </p>
+              <p className="text-xs text-muted-foreground">Automatically categorize messages as Urgent, Bug, Feedback, etc.</p>
             </div>
-            <Switch
-              checked={aiSettings.autoTag}
-              onCheckedChange={(checked) => setAiSettings((prev) => ({ ...prev, autoTag: checked }))}
-            />
+            <Switch defaultChecked />
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
@@ -530,23 +655,15 @@ export function IntegrationsView() {
               <p className="text-sm font-medium text-foreground">Draft replies automatically</p>
               <p className="text-xs text-muted-foreground">Generate suggested responses for client messages</p>
             </div>
-            <Switch
-              checked={aiSettings.draftReplies}
-              onCheckedChange={(checked) => setAiSettings((prev) => ({ ...prev, draftReplies: checked }))}
-            />
+            <Switch defaultChecked />
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Flag negative sentiment</p>
-              <p className="text-xs text-muted-foreground">
-                Alert when client messages indicate frustration or urgency
-              </p>
+              <p className="text-xs text-muted-foreground">Alert when client messages indicate frustration or urgency</p>
             </div>
-            <Switch
-              checked={aiSettings.flagNegative}
-              onCheckedChange={(checked) => setAiSettings((prev) => ({ ...prev, flagNegative: checked }))}
-            />
+            <Switch defaultChecked />
           </div>
 
           <div className="pt-4 border-t border-border">

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { Database } from '@/types/database'
+import type { Database, IntegrationProvider } from '@/types/database'
 
 // Extract table types from Database
 type Tables = Database['public']['Tables']
@@ -9,6 +9,7 @@ type User = Tables['user']['Row']
 type Client = Tables['client']['Row']
 type Alert = Tables['alert']['Row']
 type Ticket = Tables['ticket']['Row']
+type Integration = Tables['integration']['Row']
 
 // ============================================================================
 // AUTH STORE
@@ -204,5 +205,123 @@ export const useUIStore = create<UIState>()(
       { name: 'ui-preferences' }
     ),
     { name: 'ui-store' }
+  )
+)
+
+// ============================================================================
+// INTEGRATIONS STORE
+// ============================================================================
+export type IntegrationStatus = 'connected' | 'disconnected' | 'syncing' | 'error'
+export type IntegrationSyncStatus = 'idle' | 'syncing' | 'success' | 'failed'
+
+export interface IntegrationWithMeta extends Integration {
+  // Computed/UI state
+  status: IntegrationStatus
+  syncStatus: IntegrationSyncStatus
+  healthScore?: number // 0-100
+  errorMessage?: string
+}
+
+interface IntegrationsState {
+  integrations: IntegrationWithMeta[]
+  selectedIntegrationId: string | null
+  isLoading: boolean
+  isTesting: { [key: string]: boolean } // Track test connection status per integration
+  isSyncing: { [key: string]: boolean } // Track sync status per integration
+
+  // Actions
+  setIntegrations: (integrations: Integration[]) => void
+  addIntegration: (integration: Integration) => void
+  updateIntegration: (id: string, updates: Partial<Integration>) => void
+  removeIntegration: (id: string) => void
+  setSelectedIntegration: (id: string | null) => void
+  setLoading: (loading: boolean) => void
+  setTesting: (id: string, testing: boolean) => void
+  setSyncing: (id: string, syncing: boolean) => void
+  setIntegrationStatus: (id: string, status: IntegrationStatus, errorMessage?: string) => void
+  setSyncStatus: (id: string, syncStatus: IntegrationSyncStatus) => void
+  setHealthScore: (id: string, score: number) => void
+}
+
+function mapIntegrationToMeta(integration: Integration): IntegrationWithMeta {
+  return {
+    ...integration,
+    status: integration.is_connected ? 'connected' : 'disconnected',
+    syncStatus: 'idle',
+  }
+}
+
+export const useIntegrationsStore = create<IntegrationsState>()(
+  devtools(
+    (set) => ({
+      integrations: [],
+      selectedIntegrationId: null,
+      isLoading: false,
+      isTesting: {},
+      isSyncing: {},
+
+      setIntegrations: (integrations) =>
+        set({
+          integrations: integrations.map(mapIntegrationToMeta),
+        }),
+
+      addIntegration: (integration) =>
+        set((state) => ({
+          integrations: [...state.integrations, mapIntegrationToMeta(integration)],
+        })),
+
+      updateIntegration: (id, updates) =>
+        set((state) => ({
+          integrations: state.integrations.map((i) =>
+            i.id === id ? { ...i, ...updates } : i
+          ),
+        })),
+
+      removeIntegration: (id) =>
+        set((state) => ({
+          integrations: state.integrations.filter((i) => i.id !== id),
+          selectedIntegrationId:
+            state.selectedIntegrationId === id ? null : state.selectedIntegrationId,
+        })),
+
+      setSelectedIntegration: (selectedIntegrationId) => set({ selectedIntegrationId }),
+
+      setLoading: (isLoading) => set({ isLoading }),
+
+      setTesting: (id, testing) =>
+        set((state) => ({
+          isTesting: { ...state.isTesting, [id]: testing },
+        })),
+
+      setSyncing: (id, syncing) =>
+        set((state) => ({
+          isSyncing: { ...state.isSyncing, [id]: syncing },
+          integrations: state.integrations.map((i) =>
+            i.id === id ? { ...i, syncStatus: syncing ? 'syncing' : 'idle' } : i
+          ),
+        })),
+
+      setIntegrationStatus: (id, status, errorMessage) =>
+        set((state) => ({
+          integrations: state.integrations.map((i) =>
+            i.id === id ? { ...i, status, errorMessage } : i
+          ),
+        })),
+
+      setSyncStatus: (id, syncStatus) =>
+        set((state) => ({
+          integrations: state.integrations.map((i) =>
+            i.id === id ? { ...i, syncStatus } : i
+          ),
+        })),
+
+      setHealthScore: (id, healthScore) =>
+        set((state) => ({
+          integrations: state.integrations.map((i) =>
+            i.id === id ? { ...i, healthScore } : i
+          ),
+        })),
+    }),
+    { name: 'integrations-store' }
   )
 )
