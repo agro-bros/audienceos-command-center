@@ -20,4 +20,4 @@ global.fetch = vi.fn()
 if (!global.crypto) {
   global.crypto = {} as Crypto
 }
-global.crypto.randomUUID = () => 'test-uuid-' + Math.random().toString(36).substr(2, 9)
+global.crypto.randomUUID = (() => 'test-uuid-' + Math.random().toString(36).substr(2, 9)) as () => `${string}-${string}-${string}-${string}-${string}`
