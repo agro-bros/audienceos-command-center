@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { toggleWorkflow } from '@/lib/workflows'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -15,19 +15,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'unauthorized', message: 'Not authenticated' }, { status: 401 })
     }
 
-    const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
       return NextResponse.json(
-        { error: 'forbidden', message: 'No agency associated' },
+        { error: 'forbidden', message: authError || 'No agency associated' },
         { status: 403 }
       )
     }

@@ -107,5 +107,62 @@ export function createMiddlewareClient(
   })
 }
 
+// =============================================================================
+// AUTH HELPERS (SEC-003, SEC-006)
+// =============================================================================
+
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+/**
+ * Get the current user's agency_id from the database
+ * This is more secure than trusting JWT user_metadata which can be stale
+ *
+ * @returns agency_id or null if user not found
+ */
+export async function getUserAgencyId(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('user')
+    .select('agency_id')
+    .eq('id', userId)
+    .single()
+
+  if (error || !data?.agency_id) {
+    return null
+  }
+
+  return data.agency_id
+}
+
+/**
+ * Get the authenticated user using getUser() (server-verified)
+ * This is more secure than getSession() which only validates JWT locally
+ *
+ * @returns { user, agencyId } or { user: null, agencyId: null } if not authenticated
+ */
+export async function getAuthenticatedUser(
+  supabase: SupabaseClient<Database>
+): Promise<{
+  user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user']
+  agencyId: string | null
+  error: string | null
+}> {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { user: null, agencyId: null, error: 'Not authenticated' }
+  }
+
+  const agencyId = await getUserAgencyId(supabase, user.id)
+
+  if (!agencyId) {
+    return { user, agencyId: null, error: 'No agency associated with user' }
+  }
+
+  return { user, agencyId, error: null }
+}
+
 // Re-export types for convenience
 export type { Database }

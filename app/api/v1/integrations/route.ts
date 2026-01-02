@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
+import { signOAuthState } from '@/lib/crypto'
 import type { IntegrationProvider } from '@/types/database'
 
 const VALID_PROVIDERS: IntegrationProvider[] = ['slack', 'gmail', 'google_ads', 'meta_ads']
@@ -79,11 +80,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get agency_id from user's JWT claims
-    const agencyId = session.user.user_metadata?.agency_id
+    // Get agency_id from database (SEC-003)
+    const { agencyId, error: agencyError } = await getAuthenticatedUser(supabase)
 
     if (!agencyId) {
-      return createErrorResponse(400, 'Agency not found in user session')
+      return createErrorResponse(400, agencyError || 'Agency not found')
     }
 
     // Check if integration already exists for this provider
@@ -136,14 +137,12 @@ function generateOAuthUrl(provider: IntegrationProvider, integrationId: string):
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const redirectUri = `${baseUrl}/api/v1/oauth/callback`
 
-  // State includes integration ID for tracking
-  const state = Buffer.from(
-    JSON.stringify({
-      integrationId,
-      provider,
-      timestamp: Date.now(),
-    })
-  ).toString('base64')
+  // State includes integration ID for tracking, signed with HMAC to prevent CSRF
+  const state = signOAuthState({
+    integrationId,
+    provider,
+    timestamp: Date.now(),
+  })
 
   switch (provider) {
     case 'slack':

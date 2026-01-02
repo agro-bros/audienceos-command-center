@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, sanitizeString, createErrorResponse } from '@/lib/security'
 import {
   getWorkflows,
@@ -34,14 +34,11 @@ export async function GET(request: NextRequest) {
     const includeRuns = searchParams.get('include_runs') === 'true'
     const runsLimit = Math.min(Math.max(1, parseInt(searchParams.get('runs_limit') || '5', 10) || 5), 20)
 
-    // Get current user and agency
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    // Demo mode fallback - return mock data when not authenticated
-    if (authError || !user) {
+    // Demo mode fallback - return mock data when not authenticated or no agency
+    if (!user || !agencyId) {
       const mockData = getMockWorkflowsWithRuns(includeRuns, runsLimit)
       return NextResponse.json({
         workflows: mockData,
@@ -50,21 +47,7 @@ export async function GET(request: NextRequest) {
           has_more: false,
         },
         demo: true,
-      })
-    }
-
-    // Get agency_id from user metadata or JWT
-    const agencyId = user.user_metadata?.agency_id
-    if (!agencyId) {
-      // Demo mode fallback for users without agency
-      const mockData = getMockWorkflowsWithRuns(includeRuns, runsLimit)
-      return NextResponse.json({
-        workflows: mockData,
-        pagination: {
-          total: mockData.length,
-          has_more: false,
-        },
-        demo: true,
+        ...(authError && { authError }),
       })
     }
 
@@ -110,19 +93,15 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createRouteHandlerClient(cookies)
 
-    // Get current user and agency
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
+    if (!user) {
       return createErrorResponse(401, 'Not authenticated')
     }
 
-    const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
-      return createErrorResponse(403, 'No agency associated')
+      return createErrorResponse(403, authError || 'No agency associated')
     }
 
     // Parse request body

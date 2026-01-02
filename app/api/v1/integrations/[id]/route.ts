@@ -1,10 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
-import { withRateLimit, isValidUUID, createErrorResponse } from '@/lib/security'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { withRateLimit, isValidUUID, createErrorResponse, withTimeout } from '@/lib/security'
+import { decryptToken, deserializeEncryptedToken } from '@/lib/crypto'
+import type { IntegrationProvider } from '@/types/database'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+// Token revocation endpoints for each provider (SEC-005)
+const REVOCATION_ENDPOINTS: Record<IntegrationProvider, string | null> = {
+  slack: 'https://slack.com/api/auth.revoke',
+  gmail: 'https://oauth2.googleapis.com/revoke',
+  google_ads: 'https://oauth2.googleapis.com/revoke',
+  meta_ads: null, // Meta doesn't have a standard revocation endpoint
+}
+
+/**
+ * Revoke OAuth tokens with the provider (SEC-005)
+ * This ensures tokens are invalidated when user disconnects
+ */
+async function revokeProviderTokens(
+  provider: IntegrationProvider,
+  accessToken: string | null,
+  refreshToken: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const revokeUrl = REVOCATION_ENDPOINTS[provider]
+
+  if (!revokeUrl) {
+    // Provider doesn't support revocation (e.g., Meta)
+    return { success: true }
+  }
+
+  // Try to decrypt tokens if they're encrypted
+  let tokenToRevoke = accessToken
+  if (accessToken?.startsWith('{')) {
+    const encrypted = deserializeEncryptedToken(accessToken)
+    if (encrypted) {
+      tokenToRevoke = decryptToken(encrypted)
+    }
+  }
+
+  if (!tokenToRevoke) {
+    // No token to revoke
+    return { success: true }
+  }
+
+  try {
+    if (provider === 'slack') {
+      // Slack uses a different revocation API
+      await withTimeout(
+        fetch(revokeUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${tokenToRevoke}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }),
+        5000,
+        'Token revocation timed out'
+      )
+    } else {
+      // Google uses standard OAuth2 revocation
+      await withTimeout(
+        fetch(`${revokeUrl}?token=${encodeURIComponent(tokenToRevoke)}`, {
+          method: 'POST',
+        }),
+        5000,
+        'Token revocation timed out'
+      )
+    }
+
+    return { success: true }
+  } catch (error) {
+    // Log but don't fail - we still want to delete the integration
+    console.error(`[SEC-005] Token revocation failed for ${provider}:`, error)
+    return { success: false, error: 'Token revocation failed' }
+  }
 }
 
 // GET /api/v1/integrations/[id] - Get single integration details
@@ -23,13 +96,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
+    // Get authenticated user (SEC-006)
+    const { user, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (sessionError || !session) {
-      return createErrorResponse(401, 'Unauthorized')
+    if (!user) {
+      return createErrorResponse(401, authError || 'Unauthorized')
     }
 
     const { data: integration, error } = await supabase
@@ -67,13 +138,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
+    // Get authenticated user (SEC-006)
+    const { user, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (sessionError || !session) {
-      return createErrorResponse(401, 'Unauthorized')
+    if (!user) {
+      return createErrorResponse(401, authError || 'Unauthorized')
     }
 
     let body: Record<string, unknown>
@@ -144,19 +213,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
+    // Get authenticated user (SEC-006)
+    const { user, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (sessionError || !session) {
-      return createErrorResponse(401, 'Unauthorized')
+    if (!user) {
+      return createErrorResponse(401, authError || 'Unauthorized')
     }
 
-    // First check if integration exists
+    // Get integration with tokens for revocation
     const { data: existing } = await supabase
       .from('integration')
-      .select('id, provider')
+      .select('id, provider, access_token, refresh_token')
       .eq('id', id)
       .single()
 
@@ -164,8 +231,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return createErrorResponse(404, 'Integration not found')
     }
 
-    // TODO: Revoke OAuth tokens with provider before deletion
-    // This would be a call to the provider's revoke endpoint
+    // Revoke OAuth tokens with provider before deletion (SEC-005)
+    const revocationResult = await revokeProviderTokens(
+      existing.provider as IntegrationProvider,
+      existing.access_token,
+      existing.refresh_token
+    )
+
+    // Log if revocation failed but continue with deletion
+    if (!revocationResult.success) {
+      console.warn(`[SEC-005] Token revocation warning for ${existing.provider}: ${revocationResult.error}`)
+    }
 
     // Delete the integration
     const { error } = await supabase.from('integration').delete().eq('id', id)
@@ -176,6 +252,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       message: `${existing.provider} integration disconnected and deleted`,
+      tokenRevoked: revocationResult.success,
     })
   } catch {
     return createErrorResponse(500, 'Internal server error')

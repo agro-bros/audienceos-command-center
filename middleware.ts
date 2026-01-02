@@ -1,0 +1,118 @@
+/**
+ * Next.js Middleware
+ * Provides centralized authentication for protected routes (SEC-004)
+ */
+
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+
+// Routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/login',
+  '/auth/callback',
+  '/api/v1/oauth/callback', // OAuth callback needs to work without auth
+]
+
+// API routes that allow demo mode (return mock data instead of 401)
+const DEMO_ALLOWED_API_ROUTES = [
+  '/api/v1/workflows', // GET returns demo data for unauthenticated users
+]
+
+// Static files and Next.js internals to skip
+const SKIP_PATTERNS = [
+  '/_next',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/manifest.json',
+]
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Skip static files and Next.js internals
+  if (SKIP_PATTERNS.some(pattern => pathname.startsWith(pattern))) {
+    return NextResponse.next()
+  }
+
+  // Skip public routes
+  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+    return NextResponse.next()
+  }
+
+  // Create response to modify if needed
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  // Create Supabase client for middleware
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
+
+  // Refresh session if expired
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  // For API routes
+  if (pathname.startsWith('/api/')) {
+    // Allow demo routes to pass through (they handle auth internally)
+    if (DEMO_ALLOWED_API_ROUTES.some(route => pathname.startsWith(route))) {
+      return response
+    }
+
+    // Block unauthenticated API requests
+    if (error || !user) {
+      return NextResponse.json(
+        { error: 'unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    return response
+  }
+
+  // For page routes - redirect to login if not authenticated
+  if (error || !user) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  return response
+}
+
+// Configure which routes use this middleware
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}

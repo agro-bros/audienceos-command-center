@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
 import {
   getWorkflowWithStats,
@@ -39,18 +39,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
+    if (!user) {
       return createErrorResponse(401, 'Not authenticated')
     }
 
-    const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
-      return createErrorResponse(403, 'No agency associated')
+      return createErrorResponse(403, authError || 'No agency associated')
     }
 
     const { data, error } = await getWorkflowWithStats(supabase, id, agencyId)
@@ -88,18 +85,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
+    if (!user) {
       return createErrorResponse(401, 'Not authenticated')
     }
 
-    const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
-      return createErrorResponse(403, 'No agency associated')
+      return createErrorResponse(403, authError || 'No agency associated')
     }
 
     let body: Record<string, unknown>
@@ -246,18 +240,15 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with agency_id from database (SEC-003, SEC-006)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
+    if (!user) {
       return createErrorResponse(401, 'Not authenticated')
     }
 
-    const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
-      return createErrorResponse(403, 'No agency associated')
+      return createErrorResponse(403, authError || 'No agency associated')
     }
 
     const { error } = await deleteWorkflow(supabase, id, agencyId)

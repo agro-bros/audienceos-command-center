@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { isValidUUID, withTimeout, withRateLimit } from '@/lib/security'
+import { verifyOAuthState, encryptToken, serializeEncryptedToken } from '@/lib/crypto'
 import type { IntegrationProvider } from '@/types/database'
-
-interface OAuthState {
-  integrationId: string
-  provider: IntegrationProvider
-  timestamp: number
-}
 
 interface TokenResponse {
   access_token: string
@@ -20,22 +15,7 @@ interface TokenResponse {
 
 const VALID_PROVIDERS: IntegrationProvider[] = ['slack', 'gmail', 'google_ads', 'meta_ads']
 const OAUTH_TIMEOUT_MS = 30000 // 30 second timeout for OAuth requests
-
-/**
- * Validate OAuth state structure
- */
-function isValidOAuthState(state: unknown): state is OAuthState {
-  if (!state || typeof state !== 'object') return false
-  const s = state as Record<string, unknown>
-  return (
-    typeof s.integrationId === 'string' &&
-    isValidUUID(s.integrationId) &&
-    typeof s.provider === 'string' &&
-    VALID_PROVIDERS.includes(s.provider as IntegrationProvider) &&
-    typeof s.timestamp === 'number' &&
-    s.timestamp > 0
-  )
-}
+const STATE_EXPIRY_MS = 10 * 60 * 1000 // 10 minutes
 
 // GET /api/v1/oauth/callback - Handle OAuth callback from providers
 export async function GET(request: NextRequest) {
@@ -63,27 +43,27 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Decode and validate state with proper error handling
-  let oauthState: OAuthState
-  try {
-    const decoded = Buffer.from(state, 'base64').toString()
-    const parsed = JSON.parse(decoded)
+  // Verify HMAC-signed state (SEC-001: prevents CSRF in OAuth flow)
+  const oauthState = verifyOAuthState(state)
 
-    if (!isValidOAuthState(parsed)) {
-      return NextResponse.redirect(
-        `${baseUrl}/settings/integrations?error=invalid_state`
-      )
-    }
+  if (!oauthState) {
+    return NextResponse.redirect(
+      `${baseUrl}/settings/integrations?error=invalid_state`
+    )
+  }
 
-    oauthState = parsed
-  } catch {
+  // Validate state structure
+  if (
+    !isValidUUID(oauthState.integrationId) ||
+    !VALID_PROVIDERS.includes(oauthState.provider as IntegrationProvider)
+  ) {
     return NextResponse.redirect(
       `${baseUrl}/settings/integrations?error=invalid_state`
     )
   }
 
   // Check state expiry (10 minutes)
-  if (Date.now() - oauthState.timestamp > 10 * 60 * 1000) {
+  if (Date.now() - oauthState.timestamp > STATE_EXPIRY_MS) {
     return NextResponse.redirect(
       `${baseUrl}/settings/integrations?error=state_expired`
     )
@@ -101,17 +81,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Update integration with tokens
+    // Update integration with encrypted tokens (SEC-002)
     const supabase = await createRouteHandlerClient(cookies)
+
+    // Encrypt tokens before storage
+    const encryptedAccessToken = encryptToken(tokens.access_token)
+    const encryptedRefreshToken = tokens.refresh_token
+      ? encryptToken(tokens.refresh_token)
+      : null
 
     const updateData: Record<string, unknown> = {
       is_connected: true,
-      access_token: tokens.access_token,
+      // Store encrypted tokens if encryption is configured, otherwise plaintext
+      access_token: encryptedAccessToken
+        ? serializeEncryptedToken(encryptedAccessToken)
+        : tokens.access_token,
       last_sync_at: new Date().toISOString(),
     }
 
     if (tokens.refresh_token) {
-      updateData.refresh_token = tokens.refresh_token
+      updateData.refresh_token = encryptedRefreshToken
+        ? serializeEncryptedToken(encryptedRefreshToken)
+        : tokens.refresh_token
     }
 
     if (tokens.expires_in) {

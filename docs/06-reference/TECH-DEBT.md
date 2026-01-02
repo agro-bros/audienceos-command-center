@@ -81,6 +81,52 @@
 
 ---
 
+## Security (SEC): Pre-Production Hardening
+
+### SEC-001: Unsigned OAuth State ✅ FIXED
+**Files:** `app/api/v1/integrations/route.ts`, `app/api/v1/oauth/callback/route.ts`, `lib/crypto.ts`
+**Issue:** OAuth state was Base64-encoded JSON without HMAC signature
+**Effect:** CSRF vulnerability in OAuth flow - attacker could craft malicious callbacks
+**Fix:** Added HMAC-SHA256 signature using `signOAuthState()` and `verifyOAuthState()`
+**Status:** Fixed 2026-01-02
+
+### SEC-002: Plaintext OAuth Tokens ✅ FIXED
+**Files:** `app/api/v1/oauth/callback/route.ts`, `lib/crypto.ts`
+**Issue:** access_token and refresh_token were stored unencrypted in Supabase
+**Effect:** Database breach would expose all OAuth tokens
+**Fix:** Added AES-256-GCM encryption with `encryptToken()` and `decryptToken()`
+**Status:** Fixed 2026-01-02
+
+### SEC-003: Inconsistent agency_id Retrieval ✅ FIXED
+**Files:** `lib/supabase.ts`, all workflow and integration routes
+**Issue:** Was using `user.user_metadata?.agency_id` instead of database lookup
+**Effect:** Stale JWT metadata could cause wrong tenant data access
+**Fix:** Created `getAuthenticatedUser()` helper that fetches agency_id from database
+**Status:** Fixed 2026-01-02
+
+### SEC-004: No Authentication Middleware ✅ FIXED
+**File:** `middleware.ts`
+**Issue:** No centralized route protection - each route handled auth individually
+**Effect:** New routes could forget auth checks; no single enforcement point
+**Fix:** Added Next.js middleware protecting all routes, with demo fallback for specific APIs
+**Status:** Fixed 2026-01-02
+
+### SEC-005: No Token Revocation on Disconnect ✅ FIXED
+**File:** `app/api/v1/integrations/[id]/route.ts`
+**Issue:** Tokens were not revoked when user disconnected integration
+**Effect:** Stale OAuth tokens remained valid at provider after "disconnect"
+**Fix:** Added `revokeProviderTokens()` function calling provider revocation endpoints
+**Status:** Fixed 2026-01-02
+
+### SEC-006: getSession vs getUser Inconsistency ✅ FIXED
+**Files:** All API routes now use `getAuthenticatedUser()` from `lib/supabase.ts`
+**Issue:** Some routes used `getSession()`, Supabase recommends `getUser()` for server
+**Effect:** `getSession()` trusts JWT without server verification; potential auth bypass
+**Fix:** Standardized all routes to use `getAuthenticatedUser()` which calls `getUser()`
+**Status:** Fixed 2026-01-02
+
+---
+
 ## P2: Pre-Scale (Fix at 100+ Clients)
 
 ### TD-009: Missing useMemo for Filter Calculations
@@ -191,6 +237,8 @@
 
 | Date | Item | Action |
 |------|------|--------|
+| 2026-01-02 | SEC-001 to SEC-006 | **Fixed** - OAuth signing, token encryption, agency_id, middleware, revocation, getUser |
+| 2026-01-02 | SEC-001 to SEC-006 | Added 6 security items from security audit |
 | 2026-01-02 | TD-001, TD-002, TD-003 | Fixed - setTimeout, duplicate state, DOMPurify |
 | 2026-01-02 | Initial | Created register with 22 items from audit |
 
