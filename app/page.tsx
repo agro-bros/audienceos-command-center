@@ -167,6 +167,7 @@ function CommandCenterContent() {
           setActiveView(view)
           setSelectedClient(null)
         }}
+        onQuickCreate={() => setCommandPaletteOpen(true)}
         detailPanel={
           clientForPanel ? (
             <ClientDetailPanel
