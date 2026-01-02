@@ -40,6 +40,13 @@
 **Fix:** Replace with DOMPurify library
 **Status:** Fixed 2026-01-02
 
+### TD-023: Mock Data Fallback Pattern ✅ FIXED
+**Files:** `app/page.tsx`, `app/client/[id]/page.tsx`
+**Issue:** Views fell back to mockClients when API data unavailable
+**Effect:** Fake data shown instead of empty states; confusion about real vs mock
+**Fix:** Removed mock imports, return empty arrays, added proper empty state UI
+**Status:** Fixed 2026-01-02
+
 ---
 
 ## P1: Pre-Beta (Fix Before Public Launch)
@@ -129,12 +136,12 @@
 
 ## P2: Pre-Scale (Fix at 100+ Clients)
 
-### TD-009: Missing useMemo for Filter Calculations
-**File:** `app/page.tsx:79-110`
+### TD-009: Missing useMemo for Filter Calculations ✅ FIXED
+**File:** `app/page.tsx:92-125`
 **Issue:** Filter logic recalculates on every render
 **Effect:** Performance degradation with large datasets
-**Fix:** Wrap in useMemo with proper dependencies
-**Trigger:** When client count exceeds 50
+**Fix:** Wrapped filteredClients in useMemo with proper dependencies
+**Status:** Fixed 2026-01-02
 
 ### TD-010: Missing React.memo on Kanban Components
 **File:** `components/kanban-board.tsx`
@@ -237,6 +244,7 @@
 
 | Date | Item | Action |
 |------|------|--------|
+| 2026-01-02 | TD-023, TD-009 | **Fixed** - Mock data fallbacks removed, useMemo for filter calculations |
 | 2026-01-02 | SEC-006 Complete | Migrated ALL 22 remaining `getSession()` calls to `getAuthenticatedUser()` |
 | 2026-01-02 | Security Keys | Added `OAUTH_STATE_SECRET` and `TOKEN_ENCRYPTION_KEY` to `.env.local` |
 | 2026-01-02 | Startup Validation | Created `instrumentation.ts` to fail-fast in production if security keys missing |
