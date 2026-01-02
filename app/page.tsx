@@ -45,9 +45,11 @@ function CommandCenterContent() {
 
   const { toast } = useToast()
 
-  // Fetch clients from API when authenticated
+  // Fetch clients from API when authenticated (or always in dev mode)
   useEffect(() => {
-    if (isAuthenticated) {
+    // In dev mode, fetch even without auth since API allows it
+    const isDev = process.env.NODE_ENV !== 'production'
+    if (isAuthenticated || isDev) {
       fetchClients()
     }
   }, [isAuthenticated, fetchClients])

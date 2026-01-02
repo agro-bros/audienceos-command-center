@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
 
 // Page routes that allow demo mode (show demo data without auth)
 const DEMO_ALLOWED_PAGE_ROUTES = [
+  '/',       // Home page (Dashboard/Pipeline) - DEV MODE
   '/client', // Client detail pages work with demo data
 ]
 

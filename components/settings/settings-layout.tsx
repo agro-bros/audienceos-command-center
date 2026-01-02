@@ -58,6 +58,13 @@ const settingsNavItems: Array<{
     adminOnly: true,
   },
   {
+    id: "security",
+    label: "Security",
+    description: "Domains, SSO, and access controls",
+    icon: Shield,
+    adminOnly: true,
+  },
+  {
     id: "audit_log",
     label: "Audit Log",
     description: "View settings change history",

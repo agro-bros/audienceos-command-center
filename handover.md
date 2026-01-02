@@ -4,6 +4,22 @@
 
 ## Completed This Session
 
+### 5. Schema Mismatch Fix - Stress Tested (2026-01-02)
+
+**QA Red Team Process:**
+- Used Claude in Chrome to test actual browser behavior
+- Found schema mismatch between `use-client-detail.ts` types and API response
+- Communications interface expected `message_preview`, `sent_at`
+- API actually returns `subject`, `content`, `received_at`
+
+**Files Fixed:**
+- `hooks/use-client-detail.ts` - Updated `ClientCommunication` interface
+- `app/client/[id]/page.tsx` - Fixed field access, sorting, and "Last Contact" display
+
+**Confidence Score:** 6/10 → 9/10 after fix
+
+---
+
 ### 4. Comprehensive UX Testing (2026-01-02)
 
 **Test Mode:** Authenticated as `dev@audienceos.dev` with real Supabase data

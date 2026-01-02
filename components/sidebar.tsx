@@ -72,10 +72,12 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapsedChange
         collapsed ? "w-14" : "w-56",
       )}
     >
-      {/* Logo - text only */}
+      {/* Logo - text only, Futura-style */}
       <div className="flex items-center justify-between h-12 px-3 border-b border-border">
         {!collapsed && (
-          <span className="text-[14px] font-semibold text-foreground">AudienceOS</span>
+          <span className="text-[15px] font-light tracking-wide text-foreground" style={{ fontFamily: 'var(--font-jost), Futura, "Century Gothic", sans-serif' }}>
+            AudienceOS
+          </span>
         )}
         <button
           className="h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Brain, Send, X, Maximize2, Minimize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 const promptChips = [
   "Show stuck clients",
@@ -18,6 +19,16 @@ export function AIBar() {
   const [query, setQuery] = useState("")
   const [isExpanded, setIsExpanded] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
+  const { toast } = useToast()
+
+  const handleSendQuery = () => {
+    if (!query.trim()) return
+    toast({
+      title: "AI Intelligence",
+      description: "AI-powered insights coming soon! We're training on your client data.",
+    })
+    setQuery("")
+  }
 
   if (!isVisible) {
     return (
@@ -96,9 +107,13 @@ export function AIBar() {
             placeholder="Ask about client status or draft a support response..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendQuery()}
             className="flex-1 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
           />
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button
+            onClick={handleSendQuery}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>

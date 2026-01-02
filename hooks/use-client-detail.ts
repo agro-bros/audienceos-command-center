@@ -38,8 +38,9 @@ export interface ClientTicket {
 export interface ClientCommunication {
   id: string
   platform: string
-  message_preview: string
-  sent_at: string
+  subject: string | null
+  content: string
+  received_at: string
 }
 
 export interface ClientAssignment {
