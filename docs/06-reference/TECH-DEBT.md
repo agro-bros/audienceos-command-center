@@ -51,40 +51,40 @@
 
 ## P1: Pre-Beta (Fix Before Public Launch)
 
-### TD-004: In-Memory Rate Limiting
-**File:** `lib/security.ts:81-96`
+### TD-004: In-Memory Rate Limiting ✅ FIXED
+**File:** `lib/security.ts`
 **Issue:** Rate limit store is in-memory Map, resets on restart
 **Effect:** Ineffective with load balancing or server restarts
-**Fix:** Use Redis or Supabase for distributed rate limiting
-**Trigger:** Before deploying with multiple instances
+**Fix:** Implemented distributed rate limiting via Supabase with atomic `increment_rate_limit` RPC
+**Status:** Fixed 2026-01-02
 
-### TD-005: Missing CSRF Protection
-**File:** `app/api/v1/*/route.ts` (all POST handlers)
+### TD-005: Missing CSRF Protection ✅ FIXED
+**File:** `middleware.ts`, `lib/security.ts`, `lib/csrf.ts`
 **Issue:** No CSRF token validation on state-changing requests
 **Effect:** Cross-site request forgery possible
-**Fix:** Add CSRF middleware using next-csrf or similar
-**Trigger:** Before public beta
+**Fix:** Added `withCsrfProtection()` middleware, cookie-based tokens set in middleware, client-side `fetchWithCsrf()` wrapper
+**Status:** Fixed 2026-01-02
 
-### TD-006: Email Validation Too Permissive
-**File:** `lib/security.ts:42-47`
+### TD-006: Email Validation Too Permissive ✅ FIXED
+**File:** `lib/security.ts`
 **Issue:** Regex allows invalid emails like `test@test..com`
 **Effect:** Invalid data in database
-**Fix:** Use email-validator library or RFC-compliant regex
-**Trigger:** Before user registration feature
+**Fix:** Replaced regex with `email-validator` library for RFC 5322 compliant validation
+**Status:** Fixed 2026-01-02
 
-### TD-007: Disabled ESLint Dependencies
-**File:** `hooks/use-dashboard.ts:213`
+### TD-007: Disabled ESLint Dependencies ✅ FIXED
+**File:** `hooks/use-dashboard.ts`
 **Issue:** `eslint-disable-line react-hooks/exhaustive-deps` masks real bugs
 **Effect:** Trends don't update when selectedPeriod changes
-**Fix:** Split into multiple effects with proper dependencies
-**Trigger:** Before dashboard is production-critical
+**Fix:** Replaced with `hasMounted` ref pattern, proper deps, separate effects for initial load vs period change
+**Status:** Fixed 2026-01-02
 
-### TD-008: IP Spoofing in Rate Limiter
-**File:** `lib/security.ts:156-158`
+### TD-008: IP Spoofing in Rate Limiter ✅ FIXED
+**File:** `lib/security.ts`
 **Issue:** Trusts X-Forwarded-For header without validation
 **Effect:** Rate limit bypass via header spoofing
-**Fix:** Validate X-Forwarded-For chain or use CF-Connecting-IP
-**Trigger:** Before public exposure
+**Fix:** Added `getClientIp()` with priority: CF-Connecting-IP > X-Real-IP > rightmost X-Forwarded-For, with IP format validation
+**Status:** Fixed 2026-01-02
 
 ---
 
@@ -244,6 +244,7 @@
 
 | Date | Item | Action |
 |------|------|--------|
+| 2026-01-02 | TD-004 to TD-008 | **Fixed** - All P1 pre-beta items complete (rate limiting, CSRF, email validation, ESLint deps, IP spoofing) |
 | 2026-01-02 | TD-023, TD-009 | **Fixed** - Mock data fallbacks removed, useMemo for filter calculations |
 | 2026-01-02 | SEC-006 Complete | Migrated ALL 22 remaining `getSession()` calls to `getAuthenticatedUser()` |
 | 2026-01-02 | Security Keys | Added `OAUTH_STATE_SECRET` and `TOKEN_ENCRYPTION_KEY` to `.env.local` |

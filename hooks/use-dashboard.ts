@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback, useState } from "react"
+import { useEffect, useCallback, useState, useRef } from "react"
 import { useDashboardStore } from "@/lib/stores/dashboard-store"
 import {
   calculateAllKPIs,
@@ -343,20 +343,36 @@ export function useDashboard(): UseDashboardReturn {
     loadTrends(period)
   }, [setSelectedPeriod, loadTrends])
 
-  // Initial load
+  // Track mount state to prevent duplicate initial loads (TD-007 fix)
+  const hasMounted = useRef(false)
+  const initialPeriod = useRef(selectedPeriod)
+
+  // Initial load - only runs once on mount
   useEffect(() => {
+    if (hasMounted.current) return
+    hasMounted.current = true
+
+    // Load KPIs if not already loaded
     if (!kpis) {
       loadKPIs()
     }
-    if (!trends) {
-      loadTrends(selectedPeriod)
-    }
-    setRealtimeConnected(true)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reload trends when period changes
+    // Load trends for initial period
+    if (!trends) {
+      loadTrends(initialPeriod.current)
+    }
+
+    // Mark realtime as connected
+    setRealtimeConnected(true)
+  }, [kpis, trends, loadKPIs, loadTrends, setRealtimeConnected])
+
+  // Reload trends when period changes (separate effect for clarity)
   useEffect(() => {
-    if (trends && trends.period !== selectedPeriod) {
+    // Skip if this is the initial render or trends not yet loaded
+    if (!hasMounted.current || !trends) return
+
+    // Only reload if period actually changed
+    if (trends.period !== selectedPeriod) {
       loadTrends(selectedPeriod)
     }
   }, [selectedPeriod, trends, loadTrends])

@@ -1,11 +1,47 @@
 /**
  * Next.js Middleware
  * Provides centralized authentication for protected routes (SEC-004)
+ * Includes CSRF token management (TD-005)
  */
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+
+// CSRF Configuration (TD-005)
+const CSRF_COOKIE_NAME = '__csrf_token'
+
+/**
+ * Generate a CSRF token
+ */
+function generateCsrfToken(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Set CSRF cookie on response if not present
+ */
+function ensureCsrfCookie(request: NextRequest, response: NextResponse): NextResponse {
+  // Check if CSRF cookie already exists
+  const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value
+  if (existingToken) {
+    return response
+  }
+
+  // Generate and set new CSRF token
+  const token = generateCsrfToken()
+  response.cookies.set(CSRF_COOKIE_NAME, token, {
+    httpOnly: false, // Must be readable by JavaScript to include in headers
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 60 * 60 * 24, // 24 hours
+  })
+
+  return response
+}
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -104,14 +140,16 @@ export async function middleware(request: NextRequest) {
   // (except demo-allowed pages which handle auth internally)
   if (error || !user) {
     if (DEMO_ALLOWED_PAGE_ROUTES.some(route => pathname.startsWith(route))) {
-      return response // Allow demo pages to handle their own auth
+      // Ensure CSRF cookie is set for demo pages (TD-005)
+      return ensureCsrfCookie(request, response)
     }
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  return response
+  // Ensure CSRF cookie is set for authenticated page requests (TD-005)
+  return ensureCsrfCookie(request, response)
 }
 
 // Configure which routes use this middleware
