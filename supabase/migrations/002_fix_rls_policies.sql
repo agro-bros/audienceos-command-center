@@ -1,74 +1,35 @@
--- Migration: Fix RLS policies to use user table lookup instead of JWT claims
--- Reason: JWT claims can be stale/missing; user table is authoritative
+-- Migration: Fix ticket RLS policy to use user table lookup instead of JWT claims
+-- Applied: 2026-01-02 via Supabase SQL Editor
+-- Reason: JWT claims can be stale/missing; user table lookup is authoritative
+--
+-- This matches the working pattern used by client_agency_via_user policy
 
--- Helper function to get agency_id from authenticated user
-CREATE OR REPLACE FUNCTION get_user_agency_id()
-RETURNS uuid AS $$
-  SELECT agency_id FROM public.user WHERE id = auth.uid()
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
-
--- Drop existing policies and recreate with user table lookup
--- This is more reliable than JWT claims which may not be set
-
--- CLIENT table
-DROP POLICY IF EXISTS client_rls ON client;
-CREATE POLICY client_rls ON client FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- TICKET table
+-- Drop any existing ticket policies
 DROP POLICY IF EXISTS ticket_rls ON ticket;
-CREATE POLICY ticket_rls ON ticket FOR ALL
-    USING (agency_id = get_user_agency_id());
+DROP POLICY IF EXISTS ticket_agency_via_user ON ticket;
 
--- TICKET_NOTE table
-DROP POLICY IF EXISTS ticket_note_rls ON ticket_note;
-CREATE POLICY ticket_note_rls ON ticket_note FOR ALL
+-- Create ticket policy using user table lookup (matches client policy pattern)
+-- This allows users to access tickets belonging to their agency
+CREATE POLICY ticket_agency_via_user ON ticket
+    FOR ALL
     USING (
-        ticket_id IN (
-            SELECT id FROM ticket WHERE agency_id = get_user_agency_id()
+        agency_id IN (
+            SELECT agency_id FROM "user" WHERE id = auth.uid()
         )
     );
 
--- STAGE_EVENT table
-DROP POLICY IF EXISTS stage_event_rls ON stage_event;
-CREATE POLICY stage_event_rls ON stage_event FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- INTEGRATION table
-DROP POLICY IF EXISTS integration_rls ON integration;
-CREATE POLICY integration_rls ON integration FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- WORKFLOW table
-DROP POLICY IF EXISTS workflow_rls ON workflow;
-CREATE POLICY workflow_rls ON workflow FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- WORKFLOW_RUN table
-DROP POLICY IF EXISTS workflow_run_rls ON workflow_run;
-CREATE POLICY workflow_run_rls ON workflow_run FOR ALL
-    USING (
-        workflow_id IN (
-            SELECT id FROM workflow WHERE agency_id = get_user_agency_id()
-        )
-    );
-
--- KB_DOCUMENT table
-DROP POLICY IF EXISTS kb_document_rls ON kb_document;
-CREATE POLICY kb_document_rls ON kb_document FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- COMMUNICATION table
-DROP POLICY IF EXISTS communication_rls ON communication;
-CREATE POLICY communication_rls ON communication FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- ACTIVITY_LOG table
-DROP POLICY IF EXISTS activity_log_rls ON activity_log;
-CREATE POLICY activity_log_rls ON activity_log FOR ALL
-    USING (agency_id = get_user_agency_id());
-
--- USER table (special case - users can see other users in same agency)
-DROP POLICY IF EXISTS user_rls ON public.user;
-CREATE POLICY user_rls ON public.user FOR ALL
-    USING (agency_id = get_user_agency_id());
+-- Note: The following tables may need similar fixes if they exhibit the same
+-- JWT-based RLS issue. Currently they have policies that use:
+--   USING (agency_id = (auth.jwt() ->> 'agency_id')::uuid)
+--
+-- Tables to monitor:
+--   - stage_event
+--   - integration
+--   - workflow
+--   - workflow_run
+--   - kb_document
+--   - communication
+--   - activity_log
+--
+-- If issues arise, apply the same pattern:
+--   USING (agency_id IN (SELECT agency_id FROM "user" WHERE id = auth.uid()))
