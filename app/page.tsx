@@ -204,7 +204,8 @@ function CommandCenterContent() {
     } else {
       updateURL({ client: null, tab: null })
     }
-  }, [isSheetOpen, selectedClient, defaultTab, updateURL])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateURL is stable, including it causes infinite loop
+  }, [isSheetOpen, selectedClient, defaultTab])
 
   // Sync filters to URL
   useEffect(() => {
@@ -217,7 +218,8 @@ function CommandCenterContent() {
       atRisk: filters.showAtRisk ? "true" : null,
       blocked: filters.showBlocked ? "true" : null,
     })
-  }, [filters, updateURL])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateURL is stable, including it causes infinite loop
+  }, [filters])
 
   // Optimistic update handler for drag-drop
   const handleClientMove = async (clientId: string, toStage: Stage, notes?: string) => {

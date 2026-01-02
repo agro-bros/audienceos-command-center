@@ -6,11 +6,21 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /**
+ * Singleton browser client - prevents infinite re-render loops
+ * when used in React hooks with dependency arrays
+ */
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null
+
+/**
  * Create a Supabase client for browser/client components
  * Uses cookie-based auth with automatic token refresh
+ * Returns singleton to prevent re-render loops in hooks
  */
 export function createClient() {
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  if (!browserClient) {
+    browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  }
+  return browserClient
 }
 
 /**
