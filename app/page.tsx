@@ -7,6 +7,7 @@ import {
   ListHeader,
   ClientRow,
   ClientDetailPanel,
+  KanbanBoard,
 } from "@/components/linear"
 import { mockClients, type Client, owners } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
@@ -79,38 +80,45 @@ function CommandCenterContent() {
                 </Button>
               }
             />
-            <div className="flex-1 overflow-y-auto">
-              {filteredClients.map((client) => {
-                const ownerData = owners.find((o) => o.name === client.owner) || {
-                  name: client.owner,
-                  avatar: client.owner[0],
-                  color: "bg-primary",
-                }
-                return (
-                  <ClientRow
-                    key={client.id}
-                    id={client.logo}
-                    name={client.name}
-                    stage={client.stage}
-                    health={client.health}
-                    owner={{
-                      name: ownerData.name,
-                      initials: ownerData.avatar,
-                      color: ownerData.color,
-                    }}
-                    daysInStage={client.daysInStage}
-                    blocker={client.blocker}
-                    onClick={() => setSelectedClient(client)}
-                    selected={selectedClient?.id === client.id}
-                  />
-                )
-              })}
-              {filteredClients.length === 0 && (
-                <div className="flex items-center justify-center h-48 text-muted-foreground">
-                  No clients found
-                </div>
-              )}
-            </div>
+            {viewMode === "board" ? (
+              <KanbanBoard
+                clients={filteredClients}
+                onClientClick={(client) => setSelectedClient(client)}
+              />
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                {filteredClients.map((client) => {
+                  const ownerData = owners.find((o) => o.name === client.owner) || {
+                    name: client.owner,
+                    avatar: client.owner[0],
+                    color: "bg-primary",
+                  }
+                  return (
+                    <ClientRow
+                      key={client.id}
+                      id={client.logo}
+                      name={client.name}
+                      stage={client.stage}
+                      health={client.health}
+                      owner={{
+                        name: ownerData.name,
+                        initials: ownerData.avatar,
+                        color: ownerData.color,
+                      }}
+                      daysInStage={client.daysInStage}
+                      blocker={client.blocker}
+                      onClick={() => setSelectedClient(client)}
+                      selected={selectedClient?.id === client.id}
+                    />
+                  )
+                })}
+                {filteredClients.length === 0 && (
+                  <div className="flex items-center justify-center h-48 text-muted-foreground">
+                    No clients found
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )
 
