@@ -219,8 +219,25 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
 
               <Card className="p-4">
                 <p className="text-sm text-muted-foreground mb-1">Last Contact</p>
-                <p className="text-lg font-semibold text-foreground">2 hours ago</p>
-                <p className="text-xs text-muted-foreground mt-1">Slack message</p>
+                {client.communications.length > 0 ? (
+                  <>
+                    <p className="text-lg font-semibold text-foreground">
+                      {formatTimeAgo(client.communications.sort((a, b) =>
+                        new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
+                      )[0].received_at)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 capitalize">
+                      {client.communications.sort((a, b) =>
+                        new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
+                      )[0].platform} message
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-semibold text-foreground">No contact</p>
+                    <p className="text-xs text-muted-foreground mt-1">No messages yet</p>
+                  </>
+                )}
               </Card>
 
               <Card className="p-4">
@@ -295,7 +312,7 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
                   </div>
                 ) : (
                   client.communications
-                    .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+                    .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime())
                     .map((comm) => (
                       <div
                         key={comm.id}
@@ -311,10 +328,13 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
                             {comm.platform}
                           </Badge>
                           <span className="text-xs text-muted-foreground ml-auto">
-                            {formatTimeAgo(comm.sent_at)}
+                            {formatTimeAgo(comm.received_at)}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{comm.message_preview}</p>
+                        {comm.subject && (
+                          <p className="text-sm font-medium text-foreground mb-1">{comm.subject}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-2">{comm.content}</p>
                       </div>
                     ))
                 )}
