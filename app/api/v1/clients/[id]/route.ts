@@ -70,7 +70,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           to_stage,
           moved_at,
           notes,
-          moved_by
+          moved_by:user!moved_by (
+            id,
+            first_name,
+            last_name
+          )
         ),
         tasks:task (
           id,

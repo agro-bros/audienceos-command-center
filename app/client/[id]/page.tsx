@@ -270,7 +270,7 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatTimeAgo(event.moved_at)}
-                              {event.moved_by && ` by ${event.moved_by}`}
+                              {event.moved_by && ` by ${event.moved_by.first_name}`}
                             </p>
                             {event.notes && (
                               <p className="text-xs text-muted-foreground mt-1 italic">{event.notes}</p>

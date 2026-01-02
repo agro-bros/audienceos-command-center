@@ -7,7 +7,11 @@ export interface StageEvent {
   to_stage: string
   moved_at: string
   notes: string | null
-  moved_by: string
+  moved_by: {
+    id: string
+    first_name: string
+    last_name: string
+  } | null
 }
 
 export interface ClientTask {
