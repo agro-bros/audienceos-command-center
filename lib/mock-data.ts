@@ -1136,6 +1136,252 @@ export const chartData = [
   { date: "Nov 29", newClients: 2, completedInstalls: 2 },
 ]
 
+// ============================================================================
+// MOCK WORKFLOWS
+// ============================================================================
+
+export interface MockWorkflow {
+  id: string
+  agency_id: string
+  name: string
+  description: string | null
+  triggers: unknown[]
+  actions: unknown[]
+  is_active: boolean
+  created_by: string
+  last_run_at: string | null
+  run_count: number
+  success_count: number
+  created_at: string
+  updated_at: string
+  runs?: MockWorkflowRun[]
+}
+
+export interface MockWorkflowRun {
+  id: string
+  agency_id: string
+  workflow_id: string
+  trigger_data: Record<string, unknown>
+  status: 'running' | 'completed' | 'failed' | 'pending_approval' | 'skipped'
+  executed_actions: unknown[]
+  error_message: string | null
+  started_at: string
+  completed_at: string | null
+  results: Record<string, unknown> | null
+  created_at: string
+}
+
+export const mockWorkflows: MockWorkflow[] = [
+  {
+    id: 'wf-001',
+    agency_id: 'demo-agency',
+    name: 'Client Health Alert',
+    description: 'Send Slack notification when client health drops to Red',
+    triggers: [
+      {
+        id: 'tr-001',
+        type: 'kpi_threshold',
+        name: 'Health Score Drop',
+        config: { metric: 'health_score', operator: 'below', value: 50 }
+      }
+    ],
+    actions: [
+      {
+        id: 'ac-001',
+        type: 'send_notification',
+        name: 'Slack Alert',
+        config: { channel: 'slack', message: 'Client {{client.name}} health dropped to {{client.health}}', recipients: ['#alerts'] }
+      },
+      {
+        id: 'ac-002',
+        type: 'create_task',
+        name: 'Follow-up Task',
+        config: { title: 'Check in with {{client.name}}', priority: 'high', dueInDays: 1 }
+      }
+    ],
+    is_active: true,
+    created_by: 'user-001',
+    last_run_at: '2024-12-01T14:30:00Z',
+    run_count: 24,
+    success_count: 22,
+    created_at: '2024-10-15T09:00:00Z',
+    updated_at: '2024-11-28T16:45:00Z'
+  },
+  {
+    id: 'wf-002',
+    agency_id: 'demo-agency',
+    name: 'Inactivity Follow-up',
+    description: 'Auto-create task when no client communication for 7 days',
+    triggers: [
+      {
+        id: 'tr-002',
+        type: 'inactivity',
+        name: '7 Day Silence',
+        config: { days: 7, activityTypes: ['communication'] }
+      }
+    ],
+    actions: [
+      {
+        id: 'ac-003',
+        type: 'create_task',
+        name: 'Check-in Task',
+        config: { title: 'Follow up with {{client.name}} - no contact in 7 days', priority: 'medium', dueInDays: 2, assignToTriggeredUser: true }
+      }
+    ],
+    is_active: true,
+    created_by: 'user-001',
+    last_run_at: '2024-12-02T08:15:00Z',
+    run_count: 45,
+    success_count: 45,
+    created_at: '2024-09-20T11:30:00Z',
+    updated_at: '2024-11-15T10:20:00Z'
+  },
+  {
+    id: 'wf-003',
+    agency_id: 'demo-agency',
+    name: 'Stage Change Notification',
+    description: 'Notify team when client moves to Live stage',
+    triggers: [
+      {
+        id: 'tr-003',
+        type: 'stage_change',
+        name: 'Move to Live',
+        config: { toStage: 'Live' }
+      }
+    ],
+    actions: [
+      {
+        id: 'ac-004',
+        type: 'send_notification',
+        name: 'Team Celebration',
+        config: { channel: 'slack', message: '{{client.name}} is now LIVE! Great work team.', recipients: ['#wins'] }
+      },
+      {
+        id: 'ac-005',
+        type: 'draft_communication',
+        name: 'Welcome Email Draft',
+        config: { platform: 'gmail', template: 'Congratulations on going live!', tone: 'friendly' }
+      }
+    ],
+    is_active: true,
+    created_by: 'user-002',
+    last_run_at: '2024-11-30T16:00:00Z',
+    run_count: 12,
+    success_count: 12,
+    created_at: '2024-10-01T14:00:00Z',
+    updated_at: '2024-11-30T16:00:00Z'
+  },
+  {
+    id: 'wf-004',
+    agency_id: 'demo-agency',
+    name: 'Support Ticket Escalation',
+    description: 'Create alert for high priority tickets',
+    triggers: [
+      {
+        id: 'tr-004',
+        type: 'ticket_created',
+        name: 'High Priority Ticket',
+        config: { priorities: ['high', 'critical'] }
+      }
+    ],
+    actions: [
+      {
+        id: 'ac-006',
+        type: 'create_alert',
+        name: 'Priority Alert',
+        config: { title: 'High priority ticket: {{trigger.title}}', type: 'risk_detected', severity: 'high' }
+      }
+    ],
+    is_active: false,
+    created_by: 'user-001',
+    last_run_at: null,
+    run_count: 0,
+    success_count: 0,
+    created_at: '2024-11-20T09:00:00Z',
+    updated_at: '2024-11-20T09:00:00Z'
+  }
+]
+
+export const mockWorkflowRuns: MockWorkflowRun[] = [
+  {
+    id: 'run-001',
+    agency_id: 'demo-agency',
+    workflow_id: 'wf-001',
+    trigger_data: { client_id: '6', client_name: 'Beardbrand', old_health: 'Yellow', new_health: 'Red' },
+    status: 'completed',
+    executed_actions: [{ action_id: 'ac-001', status: 'completed' }, { action_id: 'ac-002', status: 'completed' }],
+    error_message: null,
+    started_at: '2024-12-01T14:30:00Z',
+    completed_at: '2024-12-01T14:30:05Z',
+    results: { slack_message_id: 'msg-123', task_id: 'task-456' },
+    created_at: '2024-12-01T14:30:00Z'
+  },
+  {
+    id: 'run-002',
+    agency_id: 'demo-agency',
+    workflow_id: 'wf-002',
+    trigger_data: { client_id: '1', client_name: 'RTA Outdoor Living', days_inactive: 8 },
+    status: 'completed',
+    executed_actions: [{ action_id: 'ac-003', status: 'completed' }],
+    error_message: null,
+    started_at: '2024-12-02T08:15:00Z',
+    completed_at: '2024-12-02T08:15:02Z',
+    results: { task_id: 'task-789' },
+    created_at: '2024-12-02T08:15:00Z'
+  },
+  {
+    id: 'run-003',
+    agency_id: 'demo-agency',
+    workflow_id: 'wf-003',
+    trigger_data: { client_id: '3', client_name: 'Terren', from_stage: 'Audit', to_stage: 'Live' },
+    status: 'completed',
+    executed_actions: [{ action_id: 'ac-004', status: 'completed' }, { action_id: 'ac-005', status: 'completed' }],
+    error_message: null,
+    started_at: '2024-11-30T16:00:00Z',
+    completed_at: '2024-11-30T16:00:08Z',
+    results: { slack_message_id: 'msg-456', draft_id: 'draft-123' },
+    created_at: '2024-11-30T16:00:00Z'
+  },
+  {
+    id: 'run-004',
+    agency_id: 'demo-agency',
+    workflow_id: 'wf-001',
+    trigger_data: { client_id: '11', client_name: 'Brooklinen', old_health: 'Yellow', new_health: 'Red' },
+    status: 'failed',
+    executed_actions: [{ action_id: 'ac-001', status: 'failed' }],
+    error_message: 'Slack API rate limit exceeded',
+    started_at: '2024-11-29T10:00:00Z',
+    completed_at: '2024-11-29T10:00:03Z',
+    results: null,
+    created_at: '2024-11-29T10:00:00Z'
+  },
+  {
+    id: 'run-005',
+    agency_id: 'demo-agency',
+    workflow_id: 'wf-002',
+    trigger_data: { client_id: '7', client_name: 'MVMT Watches', days_inactive: 10 },
+    status: 'completed',
+    executed_actions: [{ action_id: 'ac-003', status: 'completed' }],
+    error_message: null,
+    started_at: '2024-11-28T09:00:00Z',
+    completed_at: '2024-11-28T09:00:02Z',
+    results: { task_id: 'task-321' },
+    created_at: '2024-11-28T09:00:00Z'
+  }
+]
+
+// Helper to get workflows with their runs attached
+export function getMockWorkflowsWithRuns(includeRuns: boolean = false, runsLimit: number = 5): MockWorkflow[] {
+  if (!includeRuns) return mockWorkflows
+
+  return mockWorkflows.map(workflow => ({
+    ...workflow,
+    runs: mockWorkflowRuns
+      .filter(run => run.workflow_id === workflow.id)
+      .slice(0, runsLimit)
+  }))
+}
+
 export function getKPIs(clients: Client[]) {
   const activeOnboardings = clients.filter((c) => c.stage === "Onboarding" || c.stage === "Installation").length
   const clientsAtRisk = clients.filter((c) => c.health === "Red" || c.health === "Blocked").length

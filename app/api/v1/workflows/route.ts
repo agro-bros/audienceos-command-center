@@ -14,6 +14,7 @@ import {
   validateTriggerConfig,
   validateActionConfig,
 } from '@/lib/workflows'
+import { getMockWorkflowsWithRuns } from '@/lib/mock-data'
 import type { WorkflowTrigger, WorkflowAction } from '@/types/workflow'
 
 // ============================================================================
@@ -28,24 +29,46 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createRouteHandlerClient(cookies)
 
+    // Parse query params
+    const { searchParams } = new URL(request.url)
+    const includeRuns = searchParams.get('include_runs') === 'true'
+    const runsLimit = Math.min(Math.max(1, parseInt(searchParams.get('runs_limit') || '5', 10) || 5), 20)
+
     // Get current user and agency
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
 
+    // Demo mode fallback - return mock data when not authenticated
     if (authError || !user) {
-      return createErrorResponse(401, 'Not authenticated')
+      const mockData = getMockWorkflowsWithRuns(includeRuns, runsLimit)
+      return NextResponse.json({
+        workflows: mockData,
+        pagination: {
+          total: mockData.length,
+          has_more: false,
+        },
+        demo: true,
+      })
     }
 
     // Get agency_id from user metadata or JWT
     const agencyId = user.user_metadata?.agency_id
     if (!agencyId) {
-      return createErrorResponse(403, 'No agency associated')
+      // Demo mode fallback for users without agency
+      const mockData = getMockWorkflowsWithRuns(includeRuns, runsLimit)
+      return NextResponse.json({
+        workflows: mockData,
+        pagination: {
+          total: mockData.length,
+          has_more: false,
+        },
+        demo: true,
+      })
     }
 
-    // Parse query params with sanitization
-    const { searchParams } = new URL(request.url)
+    // Parse remaining query params with sanitization
     const isActiveParam = searchParams.get('enabled')
     const rawSearch = searchParams.get('q')
     const search = rawSearch ? sanitizeString(rawSearch).slice(0, 100) : undefined
@@ -64,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      items: data,
+      workflows: data,
       pagination: {
         total: count,
         has_more: (data?.length ?? 0) < count,
