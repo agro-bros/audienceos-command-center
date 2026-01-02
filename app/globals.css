@@ -52,38 +52,47 @@
 }
 
 .dark {
-  --background: oklch(0.13 0.005 260);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.16 0.005 260);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.14 0.005 260);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.72 0.17 162);
-  --primary-foreground: oklch(0.13 0 0);
-  --secondary: oklch(0.22 0.005 260);
-  --secondary-foreground: oklch(0.9 0 0);
-  --muted: oklch(0.22 0.005 260);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.72 0.17 162);
-  --accent-foreground: oklch(0.13 0 0);
-  --destructive: oklch(0.65 0.2 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.28 0.005 260);
-  --input: oklch(0.22 0.005 260);
-  --ring: oklch(0.72 0.17 162);
-  --chart-1: oklch(0.72 0.17 162);
-  --chart-2: oklch(0.65 0.15 250);
-  --chart-3: oklch(0.8 0.15 85);
-  --chart-4: oklch(0.65 0.2 25);
-  --chart-5: oklch(0.55 0.15 300);
-  --sidebar: oklch(0.11 0.005 260);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.72 0.17 162);
-  --sidebar-primary-foreground: oklch(0.13 0 0);
-  --sidebar-accent: oklch(0.18 0.005 260);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.25 0.005 260);
-  --sidebar-ring: oklch(0.72 0.17 162);
+  /* Linear-exact dark theme */
+  --background: #0d1117;
+  --foreground: #f0f6fc;
+  --card: #161b22;
+  --card-foreground: #f0f6fc;
+  --popover: #161b22;
+  --popover-foreground: #f0f6fc;
+  --primary: #58a6ff;
+  --primary-foreground: #0d1117;
+  --secondary: #21262d;
+  --secondary-foreground: #f0f6fc;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
+  --accent: #58a6ff;
+  --accent-foreground: #0d1117;
+  --destructive: #f85149;
+  --destructive-foreground: #f0f6fc;
+  --border: #30363d;
+  --input: #21262d;
+  --ring: #58a6ff;
+
+  /* Linear status colors */
+  --status-green: #3fb950;
+  --status-yellow: #d29922;
+  --status-red: #f85149;
+  --status-blocked: #a371f7;
+
+  --chart-1: #58a6ff;
+  --chart-2: #3fb950;
+  --chart-3: #d29922;
+  --chart-4: #f85149;
+  --chart-5: #a371f7;
+
+  --sidebar: #0d1117;
+  --sidebar-foreground: #f0f6fc;
+  --sidebar-primary: #58a6ff;
+  --sidebar-primary-foreground: #0d1117;
+  --sidebar-accent: #161b22;
+  --sidebar-accent-foreground: #f0f6fc;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #58a6ff;
 }
 
 @theme inline {
