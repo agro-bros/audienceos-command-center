@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Search, Filter, LayoutGrid, List, SortAsc, MoreHorizontal, X, ChevronDown } from "lucide-react"
+import { Search, Filter, LayoutGrid, List, SortAsc, MoreHorizontal, X, ChevronDown, Download, RefreshCw, Settings, Columns } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -154,9 +154,32 @@ export function ListHeader({
             </DropdownMenu>
           )}
 
-          <Button variant="ghost" size="sm" className="h-8 px-2">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-2">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Columns className="w-4 h-4 mr-2" />
+                Manage Columns
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="w-4 h-4 mr-2" />
+                View Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {actions}
         </div>

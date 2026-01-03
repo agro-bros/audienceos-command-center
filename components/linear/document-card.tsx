@@ -14,7 +14,21 @@ import {
   Star,
   Clock,
   Users,
+  Download,
+  Share2,
+  Edit,
+  Trash2,
+  ExternalLink,
+  Copy,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export type DocumentType = "document" | "spreadsheet" | "presentation" | "image" | "video" | "pdf" | "folder" | "other"
 export type DocumentCategory = "onboarding" | "reporting" | "creative" | "strategy" | "contracts" | "templates" | "training"
@@ -222,14 +236,46 @@ export function DocumentCard({
         )}
 
         {/* Actions */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-          }}
-          className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors flex-shrink-0 cursor-pointer"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem>
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Copy className="w-4 h-4 mr-2" />
+              Make a copy
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Edit className="w-4 h-4 mr-2" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     )
   }
@@ -285,14 +331,46 @@ export function DocumentCard({
       <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h3 className="font-medium text-foreground text-sm truncate">{name}</h3>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-            }}
-            className="p-0.5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Copy className="w-4 h-4 mr-2" />
+                Make a copy
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Edit className="w-4 h-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {description && (

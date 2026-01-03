@@ -3,7 +3,18 @@
 import React from "react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Calendar, MoreVertical } from "lucide-react"
+import { Calendar, MoreVertical, ExternalLink, Edit, UserPlus, Trash2, ArrowRight } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 
 interface KanbanCardProps {
   id: string
@@ -82,9 +93,60 @@ export function KanbanCard({
               {owner.initials}
             </AvatarFallback>
           </Avatar>
-          <button className="p-2 hover:bg-secondary rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-            <MoreVertical className="w-4 h-4 text-muted-foreground" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Move to Stage
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem>Onboarding</DropdownMenuItem>
+                  <DropdownMenuItem>Installation</DropdownMenuItem>
+                  <DropdownMenuItem>Audit</DropdownMenuItem>
+                  <DropdownMenuItem>Live</DropdownMenuItem>
+                  <DropdownMenuItem>Needs Support</DropdownMenuItem>
+                  <DropdownMenuItem>Off-boarding</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Assign to
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem>Luke</DropdownMenuItem>
+                  <DropdownMenuItem>Garrett</DropdownMenuItem>
+                  <DropdownMenuItem>Josh</DropdownMenuItem>
+                  <DropdownMenuItem>Jeff</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

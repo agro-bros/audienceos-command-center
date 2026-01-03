@@ -476,16 +476,18 @@ export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
             ))}
           </div>
 
-          {/* Activity Feed */}
-          <div className="bg-card border border-border rounded-lg p-4">
-            {filteredActivities.length > 0 ? (
-              <ActivityFeed activities={filteredActivities} />
-            ) : (
-              <div className="text-center py-8">
-                <History className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                <p className="text-sm text-muted-foreground">No activities found for this filter.</p>
-              </div>
-            )}
+          {/* Activity Feed - Scrollable container */}
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="max-h-[500px] overflow-y-auto p-4">
+              {filteredActivities.length > 0 ? (
+                <ActivityFeed activities={filteredActivities} />
+              ) : (
+                <div className="text-center py-8">
+                  <History className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                  <p className="text-sm text-muted-foreground">No activities found for this filter.</p>
+                </div>
+              )}
+            </div>
           </div>
         </SettingsContentSection>
       )}

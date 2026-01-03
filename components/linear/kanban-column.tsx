@@ -3,8 +3,15 @@
 import React from "react"
 import { cn } from "@/lib/utils"
 import { KanbanCard } from "./kanban-card"
-import { MoreHorizontal, Plus } from "lucide-react"
+import { MoreHorizontal, Plus, SortAsc, Filter, EyeOff, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import type { Client } from "@/lib/mock-data"
 
 interface KanbanColumnProps {
@@ -57,9 +64,32 @@ export function KanbanColumn({
           <span className="text-xs text-muted-foreground">{clients.length}</span>
         </div>
         <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <SortAsc className="w-4 h-4 mr-2" />
+                Sort by Health
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <EyeOff className="w-4 h-4 mr-2" />
+                Hide Column
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="w-4 h-4 mr-2" />
+                Column Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onAddClick}>
             <Plus className="w-4 h-4 text-muted-foreground" />
           </Button>

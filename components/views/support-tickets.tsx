@@ -304,7 +304,7 @@ export function SupportTickets() {
                 key={tab.id}
                 onClick={() => setActiveFilter(tab.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                   activeFilter === tab.id
                     ? "bg-secondary text-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"

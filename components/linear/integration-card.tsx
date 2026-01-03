@@ -24,8 +24,8 @@ export function IntegrationCard({
   onOpen,
 }: IntegrationCardProps) {
   return (
-    <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
-      <div className="flex items-start gap-3 mb-3">
+    <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors flex flex-col h-full min-h-[140px]">
+      <div className="flex items-start gap-3 flex-1">
         <div
           className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
@@ -36,14 +36,14 @@ export function IntegrationCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-foreground">{name}</h3>
+            <h3 className="text-sm font-medium text-foreground">{name}</h3>
             {connected && (
               <span className="text-[10px] px-1.5 py-0.5 bg-status-green/20 text-status-green rounded">
                 Connected
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed mt-0.5">
+          <p className="text-xs text-muted-foreground leading-snug mt-0.5">
             {description}
           </p>
         </div>
@@ -52,7 +52,7 @@ export function IntegrationCard({
       <Button
         variant={connected ? "outline" : "secondary"}
         size="sm"
-        className="w-full"
+        className="w-full mt-3"
         onClick={connected ? onOpen : onConnect}
       >
         {connected ? "Open" : "Connect"}
@@ -74,8 +74,10 @@ export const integrationIcons = {
     </svg>
   ),
   googleAds: (
-    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.006 22.545c-1.645 0-3.187-.427-4.525-1.175l7.063-12.233 4.569 7.915a9.465 9.465 0 0 1-7.107 5.493zm-9.792-5.49A9.438 9.438 0 0 1 .89 12.537l7.063 12.233c-2.573-.863-4.638-2.878-5.739-5.715zm-.325-6.11a9.438 9.438 0 0 1 2.214-4.518l7.063 12.233-4.569-7.915c-1.907.327-3.594 1.205-4.708 2.2zm17.103-5.49a9.438 9.438 0 0 1 2.214 4.518l-7.063-12.233 4.569 7.915c1.907-.327 3.594-1.205 4.708-2.2z" />
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+      <path d="M21.6 9.6L14.4 21.6C13.8 22.5 12.6 22.8 11.7 22.2C10.8 21.6 10.5 20.4 11.1 19.5L18.3 7.5C18.9 6.6 20.1 6.3 21 6.9C21.9 7.5 22.2 8.7 21.6 9.6Z" fill="#FBBC04"/>
+      <path d="M12 21.6L4.8 9.6C4.2 8.7 4.5 7.5 5.4 6.9C6.3 6.3 7.5 6.6 8.1 7.5L15.3 19.5C15.9 20.4 15.6 21.6 14.7 22.2C13.8 22.8 12.6 22.5 12 21.6Z" fill="#4285F4"/>
+      <circle cx="6.6" cy="18" r="3.6" fill="#34A853"/>
     </svg>
   ),
   meta: (

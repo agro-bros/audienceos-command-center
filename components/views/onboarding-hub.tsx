@@ -151,8 +151,19 @@ interface ClientDetailPanelProps {
 }
 
 function ClientDetailPanel({ client, stage, onClose, onClientClick }: ClientDetailPanelProps) {
-  const checklist = stageChecklists[stage.id]
-  const completedCount = checklist.filter(item => item.completed).length
+  // Local state for interactive checklist
+  const [checklistState, setChecklistState] = React.useState(() =>
+    stageChecklists[stage.id].map(item => ({ ...item }))
+  )
+  const completedCount = checklistState.filter(item => item.completed).length
+
+  const toggleChecklistItem = (itemId: string) => {
+    setChecklistState(prev =>
+      prev.map(item =>
+        item.id === itemId ? { ...item, completed: !item.completed } : item
+      )
+    )
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -213,15 +224,16 @@ function ClientDetailPanel({ client, stage, onClose, onClientClick }: ClientDeta
               {stage.name} Checklist
             </h3>
             <span className="text-xs text-muted-foreground">
-              {completedCount}/{checklist.length} complete
+              {completedCount}/{checklistState.length} complete
             </span>
           </div>
           <div className="space-y-1">
-            {checklist.map((item) => (
-              <div
+            {checklistState.map((item) => (
+              <button
                 key={item.id}
+                onClick={() => toggleChecklistItem(item.id)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer text-left",
                   item.completed ? "bg-emerald-500/5" : "bg-secondary/30 hover:bg-secondary/50"
                 )}
               >
@@ -236,7 +248,7 @@ function ClientDetailPanel({ client, stage, onClose, onClientClick }: ClientDeta
                 )}>
                   {item.task}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
