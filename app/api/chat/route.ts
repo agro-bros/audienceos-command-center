@@ -9,19 +9,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { ChatService } from '@/lib/chat/service'
+import { withRateLimit, sanitizeString, createErrorResponse } from '@/lib/security'
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 60 chat messages per minute (stricter for AI endpoints)
+  const rateLimitResponse = withRateLimit(request, { maxRequests: 60, windowMs: 60000 })
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
     const supabase = await createRouteHandlerClient(cookies)
 
-    // Get authenticated user with server verification
+    // Get authenticated user with server verification (SEC-006)
     const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
     if (!user || !agencyId) {
-      return NextResponse.json(
-        { error: authError || 'Unauthorized' },
-        { status: 401 }
-      )
+      return createErrorResponse(401, authError || 'Unauthorized')
     }
 
     // Parse request body
@@ -34,38 +36,25 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json(
-        { error: 'Invalid JSON body' },
-        { status: 400 }
-      )
+      return createErrorResponse(400, 'Invalid JSON body')
     }
 
     const { message, history = [] } = body
 
     if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      )
+      return createErrorResponse(400, 'Message is required')
     }
 
-    // Sanitize message
-    const sanitizedMessage = message.trim().slice(0, 4000)
+    // Sanitize message using security utility
+    const sanitizedMessage = sanitizeString(message).slice(0, 4000)
     if (!sanitizedMessage) {
-      return NextResponse.json(
-        { error: 'Message cannot be empty' },
-        { status: 400 }
-      )
+      return createErrorResponse(400, 'Message cannot be empty')
     }
 
     // Get Gemini API key
     const geminiApiKey = process.env.GOOGLE_AI_API_KEY
     if (!geminiApiKey) {
-      console.error('GOOGLE_AI_API_KEY is not set')
-      return NextResponse.json(
-        { error: 'Chat service not configured' },
-        { status: 500 }
-      )
+      return createErrorResponse(500, 'Chat service not configured')
     }
 
     // Create chat service
@@ -87,11 +76,7 @@ export async function POST(request: NextRequest) {
     const response = await chatService.processMessage(sanitizedMessage, chatHistory)
 
     return NextResponse.json({ message: response })
-  } catch (error) {
-    console.error('Chat API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to process message' },
-      { status: 500 }
-    )
+  } catch {
+    return createErrorResponse(500, 'Failed to process message')
   }
 }

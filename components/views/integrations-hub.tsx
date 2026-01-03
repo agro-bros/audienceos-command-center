@@ -307,7 +307,7 @@ export function IntegrationsHub() {
           <IntegrationCardComponent
             key={integration.id}
             integration={integration}
-            onClick={() => console.log("Configure", integration.name)}
+            onClick={() => { /* TODO: Open configuration modal */ }}
           />
         ))}
       </div>

@@ -213,7 +213,6 @@ export function CommunicationsHub({ clientId, className }: CommunicationsHubProp
 
   const handleLoadMore = useCallback(() => {
     // TODO: Implement pagination with cursor
-    console.log('Load more triggered')
   }, [])
 
   const handleRefresh = useCallback(async () => {

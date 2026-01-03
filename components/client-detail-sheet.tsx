@@ -134,16 +134,11 @@ export function ClientDetailSheet({ client, open, onOpenChange, defaultTab = "ov
 
   const handleVerifyAccess = (platform: "meta" | "gtm" | "shopify") => {
     setAccessStatus((prev) => ({ ...prev, [platform]: true }))
-    const platformNames = {
-      meta: "Meta Business Manager",
-      gtm: "Google Tag Manager",
-      shopify: "Shopify Staff Account",
-    }
-    console.log(`[v0] Verified access for ${platformNames[platform]}`)
+    // TODO: Implement platform verification API call
   }
 
   const handleGenerateInstallPlan = () => {
-    console.log("[v0] Generating AI implementation steps...")
+    // TODO: Implement AI plan generation
     alert("AI is analyzing your tech stack and will generate implementation steps. Check back in a few minutes!")
   }
 

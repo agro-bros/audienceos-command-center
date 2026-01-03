@@ -21,8 +21,7 @@ export function PreferencesTab() {
   const [formData, setFormData] = useState(getDefaultPreferences())
 
   const handleSave = async () => {
-    // TODO: API call to save preferences
-    console.log("Saving preferences:", formData)
+    // TODO: API call to save preferences cartridge
     setIsEditing(false)
   }
 

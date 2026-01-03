@@ -107,8 +107,6 @@ export default function OnboardingPage() {
 
     localStorage.setItem("latestOnboardingSubmission", JSON.stringify(onboardingData))
 
-    console.log("[v0] Onboarding data saved:", onboardingData)
-
     confetti({
       particleCount: 150,
       spread: 90,

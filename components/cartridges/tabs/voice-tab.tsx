@@ -65,8 +65,7 @@ export function VoiceTab() {
   }
 
   const handleSave = async () => {
-    // TODO: API call to save cartridge
-    console.log("Saving voice cartridge:", { ...formData, voiceParams })
+    // TODO: API call to save voice cartridge
     setIsCreating(false)
     setFormData({ name: "", displayName: "", systemInstructions: "" })
     setVoiceParams(getDefaultVoiceParams())

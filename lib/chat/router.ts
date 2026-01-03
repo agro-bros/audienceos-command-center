@@ -8,7 +8,10 @@
  * Part of: 3-System Consolidation
  */
 
+import { withTimeout } from '@/lib/security';
 import type { RouteType, RouterDecision } from './types';
+
+const ROUTER_TIMEOUT_MS = 10000; // 10 second timeout for routing decisions
 
 /**
  * Route definitions with descriptions
@@ -151,19 +154,23 @@ export async function routeQuery(
   const prompt = buildClassificationPrompt(query);
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 200,
-          },
-        }),
-      }
+    const response = await withTimeout(
+      fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 200,
+            },
+          }),
+        }
+      ),
+      ROUTER_TIMEOUT_MS,
+      'Router classification timed out'
     );
 
     if (!response.ok) {
@@ -189,8 +196,7 @@ export async function routeQuery(
       confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5)),
       reasoning: parsed.reasoning || 'Classified by Gemini',
     };
-  } catch (error) {
-    console.error('Router classification failed:', error);
+  } catch {
     // Fall back to quick result or casual
     return quickResult || {
       route: 'casual',

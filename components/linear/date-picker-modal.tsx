@@ -132,8 +132,7 @@ export function DatePickerModal({
         <div className="p-2">
           <button
             onClick={() => {
-              // Could open a calendar picker here
-              console.log("Custom date picker")
+              // TODO: Open calendar picker
             }}
             className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors"
           >

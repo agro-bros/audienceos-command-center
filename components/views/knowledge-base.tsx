@@ -248,8 +248,8 @@ export function KnowledgeBase() {
     return result
   }, [viewFilter, categoryFilter, searchQuery])
 
-  const handleStar = (docId: string) => {
-    console.log("Toggle star:", docId)
+  const handleStar = (_docId: string) => {
+    // TODO: Implement star toggle API call
   }
 
   // Helper to render document cards with proper typing
@@ -379,9 +379,9 @@ export function KnowledgeBase() {
               document={selectedDocument}
               onClose={() => setSelectedDocument(null)}
               onStar={() => handleStar(selectedDocument.id)}
-              onDownload={() => console.log("Download:", selectedDocument.name)}
-              onShare={() => console.log("Share:", selectedDocument.name)}
-              onDelete={() => console.log("Delete:", selectedDocument.name)}
+              onDownload={() => { /* TODO: Implement download */ }}
+              onShare={() => { /* TODO: Implement share */ }}
+              onDelete={() => { /* TODO: Implement delete */ }}
             />
           </motion.div>
         )}

@@ -10,6 +10,7 @@
 
 import { routeQuery } from './router';
 import { hgcFunctions, executeFunction } from './functions';
+import { withTimeout } from '@/lib/security';
 import type {
   ChatMessage,
   ChatServiceConfig,
@@ -21,6 +22,7 @@ import type {
 } from './types';
 
 const DEFAULT_MODEL = 'gemini-2.0-flash-001';
+const GEMINI_TIMEOUT_MS = 30000; // 30 second timeout for AI requests
 
 /**
  * Generate unique ID
@@ -125,20 +127,24 @@ export class ChatService {
     message: string
   ): Promise<{ response: string; functionCalls?: FunctionCall[] }> {
     try {
-      // Call Gemini with function declarations
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: DASHBOARD_SYSTEM_PROMPT }] },
-              { role: 'user', parts: [{ text: message }] },
-            ],
-            tools: [{ functionDeclarations: hgcFunctions }],
-          }),
-        }
+      // Call Gemini with function declarations (with timeout)
+      const response = await withTimeout(
+        fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                { role: 'user', parts: [{ text: DASHBOARD_SYSTEM_PROMPT }] },
+                { role: 'user', parts: [{ text: message }] },
+              ],
+              tools: [{ functionDeclarations: hgcFunctions }],
+            }),
+          }
+        ),
+        GEMINI_TIMEOUT_MS,
+        'AI request timed out'
       );
 
       if (!response.ok) {
@@ -173,8 +179,7 @@ export class ChatService {
               result,
               success: true,
             });
-          } catch (error) {
-            console.error(`Function ${functionName} failed:`, error);
+          } catch {
             functionCalls.push({
               name: functionName,
               args: functionArgs,
@@ -190,26 +195,30 @@ export class ChatService {
           .map((fr) => `Function ${fr.name} returned:\n${JSON.stringify(fr.result, null, 2)}`)
           .join('\n\n');
 
-        const finalResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                { role: 'user', parts: [{ text: DASHBOARD_SYSTEM_PROMPT }] },
-                { role: 'user', parts: [{ text: message }] },
-                {
-                  role: 'model',
-                  parts: [{ text: `I called the necessary functions. Here are the results:\n\n${functionResponseContent}` }],
-                },
-                {
-                  role: 'user',
-                  parts: [{ text: 'Please provide a clear, helpful summary of this data for the user.' }],
-                },
-              ],
-            }),
-          }
+        const finalResponse = await withTimeout(
+          fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  { role: 'user', parts: [{ text: DASHBOARD_SYSTEM_PROMPT }] },
+                  { role: 'user', parts: [{ text: message }] },
+                  {
+                    role: 'model',
+                    parts: [{ text: `I called the necessary functions. Here are the results:\n\n${functionResponseContent}` }],
+                  },
+                  {
+                    role: 'user',
+                    parts: [{ text: 'Please provide a clear, helpful summary of this data for the user.' }],
+                  },
+                ],
+              }),
+            }
+          ),
+          GEMINI_TIMEOUT_MS,
+          'AI request timed out'
         );
 
         if (!finalResponse.ok) {
@@ -233,8 +242,7 @@ export class ChatService {
         response:
           'I understand you want to see dashboard information. Could you be more specific? Try:\n\n- "Show me at-risk clients"\n- "What are my open alerts?"\n- "Give me agency statistics"',
       };
-    } catch (error) {
-      console.error('Dashboard route error:', error);
+    } catch {
       return {
         response: 'Sorry, I had trouble processing that request. Please try again.',
       };
@@ -258,19 +266,23 @@ Be concise, friendly, and helpful. If the user asks about clients, alerts, or da
     }));
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: systemPrompt }] },
-              ...conversationHistory,
-              { role: 'user', parts: [{ text: message }] },
-            ],
-          }),
-        }
+      const response = await withTimeout(
+        fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.config.geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                { role: 'user', parts: [{ text: systemPrompt }] },
+                ...conversationHistory,
+                { role: 'user', parts: [{ text: message }] },
+              ],
+            }),
+          }
+        ),
+        GEMINI_TIMEOUT_MS,
+        'AI request timed out'
       );
 
       if (!response.ok) {
@@ -280,8 +292,7 @@ Be concise, friendly, and helpful. If the user asks about clients, alerts, or da
 
       const data = await response.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm not sure how to respond to that.";
-    } catch (error) {
-      console.error('Casual route error:', error);
+    } catch {
       return 'Sorry, I had trouble processing that. Please try again.';
     }
   }

@@ -26,8 +26,7 @@ export function StyleTab() {
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return
-    // TODO: API call to upload files
-    console.log("Uploading files:", selectedFiles)
+    // TODO: API call to upload files for style analysis
     setSelectedFiles([])
   }
 

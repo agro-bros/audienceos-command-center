@@ -20,7 +20,6 @@ export function InstructionsTab() {
   const handleCreate = async () => {
     if (!newName.trim()) return
     // TODO: API call to create instruction set
-    console.log("Creating instruction set:", { name: newName, description: newDescription })
     setNewName("")
     setNewDescription("")
   }
@@ -34,8 +33,7 @@ export function InstructionsTab() {
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files
       if (!files || files.length === 0) return
-      // TODO: API call to upload documents
-      console.log("Uploading files for instruction:", instructionId, files)
+      // TODO: API call to upload documents for instruction: ${instructionId}
     }
 
     input.click()

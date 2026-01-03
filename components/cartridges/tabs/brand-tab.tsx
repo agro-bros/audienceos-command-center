@@ -33,8 +33,7 @@ export function BrandTab() {
   }
 
   const handleSave = async () => {
-    // TODO: API call to save brand
-    console.log("Saving brand:", formData)
+    // TODO: API call to save brand cartridge
     setIsEditing(false)
   }
 
@@ -54,7 +53,6 @@ export function BrandTab() {
     const file = e.target.files?.[0]
     if (!file) return
     // TODO: API call to upload logo
-    console.log("Uploading logo:", file)
   }
 
   // Calculate word count for core messaging

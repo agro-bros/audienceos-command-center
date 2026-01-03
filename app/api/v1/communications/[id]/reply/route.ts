@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
 import type { Database } from '@/types/database'
 
@@ -49,14 +49,11 @@ export async function POST(
 
     const supabase = await createRouteHandlerClient(cookies)
 
-    // Get current user (from Supabase auth)
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Get authenticated user with server verification (SEC-006)
+    const { user, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (authError || !user) {
-      return createErrorResponse(401, 'Authentication required')
+    if (!user) {
+      return createErrorResponse(401, authError || 'Authentication required')
     }
 
     // Get the original message to determine platform and thread

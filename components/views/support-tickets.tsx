@@ -281,9 +281,8 @@ export function SupportTickets() {
     return tickets
   }, [activeFilter, searchQuery])
 
-  const handleComment = (content: string) => {
-    console.log("New comment:", content)
-    // In real app, would add to ticket activities
+  const handleComment = (_content: string) => {
+    // TODO: Implement comment creation API call
   }
 
   return (
