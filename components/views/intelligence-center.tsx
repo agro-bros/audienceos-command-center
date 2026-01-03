@@ -667,7 +667,7 @@ export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
       )}
 
       {activeSection === "cartridges" && (
-        <SettingsContentSection title="Cartridges">
+        <SettingsContentSection title="Training Cartridges">
           <CartridgesPage />
         </SettingsContentSection>
       )}
