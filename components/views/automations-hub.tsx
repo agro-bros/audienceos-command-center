@@ -635,21 +635,27 @@ function TriggerConfig({ config }: { config: Record<string, any> }) {
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">When this happens:</label>
-            <select className="w-full h-9 text-sm rounded-md border border-border bg-background px-3">
-              <option>Client added to pipeline</option>
-              <option>Client stage changes</option>
-              <option>New Slack message</option>
-              <option>Scheduled time</option>
+            <select
+              defaultValue={config.schedule ? "scheduled" : config.channels ? "slack_message" : "client_added"}
+              className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+            >
+              <option value="client_added">Client added to pipeline</option>
+              <option value="stage_change">Client stage changes</option>
+              <option value="slack_message">New Slack message</option>
+              <option value="scheduled">Scheduled time</option>
             </select>
           </div>
           {config.stage && (
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Stage:</label>
-              <select className="w-full h-9 text-sm rounded-md border border-border bg-background px-3">
-                <option selected={config.stage === "Onboarding"}>Onboarding</option>
-                <option>Installation</option>
-                <option>Live</option>
-                <option>Off-boarding</option>
+              <select
+                defaultValue={config.stage}
+                className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+              >
+                <option value="Onboarding">Onboarding</option>
+                <option value="Installation">Installation</option>
+                <option value="Live">Live</option>
+                <option value="Off-boarding">Off-boarding</option>
               </select>
             </div>
           )}
@@ -670,10 +676,13 @@ function DelayConfig({ config }: { config: Record<string, any> }) {
             defaultValue={config.duration || 1}
             className="w-20 h-9"
           />
-          <select className="h-9 text-sm rounded-md border border-border bg-background px-3">
-            <option selected={config.unit === "minutes"}>Minutes</option>
-            <option selected={config.unit === "hours"}>Hours</option>
-            <option selected={config.unit === "days"}>Days</option>
+          <select
+            defaultValue={config.unit || "hours"}
+            className="h-9 text-sm rounded-md border border-border bg-background px-3"
+          >
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+            <option value="days">Days</option>
           </select>
         </div>
       </div>
@@ -682,6 +691,15 @@ function DelayConfig({ config }: { config: Record<string, any> }) {
 }
 
 function ActionConfig({ config }: { config: Record<string, any> }) {
+  // Determine default action type based on config
+  const getDefaultActionType = () => {
+    if (config.template) return "send_email"
+    if (config.pattern) return "create_slack_channel"
+    if (config.channel) return "send_slack_message"
+    if (config.priority) return "create_ticket"
+    return "send_email"
+  }
+
   return (
     <div className="space-y-3">
       <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
@@ -689,21 +707,28 @@ function ActionConfig({ config }: { config: Record<string, any> }) {
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">Action type:</label>
-            <select className="w-full h-9 text-sm rounded-md border border-border bg-background px-3">
-              <option>Send email</option>
-              <option>Create Slack channel</option>
-              <option>Send Slack message</option>
-              <option>Create ticket</option>
-              <option>Update client</option>
+            <select
+              defaultValue={getDefaultActionType()}
+              className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+            >
+              <option value="send_email">Send email</option>
+              <option value="create_slack_channel">Create Slack channel</option>
+              <option value="send_slack_message">Send Slack message</option>
+              <option value="create_ticket">Create ticket</option>
+              <option value="update_client">Update client</option>
             </select>
           </div>
           {config.template && (
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Template:</label>
-              <select className="w-full h-9 text-sm rounded-md border border-border bg-background px-3">
-                <option selected={config.template === "welcome"}>Welcome Email</option>
-                <option>Kickoff Confirmation</option>
-                <option>Weekly Report</option>
+              <select
+                defaultValue={config.template}
+                className="w-full h-9 text-sm rounded-md border border-border bg-background px-3"
+              >
+                <option value="welcome">Welcome Email</option>
+                <option value="kickoff">Kickoff Confirmation</option>
+                <option value="weekly">Weekly Report</option>
+                <option value="farewell">Farewell Email</option>
               </select>
             </div>
           )}
