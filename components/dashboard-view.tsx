@@ -258,6 +258,74 @@ function TasksByAssigneeWidget({
   )
 }
 
+// Load by Status Widget (compact square)
+function LoadByStatusWidget({ clients }: { clients: Client[] }) {
+  const healthCounts = clients.reduce((acc, client) => {
+    acc[client.health] = (acc[client.health] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  const total = clients.length
+  const greenPercent = total > 0 ? Math.round(((healthCounts["Green"] || 0) / total) * 100) : 0
+  const atRisk = (healthCounts["Red"] || 0) + (healthCounts["Yellow"] || 0) + (healthCounts["Blocked"] || 0)
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 flex flex-col">
+      <h3 className="text-xs font-medium text-muted-foreground mb-2">Load by Status</h3>
+      <div className="flex items-center gap-3 flex-1">
+        <div className="flex gap-1">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">{healthCounts["Green"] || 0}/{total}</span>
+          <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">{atRisk}/{total}</span>
+        </div>
+      </div>
+      <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden flex">
+        <div className="h-full bg-emerald-500" style={{ width: `${greenPercent}%` }} />
+        <div className="h-full bg-amber-500" style={{ width: `${total > 0 ? ((healthCounts["Yellow"] || 0) / total) * 100 : 0}%` }} />
+        <div className="h-full bg-red-500" style={{ width: `${total > 0 ? ((healthCounts["Red"] || 0) / total) * 100 : 0}%` }} />
+      </div>
+    </div>
+  )
+}
+
+// Latest Activity Widget (compact square)
+function LatestActivityWidget({
+  clients,
+  onClientClick
+}: {
+  clients: Client[]
+  onClientClick: (client: Client) => void
+}) {
+  // Show most recent stage changes (mock: clients with low days in stage)
+  const recentActivity = clients
+    .filter(c => c.daysInStage <= 3)
+    .slice(0, 2)
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 flex flex-col">
+      <h3 className="text-xs font-medium text-muted-foreground mb-2">Latest Activity</h3>
+      <div className="space-y-2 flex-1">
+        {recentActivity.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No recent activity</p>
+        ) : (
+          recentActivity.map(client => (
+            <button
+              key={client.id}
+              onClick={() => onClientClick(client)}
+              className="flex items-start gap-2 w-full text-left hover:bg-muted/50 rounded p-1 -mx-1 transition-colors"
+            >
+              <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[8px] mt-0.5">✓</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground truncate">{client.name}</p>
+                <p className="text-[10px] text-muted-foreground">Moved to <span className="text-primary">{client.stage}</span></p>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
 // HGC Input Bar
 function HGCInputBar() {
   return (
@@ -358,12 +426,12 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
       {/* Tabs */}
       <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide mt-3">
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden mt-3">
         {activeTab === "overview" ? (
-          <div className="grid grid-cols-5 gap-3 min-h-full">
-            {/* Left: Firehose Feed (40%) */}
-            <div className="col-span-2 min-h-[400px]">
+          <div className="grid grid-cols-5 gap-3 h-full">
+            {/* Left: Firehose Feed (40%) - scrolls independently */}
+            <div className="col-span-2 h-full">
               <FirehoseFeed
                 items={firehoseItems}
                 onItemClick={handleFirehoseItemClick}
@@ -371,11 +439,16 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
               />
             </div>
 
-            {/* Right: Widgets (60%) */}
-            <div className="col-span-3 space-y-3">
-              <ClientProgressWidget clients={clients} onClientClick={onClientClick} />
-              <ClientsByStageWidget clients={clients} onStageClick={handleStageClick} />
+            {/* Right: Fixed Widgets (60%) */}
+            <div className="col-span-3 flex flex-col gap-3">
+              {/* Tasks by Assignee - top */}
               <TasksByAssigneeWidget clients={clients} onOwnerClick={handleOwnerClick} />
+
+              {/* 2-column grid of square widgets */}
+              <div className="grid grid-cols-2 gap-3">
+                <LoadByStatusWidget clients={clients} />
+                <LatestActivityWidget clients={clients} onClientClick={onClientClick} />
+              </div>
             </div>
           </div>
         ) : activeTab === "tasks" ? (
