@@ -103,6 +103,62 @@ npm run lint         # ESLint
 
 ---
 
+## Intelligence Center
+
+The Intelligence Center (`/intelligence`) is the AI hub of the application, combining chat, cartridges, and knowledge management.
+
+### Structure
+
+```
+components/views/intelligence-center.tsx  # Main view with sub-navigation
+components/chat/
+├── chat-interface.tsx                    # Chat UI component
+lib/chat/
+├── types.ts                              # ChatMessage, RouteType, etc.
+├── router.ts                             # Smart query routing (5 categories)
+├── service.ts                            # ChatService with Gemini integration
+├── functions/                            # Function executors
+│   ├── get-clients.ts
+│   ├── get-alerts.ts
+│   ├── get-stats.ts
+│   ├── get-communications.ts
+│   └── navigate-to.ts
+app/api/chat/route.ts                     # API endpoint
+```
+
+### Cartridges (AI Configuration)
+
+5-tab system for configuring AI assistant behavior:
+- **Voice** - Tone and personality
+- **Style** - Writing patterns
+- **Preferences** - Response settings
+- **Instructions** - Custom rules
+- **Brand** - Company info + 112-Point Blueprint (Jon Benson framework)
+
+Location: `components/cartridges/`
+
+### Chat Service Configuration
+
+```typescript
+// Required env var
+GOOGLE_AI_API_KEY=your-gemini-api-key
+
+// Model used
+gemini-2.0-flash-001
+```
+
+### Smart Router Categories
+
+| Route | Purpose |
+|-------|---------|
+| `dashboard` | Function calling (get clients, alerts, stats) |
+| `rag` | Document search |
+| `web` | External search |
+| `memory` | Session context |
+| `casual` | General conversation |
+
+---
+
 ## Rules for This Project
 
 1. **Living docs only** - Update existing docs, don't create orphan files
@@ -112,4 +168,4 @@ npm run lint         # ESLint
 
 ---
 
-*Updated: 2025-12-31*
+*Updated: 2026-01-03 (3-System Consolidation complete)*
