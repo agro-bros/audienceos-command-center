@@ -2,7 +2,7 @@
  * Dashboard Store Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useDashboardStore } from '@/lib/stores/dashboard-store'
+import { useDashboardStore } from '@/stores/dashboard-store'
 import type { DashboardKPIs, DashboardTrends, KPI } from '@/types/dashboard'
 
 const mockKPI: KPI = {

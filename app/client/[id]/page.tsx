@@ -490,11 +490,11 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
                 <Card className="p-6 space-y-4">
                   <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">Access Status</h4>
                   <div className="space-y-2">
-                    {[
+                    {([
                       { key: "meta", label: "Meta Business Manager" },
                       { key: "gtm", label: "Google Tag Manager" },
                       { key: "shopify", label: "Shopify Staff Account" },
-                    ].map((item) => (
+                    ] as const).map((item) => (
                       <div
                         key={item.key}
                         className="flex items-center justify-between p-4 bg-secondary/30 border border-border rounded-lg"
@@ -502,15 +502,15 @@ export default function ClientPage({ params }: { params: Promise<{ id: string }>
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-3 h-3 rounded-full ${
-                              accessStatus[item.key as keyof typeof accessStatus]
+                              accessStatus[item.key]
                                 ? "bg-emerald-500"
                                 : "bg-amber-500 animate-pulse"
                             }`}
                           />
                           <span className="text-sm text-foreground">{item.label}</span>
                         </div>
-                        {!accessStatus[item.key as keyof typeof accessStatus] ? (
-                          <Button size="sm" variant="outline" onClick={() => handleVerifyAccess(item.key as any)}>
+                        {!accessStatus[item.key] ? (
+                          <Button size="sm" variant="outline" onClick={() => handleVerifyAccess(item.key)}>
                             Verify Access
                           </Button>
                         ) : (

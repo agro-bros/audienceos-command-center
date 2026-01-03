@@ -1,7 +1,7 @@
 # AudienceOS Command Center - Technical Debt Register
 
 > **Purpose:** Track known tech debt with clear priority and triggers
-> **Last Updated:** 2026-01-02
+> **Last Updated:** 2026-01-03
 > **Status:** Active
 
 ---
@@ -65,12 +65,12 @@
 **Fix:** Use email-validator library or RFC-compliant regex
 **Trigger:** Before user registration feature
 
-### TD-007: Disabled ESLint Dependencies
-**File:** `hooks/use-dashboard.ts:213`
+### TD-007: Disabled ESLint Dependencies ✅ FIXED
+**File:** `hooks/use-dashboard.ts:355`
 **Issue:** `eslint-disable-line react-hooks/exhaustive-deps` masks real bugs
 **Effect:** Trends don't update when selectedPeriod changes
-**Fix:** Split into multiple effects with proper dependencies
-**Trigger:** Before dashboard is production-critical
+**Fix:** Added proper dependencies to initial load useEffect
+**Status:** Fixed 2026-01-03
 
 ### TD-008: IP Spoofing in Rate Limiter
 **File:** `lib/security.ts:156-158`
@@ -233,10 +233,65 @@
 
 ---
 
+## Implementation TODOs (Categorized)
+
+> These are placeholder comments in the codebase that need implementation.
+
+### Cartridge API Calls (12 TODOs)
+**Files:** `components/cartridges/tabs/*.tsx`
+**Status:** Blocked on cartridge backend
+- `voice-tab.tsx:68` - Save cartridge API
+- `style-tab.tsx:29` - Upload files API
+- `style-tab.tsx:36` - Analyze style API
+- `style-tab.tsx:42` - Delete style cartridge API
+- `preferences-tab.tsx:24` - Save preferences API
+- `preferences-tab.tsx:30` - Delete preferences API
+- `brand-tab.tsx:36` - Save brand API
+- `brand-tab.tsx:42` - Delete brand API
+- `brand-tab.tsx:48` - Generate 112-point blueprint API
+- `brand-tab.tsx:56` - Upload logo API
+- `instructions-tab.tsx:22,37,46,56` - Instruction set CRUD
+
+### Chat/AI Handlers (4 TODOs)
+**Files:** `lib/chat/service.ts`, `lib/chat/functions/*.ts`
+**Status:** Partially blocked on Gemini integration
+- `service.ts:86` - RAG document search handler
+- `service.ts:91` - Web search handler
+- `service.ts:96` - Memory/session context handler
+- `get-clients.ts:12`, `get-stats.ts:20` - Replace mock with Supabase queries
+
+### Communications API (4 TODOs)
+**Files:** `components/communications/communications-hub.tsx`, `app/api/v1/communications/*/route.ts`
+**Status:** Blocked on Slack/Gmail integration
+- `communications-hub.tsx:157` - Send reply API call
+- `communications-hub.tsx:194` - AI draft generation API
+- `communications-hub.tsx:215,221` - Pagination with cursor
+- `reply/route.ts:78` - Send via Slack/Gmail API
+
+### Workflow Engine (3 TODOs)
+**Files:** `lib/workflows/*.ts`
+**Status:** Needs notification infrastructure
+- `execution-engine.ts:375` - Notification sending via integrations
+- `execution-engine.ts:397` - communication_drafts table storage
+- `workflow-queries.ts:100` - Count pending approvals
+
+### Tickets (2 TODOs)
+**Files:** `app/api/v1/tickets/*/route.ts`, `components/settings/settings-layout.tsx`
+**Status:** Needs email queue infrastructure
+- `resolve/route.ts:116` - Queue email to client on resolution
+- `settings-layout.tsx:63` - Confirmation dialog for destructive actions
+
+---
+
 ## Changelog
 
 | Date | Item | Action |
 |------|------|--------|
+| 2026-01-03 | TD-007 | **Fixed** - Added proper dependencies to useEffect, removed eslint-disable |
+| 2026-01-03 | Type Safety | Fixed `as any` in client/[id]/page.tsx with `as const` pattern |
+| 2026-01-03 | Store Consolidation | Moved `lib/stores/dashboard-store.ts` to `stores/` |
+| 2026-01-03 | Implementation TODOs | Categorized 25 TODO comments by feature area |
+| 2026-01-03 | Legacy Cleanup | Removed 14 unused components and orphaned view files |
 | 2026-01-02 | SEC-006 Complete | Migrated ALL 22 remaining `getSession()` calls to `getAuthenticatedUser()` |
 | 2026-01-02 | Security Keys | Added `OAUTH_STATE_SECRET` and `TOKEN_ENCRYPTION_KEY` to `.env.local` |
 | 2026-01-02 | Startup Validation | Created `instrumentation.ts` to fail-fast in production if security keys missing |

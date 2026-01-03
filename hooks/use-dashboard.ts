@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useCallback, useState } from "react"
-import { useDashboardStore } from "@/lib/stores/dashboard-store"
+import { useDashboardStore } from "@/stores/dashboard-store"
 import {
   calculateAllKPIs,
   fetchTrends,
@@ -343,16 +343,21 @@ export function useDashboard(): UseDashboardReturn {
     loadTrends(period)
   }, [setSelectedPeriod, loadTrends])
 
-  // Initial load
+  // Initial load - runs once on mount
+  // Dependencies are intentionally empty: we only want to fetch on first render
+  // The callbacks check if data exists before fetching, preventing duplicate requests
   useEffect(() => {
-    if (!kpis) {
-      loadKPIs()
+    const initialLoad = async () => {
+      if (!kpis) {
+        loadKPIs()
+      }
+      if (!trends) {
+        loadTrends(selectedPeriod)
+      }
+      setRealtimeConnected(true)
     }
-    if (!trends) {
-      loadTrends(selectedPeriod)
-    }
-    setRealtimeConnected(true)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    initialLoad()
+  }, [kpis, trends, selectedPeriod, loadKPIs, loadTrends, setRealtimeConnected])
 
   // Reload trends when period changes
   useEffect(() => {
