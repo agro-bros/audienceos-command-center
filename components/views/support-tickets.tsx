@@ -361,10 +361,11 @@ export function SupportTickets() {
           <motion.div
             key="ticket-detail"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
+            animate={{ width: 600, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
             className="flex-1 overflow-hidden"
+            style={{ minWidth: 0 }}
           >
             <TicketDetailPanel
               ticket={selectedTicket}

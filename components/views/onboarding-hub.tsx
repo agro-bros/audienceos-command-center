@@ -528,10 +528,11 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
           <motion.div
             key="client-detail"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
+            animate={{ width: 600, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
             className="flex-1 overflow-hidden"
+            style={{ minWidth: 0 }}
           >
             <ClientDetailPanel
               client={selectedClient}
