@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X, RefreshCw } from "lucide-react"
 
@@ -70,6 +70,13 @@ export function Toast({
   const [isLeaving, setIsLeaving] = useState(false)
   const styles = variantStyles[variant]
 
+  const handleDismiss = useCallback(() => {
+    setIsLeaving(true)
+    setTimeout(() => {
+      onDismiss?.(id)
+    }, 200)
+  }, [id, onDismiss])
+
   useEffect(() => {
     // Trigger enter animation
     const enterTimer = setTimeout(() => setIsVisible(true), 10)
@@ -83,14 +90,7 @@ export function Toast({
       }, duration)
       return () => clearTimeout(timer)
     }
-  }, [duration])
-
-  const handleDismiss = () => {
-    setIsLeaving(true)
-    setTimeout(() => {
-      onDismiss?.(id)
-    }, 200)
-  }
+  }, [duration, handleDismiss])
 
   return (
     <div

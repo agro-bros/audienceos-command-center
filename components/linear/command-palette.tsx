@@ -89,7 +89,8 @@ export function CommandPalette({
     }
   }, [open])
 
-  // Keyboard navigation
+  // Keyboard navigation - deps intentionally include dynamic values
+  /* eslint-disable react-hooks/preserve-manual-memoization */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
@@ -101,7 +102,7 @@ export function CommandPalette({
           e.preventDefault()
           setSelectedIndex((i) => Math.max(i - 1, 0))
           break
-        case "Enter":
+        case "Enter": {
           e.preventDefault()
           const action = filteredActions[selectedIndex]
           if (action?.onSelect) {
@@ -109,6 +110,7 @@ export function CommandPalette({
             onOpenChange(false)
           }
           break
+        }
         case "Escape":
           e.preventDefault()
           onOpenChange(false)
@@ -117,6 +119,7 @@ export function CommandPalette({
     },
     [filteredActions, selectedIndex, onOpenChange]
   )
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   // Global keyboard shortcut
   useEffect(() => {

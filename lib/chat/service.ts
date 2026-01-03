@@ -76,11 +76,12 @@ export class ChatService {
     let functionCalls: FunctionCall[] | undefined;
 
     switch (decision.route) {
-      case 'dashboard':
+      case 'dashboard': {
         const dashResult = await this.handleDashboardRoute(userMessage);
         response = dashResult.response;
         functionCalls = dashResult.functionCalls;
         break;
+      }
 
       case 'rag':
         // TODO: Implement RAG (document search) handler

@@ -36,7 +36,13 @@ export function TaskCharts({
 }: TaskChartsProps) {
   // Calculate pie chart segments
   const total = pieData.reduce((sum, item) => sum + item.value, 0)
-  let cumulativePercentage = 0
+
+  // Pre-calculate cumulative percentages to avoid mutation during render
+  const pieDataWithCumulative = pieData.reduce<Array<ChartDataItem & { cumulativeStart: number }>>((acc, item) => {
+    const prevCumulative = acc.length > 0 ? acc[acc.length - 1].cumulativeStart + (acc[acc.length - 1].value / total) * 100 : 0
+    acc.push({ ...item, cumulativeStart: prevCumulative })
+    return acc
+  }, [])
 
   // Find max value for bar chart scaling
   const maxBarValue = Math.max(...barData.map((d) => d.value))
@@ -69,11 +75,10 @@ export function TaskCharts({
                   className="text-muted"
                   strokeWidth="8"
                 />
-                {pieData.map((item, i) => {
+                {pieDataWithCumulative.map((item, i) => {
                   const circumference = 2 * Math.PI * 40
                   const strokeLength = (item.value / total) * circumference
-                  const strokeOffset = (cumulativePercentage / 100) * circumference
-                  cumulativePercentage += (item.value / total) * 100
+                  const strokeOffset = (item.cumulativeStart / 100) * circumference
 
                   return (
                     <circle
