@@ -105,7 +105,7 @@ import { SupportTickets } from "@/components/views/support-tickets"
 import { IntegrationsHub } from "@/components/views/integrations-hub"
 import { KnowledgeBase } from "@/components/views/knowledge-base"
 import { AutomationsHub } from "@/components/views/automations-hub"
-import { ClickUpDashboard } from "@/components/dashboard/clickup"
+import { DashboardView } from "@/components/dashboard-view"
 import { SettingsView } from "@/components/settings-view"
 
 // Valid filter keys for URL params
@@ -316,7 +316,10 @@ function CommandCenterContent() {
       case "dashboard":
         return (
           <div className="flex-1 overflow-y-auto p-4">
-            <ClickUpDashboard />
+            <DashboardView
+              clients={filteredClients}
+              onClientClick={(client) => setSelectedClient(client)}
+            />
           </div>
         )
 
