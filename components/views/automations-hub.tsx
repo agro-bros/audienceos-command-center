@@ -250,13 +250,15 @@ export function AutomationsHub() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Automations list (shrinks when detail is open) */}
-      <div
-        className={cn(
-          "flex flex-col border-r border-border transition-all duration-200",
-          selectedAutomation ? "w-[280px]" : "flex-1"
-        )}
+      <motion.div
+        layout
+        initial={false}
+        animate={{ width: selectedAutomation ? 280 : "100%" }}
+        transition={slideTransition}
+        className="flex flex-col border-r border-border overflow-hidden"
+        style={{ minWidth: selectedAutomation ? 280 : undefined }}
       >
         <ListHeader
           title="Automations"
@@ -315,7 +317,7 @@ export function AutomationsHub() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* MIDDLE PANEL - Steps list (when automation selected) */}
       <AnimatePresence mode="wait">

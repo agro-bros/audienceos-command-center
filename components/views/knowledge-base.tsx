@@ -265,13 +265,15 @@ export function KnowledgeBase() {
   )
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Document list - shrinks when preview panel is open */}
-      <div
-        className={cn(
-          "flex flex-col border-r border-border transition-all duration-200",
-          selectedDocument ? "w-[280px]" : "flex-1"
-        )}
+      <motion.div
+        layout
+        initial={false}
+        animate={{ width: selectedDocument ? 280 : "100%" }}
+        transition={slideTransition}
+        className="flex flex-col border-r border-border overflow-hidden"
+        style={{ minWidth: selectedDocument ? 280 : undefined }}
       >
         <ListHeader
           title="Knowledge Base"
@@ -359,18 +361,18 @@ export function KnowledgeBase() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Preview/Editor panel */}
       <AnimatePresence mode="wait">
         {selectedDocument && (
           <motion.div
             key="document-preview"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
-            className="flex-1"
+            className="flex-1 overflow-hidden"
           >
             <DocumentPreviewPanel
               document={selectedDocument}

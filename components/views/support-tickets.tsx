@@ -287,13 +287,15 @@ export function SupportTickets() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Ticket list - shrinks when detail panel is open */}
-      <div
-        className={cn(
-          "flex flex-col border-r border-border transition-all duration-200",
-          selectedTicket ? "w-[280px]" : "flex-1"
-        )}
+      <motion.div
+        layout
+        initial={false}
+        animate={{ width: selectedTicket ? 280 : "100%" }}
+        transition={slideTransition}
+        className="flex flex-col border-r border-border overflow-hidden"
+        style={{ minWidth: selectedTicket ? 280 : undefined }}
       >
         <ListHeader
           title="Support Tickets"
@@ -351,18 +353,18 @@ export function SupportTickets() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Ticket detail panel */}
       <AnimatePresence mode="wait">
         {selectedTicket && (
           <motion.div
             key="ticket-detail"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
-            className="flex-1"
+            className="flex-1 overflow-hidden"
           >
             <TicketDetailPanel
               ticket={selectedTicket}

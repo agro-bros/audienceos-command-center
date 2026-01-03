@@ -477,12 +477,16 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
   const isCompact = selectedClient !== null
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Stages List (always visible) */}
-      <div className={cn(
-        "flex flex-col border-r border-border/50 bg-muted/30 shrink-0 transition-all duration-200 overflow-hidden",
-        isCompact ? "w-72" : "flex-1"
-      )}>
+      <motion.div
+        layout
+        initial={false}
+        animate={{ width: isCompact ? 288 : "100%" }}
+        transition={slideTransition}
+        className="flex flex-col border-r border-border/50 bg-muted/30 shrink-0 overflow-hidden"
+        style={{ minWidth: isCompact ? 288 : undefined }}
+      >
         {/* Header */}
         <div className="px-4 py-3 border-b border-border/50 bg-background shrink-0">
           <h1 className="text-base font-semibold text-foreground">Onboarding Hub</h1>
@@ -516,18 +520,18 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
             )
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* RIGHT PANEL - Client Detail View */}
       <AnimatePresence mode="wait">
         {selectedClient && selectedStage && (
           <motion.div
             key="client-detail"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
-            className="flex-1"
+            className="flex-1 overflow-hidden"
           >
             <ClientDetailPanel
               client={selectedClient}

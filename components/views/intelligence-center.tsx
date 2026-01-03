@@ -8,6 +8,8 @@ import {
   IntegrationCard,
   integrationIcons,
   intelligenceSettingsGroups,
+  ActivityFeed,
+  type ActivityType,
 } from "@/components/linear"
 import {
   FirehoseFeed,
@@ -15,7 +17,6 @@ import {
 } from "@/components/dashboard"
 import { cn } from "@/lib/utils"
 import { CartridgesPage } from "@/components/cartridges"
-import { ChatInterface } from "@/components/chat/chat-interface"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +43,11 @@ import {
   Trash2,
   Edit2,
   CheckCircle2,
+  History,
+  Bot,
+  User,
+  Settings,
+  Send,
 } from "lucide-react"
 
 // Types for Training Data
@@ -120,6 +126,69 @@ const PROMPT_CATEGORIES = [
   { value: "analysis", label: "Analysis" },
   { value: "automation", label: "Automation" },
   { value: "other", label: "Other" },
+]
+
+// Chat filter types for conversation view
+type ChatFilterTab = "all" | "chat" | "ai" | "system"
+
+// Mock AI activities for the Chat conversation feed
+const mockAIActivities = [
+  {
+    id: "ai-1",
+    type: "comment" as ActivityType,
+    actor: { name: "You", initials: "YU", color: "bg-blue-600" },
+    timestamp: "2 hours ago",
+    content: "Show me clients at risk of churning",
+  },
+  {
+    id: "ai-2",
+    type: "mention" as ActivityType,
+    actor: { name: "Chi Assistant", initials: "AI", color: "bg-primary" },
+    timestamp: "2 hours ago",
+    content: "Found 3 at-risk clients: Beardbrand (6d in Needs Support), Allbirds (high urgency ticket), MVMT Watches (120d in Live with declining engagement).",
+  },
+  {
+    id: "ai-3",
+    type: "comment" as ActivityType,
+    actor: { name: "You", initials: "YU", color: "bg-blue-600" },
+    timestamp: "3 hours ago",
+    content: "What are my open support tickets?",
+  },
+  {
+    id: "ai-4",
+    type: "mention" as ActivityType,
+    actor: { name: "Chi Assistant", initials: "AI", color: "bg-primary" },
+    timestamp: "3 hours ago",
+    content: "You have 5 open tickets. 2 are urgent: TKT-001 (Pixel tracking) and TKT-004 (Page speed). Would you like me to summarize them?",
+  },
+  {
+    id: "ai-5",
+    type: "status_change" as ActivityType,
+    actor: { name: "System", initials: "SY", color: "bg-slate-500" },
+    timestamp: "4 hours ago",
+    metadata: { from: "Pending", to: "Indexed" },
+  },
+  {
+    id: "ai-6",
+    type: "attachment" as ActivityType,
+    actor: { name: "System", initials: "SY", color: "bg-slate-500" },
+    timestamp: "5 hours ago",
+    metadata: { fileName: "Q4 Strategy Deck.pdf" },
+  },
+  {
+    id: "ai-7",
+    type: "comment" as ActivityType,
+    actor: { name: "You", initials: "YU", color: "bg-blue-600" },
+    timestamp: "Yesterday",
+    content: "Draft a follow-up email for Brooklinen about their campaign performance",
+  },
+  {
+    id: "ai-8",
+    type: "mention" as ActivityType,
+    actor: { name: "Chi Assistant", initials: "AI", color: "bg-primary" },
+    timestamp: "Yesterday",
+    content: "I've drafted an email highlighting their 23% CTR improvement and suggesting next steps for Q1. Would you like to review it?",
+  },
 ]
 
 // Generate mock firehose items for Intelligence Center Activity
@@ -229,6 +298,7 @@ interface IntelligenceCenterProps {
 
 export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
   const [activeSection, setActiveSection] = useState("overview")
+  const [chatFilter, setChatFilter] = useState<ChatFilterTab>("all")
   const { agencyId, isLoading: authLoading } = useAuth()
 
   // Training Data state
@@ -333,6 +403,15 @@ export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
 
   // Generate firehose items for Activity feed
   const firehoseItems = useMemo(() => generateMockActivityFirehose(), [])
+
+  // Filter chat activities based on selected tab
+  const filteredChatActivities = mockAIActivities.filter((activity) => {
+    if (chatFilter === "all") return true
+    if (chatFilter === "chat") return activity.actor.name === "You"
+    if (chatFilter === "ai") return activity.actor.name === "Chi Assistant"
+    if (chatFilter === "system") return activity.actor.name === "System"
+    return true
+  })
 
   const aiCapabilities = [
     {
@@ -454,27 +533,56 @@ export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
 
       {activeSection === "chat" && (
         <SettingsContentSection title="Chat">
-          {authLoading ? (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          ) : agencyId ? (
-            <ChatInterface agencyId={agencyId} />
-          ) : (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">Authentication Required</h3>
-              <p className="text-muted-foreground mb-4">
-                Please sign in to use the chat interface.
-              </p>
+          {/* Chat Filter Tabs */}
+          <div className="flex items-center gap-1 mb-4 p-1 bg-secondary/50 rounded-lg w-fit">
+            {[
+              { id: "all" as const, label: "All", icon: <History className="w-3.5 h-3.5" /> },
+              { id: "chat" as const, label: "Your Messages", icon: <User className="w-3.5 h-3.5" /> },
+              { id: "ai" as const, label: "AI Responses", icon: <Bot className="w-3.5 h-3.5" /> },
+              { id: "system" as const, label: "System", icon: <Settings className="w-3.5 h-3.5" /> },
+            ].map((tab) => (
               <button
-                onClick={() => window.location.href = "/login"}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors cursor-pointer"
+                key={tab.id}
+                onClick={() => setChatFilter(tab.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                  chatFilter === tab.id
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                Sign In
+                {tab.icon}
+                <span>{tab.label}</span>
               </button>
-            </div>
-          )}
+            ))}
+          </div>
+
+          {/* Chat Conversation Feed */}
+          <div className="bg-card border border-border rounded-lg p-4">
+            {filteredChatActivities.length > 0 ? (
+              <ActivityFeed activities={filteredChatActivities} />
+            ) : (
+              <div className="text-center py-8">
+                <History className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground">No messages found for this filter.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div className="mt-4 flex gap-2">
+            <input
+              type="text"
+              placeholder="Ask Chi anything..."
+              className="flex-1 bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Send
+            </button>
+          </div>
         </SettingsContentSection>
       )}
 
