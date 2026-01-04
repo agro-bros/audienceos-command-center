@@ -6,7 +6,7 @@ import { useSettingsStore } from "@/stores/settings-store"
 import { useAuthStore } from "@/lib/store"
 import type { SettingsSection } from "@/types/settings"
 import { SETTINGS_PERMISSIONS } from "@/types/settings"
-import { ChevronLeft, Building2, User, Users } from "lucide-react"
+import { ChevronLeft, Building2, User, Users, Sparkles } from "lucide-react"
 
 // Workspace settings items (admin/agency-level)
 const workspaceItems: Array<{
@@ -32,9 +32,10 @@ const accountItems: Array<{
 interface SettingsLayoutProps {
   children: React.ReactNode
   onBack?: () => void
+  onBrandClick?: () => void
 }
 
-export function SettingsLayout({ children, onBack }: SettingsLayoutProps) {
+export function SettingsLayout({ children, onBack, onBrandClick }: SettingsLayoutProps) {
   const { activeSection, setActiveSection, hasUnsavedChanges } = useSettingsStore()
   const { user } = useAuthStore()
 
@@ -130,6 +131,25 @@ export function SettingsLayout({ children, onBack }: SettingsLayoutProps) {
                     {item.label}
                   </button>
                 ))}
+              </nav>
+            </div>
+          )}
+
+          {/* Automations Section */}
+          {onBrandClick && (
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center mb-4">
+                <Sparkles className="w-4 h-4 mr-2 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Automations</span>
+              </div>
+
+              <nav className="space-y-1">
+                <button
+                  onClick={onBrandClick}
+                  className="block w-full text-left px-3 py-2 text-sm rounded-md transition-colors cursor-pointer text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Brand
+                </button>
               </nav>
             </div>
           )}

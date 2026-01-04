@@ -338,10 +338,12 @@ function generateMockActivityFirehose(): FirehoseItemData[] {
 
 interface IntelligenceCenterProps {
   onBack?: () => void
+  initialSection?: string
+  initialCartridgeTab?: "voice" | "style" | "preferences" | "instructions" | "brand"
 }
 
-export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
-  const [activeSection, setActiveSection] = useState("overview")
+export function IntelligenceCenter({ onBack, initialSection = "overview", initialCartridgeTab }: IntelligenceCenterProps) {
+  const [activeSection, setActiveSection] = useState(initialSection)
   const [chatFilter, setChatFilter] = useState<ChatFilterTab>("all")
   const { agencyId, isLoading: authLoading } = useAuth()
 
@@ -668,7 +670,7 @@ export function IntelligenceCenter({ onBack }: IntelligenceCenterProps) {
 
       {activeSection === "cartridges" && (
         <SettingsContentSection title="Training Cartridges">
-          <CartridgesPage />
+          <CartridgesPage initialTab={initialCartridgeTab} />
         </SettingsContentSection>
       )}
 

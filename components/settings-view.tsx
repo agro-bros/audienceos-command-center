@@ -4,11 +4,12 @@ import { SettingsLayout, SettingsContent } from "@/components/settings"
 
 interface SettingsViewProps {
   onBack?: () => void
+  onBrandClick?: () => void
 }
 
-export function SettingsView({ onBack }: SettingsViewProps) {
+export function SettingsView({ onBack, onBrandClick }: SettingsViewProps) {
   return (
-    <SettingsLayout onBack={onBack}>
+    <SettingsLayout onBack={onBack} onBrandClick={onBrandClick}>
       <SettingsContent />
     </SettingsLayout>
   )

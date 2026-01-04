@@ -24,8 +24,12 @@ const tabs = [
   { id: "brand" as const, label: "Brand", icon: Building2, description: "Brand identity + Benson" },
 ]
 
-export function CartridgesPage() {
-  const [activeTab, setActiveTab] = useState<CartridgeType>("voice")
+interface CartridgesPageProps {
+  initialTab?: CartridgeType
+}
+
+export function CartridgesPage({ initialTab = "voice" }: CartridgesPageProps) {
+  const [activeTab, setActiveTab] = useState<CartridgeType>(initialTab)
 
   return (
     <div className="space-y-6">
