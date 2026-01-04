@@ -43,13 +43,36 @@ export function MultiSelectDropdown({
   const [open, setOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
+  // Validate and normalize options (HARDENING: Issue #8)
+  const validatedOptions = React.useMemo(() => {
+    if (!Array.isArray(options)) {
+      console.warn('[MultiSelectDropdown] Options is not an array:', options)
+      return []
+    }
+
+    return options.filter((option) => {
+      if (!option || typeof option !== 'object') {
+        console.warn('[MultiSelectDropdown] Invalid option object:', option)
+        return false
+      }
+
+      const { value, label } = option
+      if (!value || !label || typeof value !== 'string' || typeof label !== 'string') {
+        console.warn('[MultiSelectDropdown] Invalid option: missing or invalid value/label:', option)
+        return false
+      }
+
+      return true
+    })
+  }, [options])
+
   // Filter options based on search query
   const filteredOptions = React.useMemo(() => {
-    if (!searchQuery) return options
-    return options.filter((option) =>
+    if (!searchQuery) return validatedOptions
+    return validatedOptions.filter((option) =>
       option.label.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }, [options, searchQuery])
+  }, [validatedOptions, searchQuery])
 
   // Handle toggle of a single option
   const toggleOption = (value: string) => {
@@ -61,20 +84,20 @@ export function MultiSelectDropdown({
 
   // Handle select all
   const handleSelectAll = () => {
-    if (selected.length === options.length) {
+    if (selected.length === validatedOptions.length) {
       onChange([])
     } else {
-      onChange(options.map((opt) => opt.value))
+      onChange(validatedOptions.map((opt) => opt.value))
     }
   }
 
   // Get selected labels for display
   const selectedLabels = selected
-    .map((val) => options.find((opt) => opt.value === val)?.label)
+    .map((val) => validatedOptions.find((opt) => opt.value === val)?.label)
     .filter(Boolean) as string[]
 
   // Check if all options are selected
-  const allSelected = selected.length === options.length && options.length > 0
+  const allSelected = selected.length === validatedOptions.length && validatedOptions.length > 0
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -122,7 +145,7 @@ export function MultiSelectDropdown({
           )}
 
           {/* Select All / Clear All */}
-          {selectAllOption && options.length > 0 && (
+          {selectAllOption && validatedOptions.length > 0 && (
             <div className="flex items-center justify-between py-2 px-2 border-b border-border">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -187,7 +210,7 @@ export function MultiSelectDropdown({
           {/* Footer with count */}
           {selected.length > 0 && (
             <div className="pt-2 border-t border-border text-xs text-muted-foreground">
-              {selected.length} of {options.length} selected
+              {selected.length} of {validatedOptions.length} selected
             </div>
           )}
         </div>

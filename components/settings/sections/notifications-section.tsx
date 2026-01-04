@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -95,6 +95,10 @@ export function NotificationsSection() {
   const [isTesting, setIsTesting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
+  // Error states (HARDENING: Issue #3, #4)
+  const [preferenceLoadError, setPreferenceLoadError] = useState<string | null>(null)
+  const [clientsLoadError, setClientsLoadError] = useState<string | null>(null)
+
   // Notification preferences
   const [emailAlerts, setEmailAlerts] = useState(true)
   const [emailTickets, setEmailTickets] = useState(true)
@@ -121,15 +125,33 @@ export function NotificationsSection() {
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load existing preferences on mount
-  const loadPreferences = useCallback(async (currentUserId: string) => {
+  // AbortController refs (HARDENING: Issue #2, #10)
+  const saveAbortControllerRef = useRef<AbortController | null>(null)
+  const initAbortControllerRef = useRef<AbortController | null>(null)
+
+  // Load existing preferences on mount (HARDENING: Issue #3)
+  const loadPreferences = useCallback(async (currentUserId: string, signal?: AbortSignal) => {
     try {
-      const response = await fetch(`/api/v1/settings/users/${currentUserId}/preferences`)
+      const response = await fetch(`/api/v1/settings/users/${currentUserId}/preferences`, { signal })
+
       if (!response.ok) {
-        throw new Error('Failed to load preferences')
+        const errorMsg = response.status === 401
+          ? 'You are not authorized to load preferences'
+          : response.status === 403
+          ? 'You can only access your own preferences'
+          : 'Failed to load preferences from server'
+        throw new Error(errorMsg)
       }
-      const { preferences } = await response.json()
+
+      const data = await response.json()
+      if (!data || typeof data !== 'object' || !('preferences' in data)) {
+        throw new Error('Invalid response format from server')
+      }
+
+      const { preferences } = data
       const prefs = preferences?.notifications || {}
+
+      setPreferenceLoadError(null)
 
       // Apply loaded preferences
       if (prefs.email_alerts !== undefined) setEmailAlerts(prefs.email_alerts)
@@ -150,56 +172,116 @@ export function NotificationsSection() {
       if (prefs.timezone) setTimezone(prefs.timezone)
       if (prefs.muted_clients) setMutedClients(prefs.muted_clients)
     } catch (error) {
-      console.error('Failed to load notification preferences:', error)
-      // Continue with defaults on error
+      // Ignore abort errors (component unmounted or superseded)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load preferences'
+      console.error('[NotificationsSection] Preference load error:', errorMessage, error)
+      setPreferenceLoadError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  // Fetch available clients for muting
-  const loadClients = useCallback(async () => {
+  // Fetch available clients for muting (HARDENING: Issue #4)
+  const loadClients = useCallback(async (signal?: AbortSignal) => {
     setIsLoadingClients(true)
+    setClientsLoadError(null)
     try {
-      const response = await fetch('/api/v1/clients?limit=1000')
+      const response = await fetch('/api/v1/clients?limit=1000', { signal })
+
       if (!response.ok) {
-        throw new Error('Failed to fetch clients')
+        const errorMsg = response.status === 401
+          ? 'You are not authorized to load clients'
+          : 'Failed to fetch clients from server'
+        throw new Error(errorMsg)
       }
-      const { data } = await response.json()
-      const clientOptions: MultiSelectOption[] = (data || []).map((client: any) => ({
-        value: client.id,
-        label: client.name,
-      }))
+
+      const data = await response.json()
+      if (!data || typeof data !== 'object' || !Array.isArray(data.data)) {
+        throw new Error('Invalid response format from clients API')
+      }
+
+      const clientOptions: MultiSelectOption[] = (data.data || [])
+        .map((client: any) => {
+          if (!client.id || !client.name) {
+            console.warn('[NotificationsSection] Invalid client data:', client)
+            return null
+          }
+          return {
+            value: client.id,
+            label: client.name,
+          }
+        })
+        .filter((opt: MultiSelectOption | null): opt is MultiSelectOption => opt !== null)
+
       setClients(clientOptions)
     } catch (error) {
-      console.error('Failed to load clients:', error)
-      // Continue with empty client list on error
+      // Ignore abort errors (component unmounted or superseded)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load clients'
+      console.error('[NotificationsSection] Clients load error:', errorMessage, error)
+      setClientsLoadError(errorMessage)
+      setClients([])
     } finally {
       setIsLoadingClients(false)
     }
   }, [])
 
   useEffect(() => {
+    // Create abort controller for this effect (HARDENING: Issue #10)
+    const controller = new AbortController()
+    initAbortControllerRef.current = controller
+
     const initializeUser = async () => {
       try {
         const supabase = createClient()
         const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (controller.signal.aborted) return
 
         if (error || !user?.id) {
           throw new Error('Failed to get current user')
         }
 
         setUserId(user.id)
-        await loadPreferences(user.id)
-        await loadClients()
+        await loadPreferences(user.id, controller.signal)
+        if (controller.signal.aborted) return
+        await loadClients(controller.signal)
       } catch (error) {
-        console.error('Failed to initialize user:', error)
+        if (controller.signal.aborted) return
+        console.error('[NotificationsSection] Failed to initialize user:', error)
         setIsLoading(false)
       }
     }
 
     initializeUser()
+
+    // Cleanup: abort pending requests on unmount or when effect re-runs
+    return () => {
+      controller.abort()
+      initAbortControllerRef.current = null
+    }
   }, [loadPreferences, loadClients])
+
+  // Cleanup on unmount: abort any pending saves (HARDENING: Issue #2)
+  useEffect(() => {
+    return () => {
+      if (saveAbortControllerRef.current) {
+        saveAbortControllerRef.current.abort()
+        saveAbortControllerRef.current = null
+      }
+      if (initAbortControllerRef.current) {
+        initAbortControllerRef.current.abort()
+        initAbortControllerRef.current = null
+      }
+    }
+  }, [])
 
   // Get current timezone display
   const currentTimezoneLabel = TIMEZONES.find(tz => tz.value === timezone)?.label || timezone
@@ -219,16 +301,29 @@ export function NotificationsSection() {
     handleChange()
   }
 
-  // Save preferences
+  // Save preferences (HARDENING: Issue #1, #2)
   const handleSave = async () => {
     if (!userId) {
-      toast({
-        title: "Error",
-        description: "User ID not loaded. Please refresh the page.",
-        variant: "destructive",
-      })
+      try {
+        toast({
+          title: "Error",
+          description: "User ID not loaded. Please refresh the page.",
+          variant: "destructive",
+        })
+      } catch (toastError) {
+        console.error('[NotificationsSection] Toast failed:', toastError)
+        alert("Error: User ID not loaded. Please refresh the page.")
+      }
       return
     }
+
+    // Cancel previous save if still in progress (Issue #2: Race condition)
+    if (saveAbortControllerRef.current) {
+      saveAbortControllerRef.current.abort()
+    }
+
+    const saveController = new AbortController()
+    saveAbortControllerRef.current = saveController
 
     setIsSaving(true)
 
@@ -255,26 +350,75 @@ export function NotificationsSection() {
         body: JSON.stringify({
           notifications,
         }),
+        signal: saveController.signal,
       })
 
+      // Check if this save was superseded (newer save initiated)
+      if (saveController !== saveAbortControllerRef.current) {
+        return
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to save preferences')
+        const errorMsg = response.status === 401
+          ? 'You are not authorized to update preferences'
+          : response.status === 403
+          ? 'You can only update your own preferences'
+          : response.status === 400
+          ? 'Invalid preference values'
+          : 'Failed to save preferences to server'
+        throw new Error(errorMsg)
+      }
+
+      // Validate response structure (Issue #1: validation before toast)
+      let responseData: any
+      try {
+        responseData = await response.json()
+      } catch (parseError) {
+        throw new Error('Invalid response format from server')
+      }
+
+      if (!responseData || typeof responseData !== 'object' || !('preferences' in responseData)) {
+        throw new Error('Server returned invalid response format')
       }
 
       setHasUnsavedChanges(false)
-      toast({
-        title: "Settings saved",
-        description: "Notification preferences have been updated.",
-      })
+
+      // Only show toast if we successfully reach here
+      try {
+        toast({
+          title: "Settings saved",
+          description: "Notification preferences have been updated.",
+        })
+      } catch (toastError) {
+        console.error('[NotificationsSection] Toast notification failed:', toastError)
+        // Don't fail the operation if toast fails
+      }
     } catch (error) {
-      console.error('Save preferences error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to save notification preferences.",
-        variant: "destructive",
-      })
+      // Ignore abort errors (superseded by newer save)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[NotificationsSection] Save cancelled by newer request')
+        return
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save preferences'
+      console.error('[NotificationsSection] Save preferences error:', errorMessage, error)
+
+      try {
+        toast({
+          title: "Error",
+          description: errorMessage || "Failed to save notification preferences.",
+          variant: "destructive",
+        })
+      } catch (toastError) {
+        console.error('[NotificationsSection] Error toast failed:', toastError)
+        alert(`Error: ${errorMessage || "Failed to save notification preferences."}`)
+      }
     } finally {
       setIsSaving(false)
+      // Clear the abort controller reference if this was the current save
+      if (saveController === saveAbortControllerRef.current) {
+        saveAbortControllerRef.current = null
+      }
     }
   }
 
@@ -328,6 +472,40 @@ export function NotificationsSection() {
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-32 rounded-lg bg-secondary" />
         ))}
+      </div>
+    )
+  }
+
+  // Show error state for preference load failures (HARDENING: Issue #3)
+  if (preferenceLoadError) {
+    return (
+      <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-foreground mb-1">
+              Failed to Load Preferences
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {preferenceLoadError}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsLoading(true)
+                setPreferenceLoadError(null)
+                if (userId) {
+                  const controller = new AbortController()
+                  initAbortControllerRef.current = controller
+                  loadPreferences(userId, controller.signal)
+                }
+              }}
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -603,24 +781,52 @@ export function NotificationsSection() {
           />
         </div>
         <div className="px-4 py-4">
-          <SettingRow
-            label="Select Clients"
-            description="Choose which clients you want to mute"
-          >
-            <MultiSelectDropdown
-              options={clients}
-              selected={mutedClients}
-              onChange={(selected) => {
-                setMutedClients(selected)
-                handleChange()
-              }}
-              placeholder="Select clients..."
-              searchable={true}
-              selectAllOption={true}
-              disabled={isLoadingClients || clients.length === 0}
-            />
-          </SettingRow>
-          {clients.length === 0 && !isLoadingClients && (
+          {clientsLoadError ? (
+            <div className="py-3 px-3 rounded bg-destructive/5 border border-destructive/20">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-destructive mb-1">
+                    Failed to Load Clients
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {clientsLoadError}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      const controller = new AbortController()
+                      initAbortControllerRef.current = controller
+                      loadClients(controller.signal)
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <SettingRow
+              label="Select Clients"
+              description="Choose which clients you want to mute"
+            >
+              <MultiSelectDropdown
+                options={clients}
+                selected={mutedClients}
+                onChange={(selected) => {
+                  setMutedClients(selected)
+                  handleChange()
+                }}
+                placeholder="Select clients..."
+                searchable={true}
+                selectAllOption={true}
+                disabled={isLoadingClients || clients.length === 0}
+              />
+            </SettingRow>
+          )}
+          {clients.length === 0 && !isLoadingClients && !clientsLoadError && (
             <div className="py-3 text-xs text-muted-foreground">
               No clients available to mute.
             </div>

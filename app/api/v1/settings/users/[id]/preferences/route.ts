@@ -23,6 +23,12 @@ export async function GET(
 
   try {
     const { id: userId } = await params
+
+    // Validate userId format (issue #9)
+    if (!userId || typeof userId !== 'string' || userId.length === 0) {
+      return createErrorResponse(400, 'Invalid user ID format')
+    }
+
     const supabase = await createRouteHandlerClient(cookies)
 
     // Get authenticated user with agency_id
@@ -94,6 +100,12 @@ export async function PATCH(
 
   try {
     const { id: userId } = await params
+
+    // Validate userId format (issue #9)
+    if (!userId || typeof userId !== 'string' || userId.length === 0) {
+      return createErrorResponse(400, 'Invalid user ID format')
+    }
+
     const supabase = await createRouteHandlerClient(cookies)
 
     // Get authenticated user
@@ -118,8 +130,19 @@ export async function PATCH(
     }
 
     // Parse and validate request body
-    const body = await request.json()
-    const { notifications } = body
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error('[PreferencePATCH] JSON parse error:', parseError)
+      return createErrorResponse(400, 'Request body must be valid JSON')
+    }
+
+    if (typeof body !== 'object' || body === null) {
+      return createErrorResponse(400, 'Request body must be an object')
+    }
+
+    const { notifications } = body as { notifications?: unknown }
 
     if (!notifications || typeof notifications !== 'object') {
       return createErrorResponse(400, 'Invalid notification preferences format')
@@ -127,8 +150,18 @@ export async function PATCH(
 
     // Validate quiet hours if provided
     const { quiet_hours_start, quiet_hours_end } = notifications as any
+    const quietHoursProvided = quiet_hours_start !== undefined || quiet_hours_end !== undefined
 
-    if (quiet_hours_start !== undefined && quiet_hours_end !== undefined) {
+    if (quietHoursProvided) {
+      // CRITICAL: If one is provided, both must be provided (issue #7)
+      if ((quiet_hours_start !== undefined && quiet_hours_end === undefined) ||
+          (quiet_hours_start === undefined && quiet_hours_end !== undefined)) {
+        return createErrorResponse(
+          400,
+          'Both quiet_hours_start and quiet_hours_end must be provided together'
+        )
+      }
+
       // Validate time format (HH:mm)
       const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
       if (!timeRegex.test(quiet_hours_start) || !timeRegex.test(quiet_hours_end)) {

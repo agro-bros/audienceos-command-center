@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { fetchWithCsrf } from '@/lib/csrf'
 import type {
   AgencySettings,
   UserPreferences,
@@ -9,6 +10,7 @@ import type {
   TokenUsageStats,
   AuditLogEntry,
 } from '@/types/settings'
+import type { UserRole } from '@/types/database'
 
 // =============================================================================
 // SETTINGS STORE
@@ -95,6 +97,14 @@ interface SettingsState {
 
   // Reset
   reset: () => void
+
+  // API Actions
+  fetchAgencySettings: () => Promise<void>
+  saveAgencySettings: (updates: Partial<AgencySettings>) => Promise<boolean>
+  fetchTeamMembers: () => Promise<void>
+  fetchInvitations: () => Promise<void>
+  sendInvitation: (email: string, role: UserRole) => Promise<boolean>
+  revokeInvitation: (id: string) => Promise<boolean>
 }
 
 const defaultUserPreferences: UserPreferences = {
@@ -244,6 +254,147 @@ export const useSettingsStore = create<SettingsState>()(
           auditLogCursor: null,
           hasUnsavedChanges: false,
         }),
+
+      // API Actions
+      fetchAgencySettings: async () => {
+        set({ isLoadingAgency: true })
+        try {
+          const response = await fetch('/api/v1/settings/agency')
+          if (!response.ok) {
+            throw new Error('Failed to fetch agency settings')
+          }
+          const { data } = await response.json()
+          set({ agencySettings: data, isLoadingAgency: false })
+        } catch (error) {
+          console.error('Failed to fetch agency settings:', error)
+          set({ isLoadingAgency: false })
+        }
+      },
+
+      saveAgencySettings: async (updates) => {
+        set({ isSavingAgency: true })
+        try {
+          const response = await fetchWithCsrf('/api/v1/settings/agency', {
+            method: 'PATCH',
+            body: JSON.stringify(updates),
+          })
+          if (!response.ok) {
+            throw new Error('Failed to save agency settings')
+          }
+          const { data } = await response.json()
+          set({ agencySettings: data, isSavingAgency: false, hasUnsavedChanges: false })
+          return true
+        } catch (error) {
+          console.error('Failed to save agency settings:', error)
+          set({ isSavingAgency: false })
+          return false
+        }
+      },
+
+      fetchTeamMembers: async () => {
+        set({ isLoadingMembers: true })
+        try {
+          const response = await fetch('/api/v1/settings/users')
+          if (!response.ok) {
+            throw new Error('Failed to fetch team members')
+          }
+          const { data } = await response.json()
+          // Transform API response to TeamMember format
+          const members: TeamMember[] = (data || []).map((u: Record<string, unknown>) => ({
+            id: u.id as string,
+            email: u.email as string,
+            first_name: (u.first_name as string) || '',
+            last_name: (u.last_name as string) || '',
+            role: u.role as 'admin' | 'user',
+            avatar_url: (u.avatar_url as string) || null,
+            is_active: u.is_active as boolean,
+            last_active_at: (u.last_active_at as string) || null,
+            created_at: u.created_at as string,
+          }))
+          set({ teamMembers: members, isLoadingMembers: false })
+        } catch (error) {
+          console.error('Failed to fetch team members:', error)
+          set({ isLoadingMembers: false })
+        }
+      },
+
+      fetchInvitations: async () => {
+        set({ isLoadingInvitations: true })
+        try {
+          const response = await fetch('/api/v1/settings/invitations')
+          if (!response.ok) {
+            throw new Error('Failed to fetch invitations')
+          }
+          const { invitations: data } = await response.json()
+          // Transform API response to UserInvitation format
+          const invitations: UserInvitation[] = (data || []).map((inv: Record<string, unknown>) => ({
+            id: inv.id as string,
+            email: inv.email as string,
+            role: inv.role as 'admin' | 'user',
+            status: inv.is_accepted ? 'accepted' : (inv.is_expired ? 'expired' : 'pending'),
+            invited_at: inv.created_at as string,
+            expires_at: inv.expires_at as string,
+          }))
+          set({ invitations, isLoadingInvitations: false })
+        } catch (error) {
+          console.error('Failed to fetch invitations:', error)
+          set({ isLoadingInvitations: false })
+        }
+      },
+
+      sendInvitation: async (email, role) => {
+        set({ isSendingInvitation: true })
+        try {
+          const response = await fetchWithCsrf('/api/v1/settings/invitations', {
+            method: 'POST',
+            body: JSON.stringify({ email, role }),
+          })
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Failed to send invitation')
+          }
+          const { invitation } = await response.json()
+          // Add to local state
+          const newInvitation: UserInvitation = {
+            id: invitation.id,
+            agency_id: invitation.agency_id,
+            email: invitation.email,
+            role: invitation.role,
+            token: invitation.token,
+            expires_at: invitation.expires_at,
+            accepted_at: null,
+            created_by: invitation.created_by,
+            created_at: invitation.created_at,
+          }
+          set((state) => ({
+            invitations: [newInvitation, ...state.invitations],
+            isSendingInvitation: false,
+          }))
+          return true
+        } catch (error) {
+          console.error('Failed to send invitation:', error)
+          set({ isSendingInvitation: false })
+          return false
+        }
+      },
+
+      revokeInvitation: async (id) => {
+        try {
+          const response = await fetchWithCsrf(`/api/v1/settings/invitations/${id}`, {
+            method: 'DELETE',
+          })
+          if (!response.ok) {
+            throw new Error('Failed to revoke invitation')
+          }
+          set((state) => ({
+            invitations: state.invitations.filter((i) => i.id !== id),
+          }))
+          return true
+        } catch (error) {
+          console.error('Failed to revoke invitation:', error)
+          return false
+        }
+      },
     }),
     { name: 'settings-store' }
   )
