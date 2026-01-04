@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSlideTransition } from "@/hooks/use-slide-transition"
+import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
   DocumentCard,
@@ -27,8 +28,8 @@ import {
   Cloud,
 } from "lucide-react"
 
-// Diiiploy - Knowledge Base Documents
-const mockDocuments: Document[] = [
+// Diiiploy - Knowledge Base Documents (initial data, will be replaced by API)
+const initialDocuments: Document[] = [
   {
     id: "doc-1",
     name: "New Client Onboarding Playbook",
@@ -213,6 +214,7 @@ const categories: (DocumentCategory | "all")[] = [
 ]
 
 export function KnowledgeBase() {
+  const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -221,12 +223,13 @@ export function KnowledgeBase() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isDriveLinkModalOpen, setIsDriveLinkModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("documents")
+  const [isProcessingDrive, setIsProcessingDrive] = useState(false)
 
   const slideTransition = useSlideTransition()
 
   // Filter documents
   const filteredDocuments = useMemo((): Document[] => {
-    let result: Document[] = mockDocuments
+    let result: Document[] = documents
 
     // Apply view filter
     switch (viewFilter) {
@@ -256,22 +259,102 @@ export function KnowledgeBase() {
     }
 
     return result
-  }, [viewFilter, categoryFilter, searchQuery])
+  }, [documents, viewFilter, categoryFilter, searchQuery])
 
-  const handleStar = (_docId: string) => {
-    // TODO: Implement star toggle API call
-  }
+  // Toggle star status on a document
+  const handleStar = useCallback((docId: string) => {
+    setDocuments(prev => {
+      const updated = prev.map(doc =>
+        doc.id === docId ? { ...doc, starred: !doc.starred } : doc
+      )
+      const doc = updated.find(d => d.id === docId)
+      toast({
+        title: doc?.starred ? "Added to starred" : "Removed from starred",
+        description: doc?.name,
+      })
+      return updated
+    })
+    // Update selected document if it's the one being starred
+    setSelectedDocument(prev =>
+      prev?.id === docId ? { ...prev, starred: !prev.starred } : prev
+    )
+    // TODO: Persist to API when backend is ready
+    // fetchWithCsrf(`/api/v1/documents/${docId}/star`, { method: 'POST' })
+  }, [])
 
-  const handleToggleTraining = (_docId: string) => {
-    // TODO: Implement training toggle API call
-    console.log("Toggle training for:", _docId)
-  }
+  // Toggle AI training status on a document
+  const handleToggleTraining = useCallback((docId: string) => {
+    setDocuments(prev => {
+      const updated = prev.map(doc =>
+        doc.id === docId ? { ...doc, useForTraining: !doc.useForTraining } : doc
+      )
+      const doc = updated.find(d => d.id === docId)
+      toast({
+        title: doc?.useForTraining ? "Enabled for AI training" : "Disabled for AI training",
+        description: doc?.name,
+      })
+      return updated
+    })
+    // Update selected document if it's the one being toggled
+    setSelectedDocument(prev =>
+      prev?.id === docId ? { ...prev, useForTraining: !prev.useForTraining } : prev
+    )
+    // TODO: Persist to API when backend is ready
+    // fetchWithCsrf(`/api/v1/documents/${docId}/training`, { method: 'POST' })
+  }, [])
 
-  const handleAddDriveLink = async (url: string, displayName?: string) => {
-    // TODO: Implement Drive link API call
-    console.log("Add Drive link:", url, displayName)
-    // In production, this would call an API to process the Drive file
-  }
+  // Add a document from Google Drive
+  const handleAddDriveLink = useCallback(async (url: string, displayName?: string) => {
+    setIsProcessingDrive(true)
+
+    try {
+      // Extract file ID from URL for display purposes
+      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+      const fileId = fileIdMatch?.[1] || `drive-${Date.now()}`
+
+      // Create new document entry (in production, this would come from API response)
+      const newDoc: Document = {
+        id: `drive-${fileId}`,
+        name: displayName || "Google Drive Document",
+        type: "document",
+        category: "templates", // Default category, could be detected
+        description: `Imported from Google Drive`,
+        updatedAt: "Just now",
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        updatedBy: "You",
+        size: "Processing...",
+        shared: false,
+        starred: false,
+        useForTraining: false,
+        tags: ["drive-import"],
+        viewCount: 0,
+      }
+
+      // Add to documents list
+      setDocuments(prev => [newDoc, ...prev])
+
+      toast({
+        title: "Document added",
+        description: `"${newDoc.name}" has been imported from Google Drive`,
+      })
+
+      // TODO: Actually process the file via API when backend is ready
+      // const response = await fetchWithCsrf('/api/v1/documents/drive-import', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ url, displayName }),
+      // })
+
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Could not import document from Google Drive",
+        variant: "destructive",
+      })
+      throw error // Re-throw so the modal can show error state
+    } finally {
+      setIsProcessingDrive(false)
+    }
+  }, [])
 
   // Helper to render document cards with proper typing
   const renderDocumentCard = (doc: Document, mode: "compact" | "grid" | "list") => (

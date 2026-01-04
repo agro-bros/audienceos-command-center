@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createClient } from '@/lib/supabase'
+import { fetchWithCsrf } from '@/lib/csrf'
 import type { TicketStatus, TicketPriority, TicketCategory } from '@/types/database'
 
 // Types matching DATA-MODEL.md
@@ -183,34 +183,19 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   viewMode: 'kanban',
 
-  // Data fetching
+  // Data fetching - now via API
   fetchTickets: async () => {
     set({ isLoading: true, error: null })
 
     try {
-      const supabase = createClient()
+      const response = await fetch('/api/v1/tickets')
 
-      const { data, error } = await supabase
-        .from('ticket')
-        .select(`
-          *,
-          client:client_id (
-            id,
-            name,
-            health_status
-          ),
-          assignee:assignee_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false })
+      if (!response.ok) {
+        throw new Error('Failed to fetch tickets')
+      }
 
-      if (error) throw error
-
-      set({ tickets: data as unknown as Ticket[], isLoading: false })
+      const { data } = await response.json()
+      set({ tickets: data as Ticket[], isLoading: false })
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch tickets',
@@ -221,30 +206,14 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   fetchTicketById: async (id) => {
     try {
-      const supabase = createClient()
+      const response = await fetch(`/api/v1/tickets/${id}`)
 
-      const { data, error } = await supabase
-        .from('ticket')
-        .select(`
-          *,
-          client:client_id (
-            id,
-            name,
-            health_status
-          ),
-          assignee:assignee_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .eq('id', id)
-        .single()
+      if (!response.ok) {
+        throw new Error('Failed to fetch ticket')
+      }
 
-      if (error) throw error
-
-      return data as unknown as Ticket
+      const { data } = await response.json()
+      return data as Ticket
     } catch (error) {
       console.error('Failed to fetch ticket:', error)
       return null
@@ -255,80 +224,42 @@ export const useTicketStore = create<TicketState>((set, get) => ({
     set({ isLoadingNotes: true })
 
     try {
-      const supabase = createClient()
+      const response = await fetch(`/api/v1/tickets/${ticketId}/notes`)
 
-      const { data, error } = await supabase
-        .from('ticket_note')
-        .select(`
-          *,
-          author:added_by (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .eq('ticket_id', ticketId)
-        .order('created_at', { ascending: true })
+      if (!response.ok) {
+        throw new Error('Failed to fetch notes')
+      }
 
-      if (error) throw error
-
-      set({ notes: data as unknown as TicketNote[], isLoadingNotes: false })
+      const { data } = await response.json()
+      set({ notes: data as TicketNote[], isLoadingNotes: false })
     } catch (error) {
       console.error('Failed to fetch notes:', error)
       set({ isLoadingNotes: false })
     }
   },
 
-  // CRUD operations
+  // CRUD operations - now via API with CSRF
   createTicket: async (input) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf('/api/v1/tickets', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      })
 
-      // Get current user for created_by
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create ticket')
+      }
 
-      // Get agency_id from user profile
-      const { data: profile } = await supabase
-        .from('user')
-        .select('agency_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('User profile not found')
-
-      const { data, error } = await supabase
-        .from('ticket')
-        .insert({
-          ...input,
-          agency_id: profile.agency_id,
-          created_by: user.id
-        })
-        .select(`
-          *,
-          client:client_id (
-            id,
-            name,
-            health_status
-          ),
-          assignee:assignee_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .single()
-
-      if (error) throw error
+      const { data } = await response.json()
+      const ticket = data as Ticket
 
       // Add to local state
       set((state) => ({
-        tickets: [data as unknown as Ticket, ...state.tickets]
+        tickets: [ticket, ...state.tickets]
       }))
 
-      return data as unknown as Ticket
+      return ticket
     } catch (error) {
       console.error('Failed to create ticket:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to create ticket' })
@@ -338,22 +269,25 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   updateTicket: async (id, updates) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      })
 
-      const { error } = await supabase
-        .from('ticket')
-        .update(updates)
-        .eq('id', id)
+      if (!response.ok) {
+        throw new Error('Failed to update ticket')
+      }
 
-      if (error) throw error
+      const { data } = await response.json()
+      const ticket = data as Ticket
 
       // Update local state
       set((state) => ({
         tickets: state.tickets.map((t) =>
-          t.id === id ? { ...t, ...updates } : t
+          t.id === id ? ticket : t
         ),
         selectedTicket: state.selectedTicket?.id === id
-          ? { ...state.selectedTicket, ...updates }
+          ? ticket
           : state.selectedTicket
       }))
 
@@ -366,14 +300,13 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   deleteTicket: async (id) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${id}`, {
+        method: 'DELETE',
+      })
 
-      const { error } = await supabase
-        .from('ticket')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to delete ticket')
+      }
 
       // Remove from local state
       set((state) => ({
@@ -388,7 +321,7 @@ export const useTicketStore = create<TicketState>((set, get) => ({
     }
   },
 
-  // Status workflow
+  // Status workflow - now via API with optimistic updates
   changeStatus: async (ticketId, newStatus) => {
     const ticket = get().tickets.find((t) => t.id === ticketId)
     if (!ticket) return false
@@ -399,14 +332,14 @@ export const useTicketStore = create<TicketState>((set, get) => ({
     get().optimisticStatusChange(ticketId, newStatus)
 
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${ticketId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      })
 
-      const { error } = await supabase
-        .from('ticket')
-        .update({ status: newStatus })
-        .eq('id', ticketId)
-
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to change status')
+      }
 
       return true
     } catch (error) {
@@ -419,38 +352,22 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   resolveTicket: async (ticketId, input) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${ticketId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      })
 
-      // Get current user for resolved_by
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!response.ok) {
+        throw new Error('Failed to resolve ticket')
+      }
 
-      const { error } = await supabase
-        .from('ticket')
-        .update({
-          status: 'resolved' as TicketStatus,
-          resolution_notes: input.resolution_notes,
-          time_spent_minutes: input.time_spent_minutes,
-          resolved_by: user.id,
-          resolved_at: new Date().toISOString()
-        })
-        .eq('id', ticketId)
-
-      if (error) throw error
+      const { data } = await response.json()
+      const ticket = data as Ticket
 
       // Update local state
       set((state) => ({
         tickets: state.tickets.map((t) =>
-          t.id === ticketId
-            ? {
-                ...t,
-                status: 'resolved' as TicketStatus,
-                resolution_notes: input.resolution_notes,
-                time_spent_minutes: input.time_spent_minutes ?? null,
-                resolved_by: user.id,
-                resolved_at: new Date().toISOString()
-              }
-            : t
+          t.id === ticketId ? ticket : t
         )
       }))
 
@@ -463,30 +380,22 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   reopenTicket: async (ticketId) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${ticketId}/reopen`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
 
-      const { error } = await supabase
-        .from('ticket')
-        .update({
-          status: 'in_progress' as TicketStatus,
-          resolved_by: null,
-          resolved_at: null
-        })
-        .eq('id', ticketId)
+      if (!response.ok) {
+        throw new Error('Failed to reopen ticket')
+      }
 
-      if (error) throw error
+      const { data } = await response.json()
+      const ticket = data as Ticket
 
       // Update local state
       set((state) => ({
         tickets: state.tickets.map((t) =>
-          t.id === ticketId
-            ? {
-                ...t,
-                status: 'in_progress' as TicketStatus,
-                resolved_by: null,
-                resolved_at: null
-              }
-            : t
+          t.id === ticketId ? ticket : t
         )
       }))
 
@@ -497,52 +406,27 @@ export const useTicketStore = create<TicketState>((set, get) => ({
     }
   },
 
-  // Notes
+  // Notes - now via API
   addNote: async (ticketId, content, isInternal) => {
     try {
-      const supabase = createClient()
+      const response = await fetchWithCsrf(`/api/v1/tickets/${ticketId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ content, is_internal: isInternal }),
+      })
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!response.ok) {
+        throw new Error('Failed to add note')
+      }
 
-      // Get agency_id from user profile
-      const { data: profile } = await supabase
-        .from('user')
-        .select('agency_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('User profile not found')
-
-      const { data, error } = await supabase
-        .from('ticket_note')
-        .insert({
-          ticket_id: ticketId,
-          agency_id: profile.agency_id,
-          content,
-          is_internal: isInternal,
-          added_by: user.id
-        })
-        .select(`
-          *,
-          author:added_by (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
-        .single()
-
-      if (error) throw error
+      const { data } = await response.json()
+      const note = data as TicketNote
 
       // Add to local state
       set((state) => ({
-        notes: [...state.notes, data as unknown as TicketNote]
+        notes: [...state.notes, note]
       }))
 
-      return data as unknown as TicketNote
+      return note
     } catch (error) {
       console.error('Failed to add note:', error)
       return null

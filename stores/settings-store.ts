@@ -329,11 +329,15 @@ export const useSettingsStore = create<SettingsState>()(
           // Transform API response to UserInvitation format
           const invitations: UserInvitation[] = (data || []).map((inv: Record<string, unknown>) => ({
             id: inv.id as string,
+            agency_id: inv.agency_id as string,
             email: inv.email as string,
             role: inv.role as 'admin' | 'user',
-            status: inv.is_accepted ? 'accepted' : (inv.is_expired ? 'expired' : 'pending'),
-            invited_at: inv.created_at as string,
+            token: inv.token as string,
             expires_at: inv.expires_at as string,
+            accepted_at: (inv.accepted_at as string) || null,
+            created_by: inv.created_by as string,
+            created_at: inv.created_at as string,
+            is_expired: inv.is_expired as boolean | undefined,
           }))
           set({ invitations, isLoadingInvitations: false })
         } catch (error) {
