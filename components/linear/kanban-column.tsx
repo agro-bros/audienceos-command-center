@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { cn } from "@/lib/utils"
 import { KanbanCard } from "./kanban-card"
 import { MoreHorizontal, Plus, SortAsc, Filter, EyeOff, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"

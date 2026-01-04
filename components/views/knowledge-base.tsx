@@ -5,8 +5,6 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { cn } from "@/lib/utils"
 import {
   DocumentCard,
-  DocumentCardSkeleton,
-  type DocumentType,
   type DocumentCategory,
   categoryLabels,
 } from "@/components/linear/document-card"

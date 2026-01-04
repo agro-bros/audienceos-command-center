@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase'
+import { fetchWithCsrf } from '@/lib/csrf'
 import type { CommunicationWithMeta, CommunicationsFilters } from '@/stores/communications-store'
 import type { Database } from '@/types/database'
 
@@ -181,7 +182,7 @@ export function useUpdateCommunication() {
       if (error) throw new Error(error.message)
       return data
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({
         queryKey: communicationsKeys.all,

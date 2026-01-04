@@ -473,10 +473,8 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
     <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Stages List (always visible) */}
       <div
-        className={cn(
-          "flex flex-col border-r border-border/50 bg-muted/30 overflow-hidden transition-all duration-300 ease-out",
-          isCompact ? "w-[288px] min-w-[288px]" : "flex-1"
-        )}
+        className="flex flex-col border-r border-border/50 bg-muted/30 overflow-hidden transition-[width] duration-300 ease-out"
+        style={{ width: isCompact ? 288 : "100%" }}
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-border/50 bg-background shrink-0">
@@ -512,10 +510,11 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
 
       {/* RIGHT PANEL - Client Detail View */}
       <div
-        className={cn(
-          "flex flex-col bg-background overflow-hidden transition-all duration-300 ease-out",
-          selectedClient && selectedStage ? "flex-1 opacity-100" : "w-0 opacity-0"
-        )}
+        className="flex flex-col bg-background overflow-hidden transition-[width,opacity] duration-300 ease-out"
+        style={{
+          width: selectedClient && selectedStage ? "calc(100% - 288px)" : 0,
+          opacity: selectedClient && selectedStage ? 1 : 0
+        }}
       >
         {selectedClient && selectedStage && (
           <ClientDetailPanel

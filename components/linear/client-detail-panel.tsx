@@ -11,7 +11,6 @@ import {
   Copy,
   Pencil,
   Calendar,
-  Flag,
   Tag,
   FolderKanban,
   Send,

@@ -177,7 +177,7 @@ function DraggableClientCard({ client, onClick, isDragOverlay = false }: Draggab
         "touch-none",
         isDragging && "opacity-30"
       )}
-      onClick={(e) => {
+      onClick={(_e) => {
         if (!isDragging) onClick()
       }}
       {...attributes}

@@ -6,14 +6,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '@/types/database'
 import type {
-  Workflow,
   WorkflowTrigger,
   WorkflowAction,
   WorkflowExecutionContext,
   ClientSnapshot,
   ActionResult,
   WorkflowExecutionResult,
-  ActionResultStatus,
 } from '@/types/workflow'
 import { substituteVariables } from './action-registry'
 import { createWorkflowRun, completeWorkflowRun, getWorkflow } from './workflow-queries'

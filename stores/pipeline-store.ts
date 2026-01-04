@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { fetchWithCsrf } from '@/lib/csrf'
 
 // Types matching DATA-MODEL.md
 export type Stage =
@@ -186,9 +187,8 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     get().moveClient(clientId, toStage)
 
     try {
-      const response = await fetch(`/api/v1/clients/${clientId}/stage`, {
+      const response = await fetchWithCsrf(`/api/v1/clients/${clientId}/stage`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage: toStage }),
       })
 

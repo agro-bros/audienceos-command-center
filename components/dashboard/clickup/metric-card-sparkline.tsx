@@ -45,7 +45,7 @@ function Sparkline({
   }).join(" ")
 
   // Create area fill path
-  const areaPath = `M0,${height} L${points.split(" ").map((p, i) => {
+  const areaPath = `M0,${height} L${points.split(" ").map((p, _i) => {
     const [x, y] = p.split(",")
     return `${x},${y}`
   }).join(" L")} L${width},${height} Z`

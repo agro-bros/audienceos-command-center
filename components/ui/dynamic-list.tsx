@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -269,7 +268,7 @@ export function SortableList({
 
   return (
     <div className={cn("space-y-2", className)}>
-      {items.map((item, index) => (
+      {items.map((item, _index) => (
         <div key={item.id} className="flex items-center gap-2 group">
           <div className="cursor-grab text-muted-foreground hover:text-foreground">
             <GripVertical className="h-4 w-4" />

@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { cn } from "@/lib/utils"
 import { CommandItem } from "./command-item"
 import {
   User,

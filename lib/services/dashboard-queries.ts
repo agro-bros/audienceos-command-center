@@ -182,7 +182,7 @@ export function calculateSupportHours(tickets: Ticket[]): number {
  */
 export function calculateAvgInstallTime(
   stageEvents: StageEvent[],
-  clients: Client[]
+  _clients: Client[]
 ): number {
   // Find clients that went Live in the last 30 days
   const thirtyDaysAgo = new Date()

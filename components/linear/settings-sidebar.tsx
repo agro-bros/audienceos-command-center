@@ -2,7 +2,7 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
-import { ChevronLeft, Building2, User, Users, Plus, Sparkles, Settings } from "lucide-react"
+import { ChevronLeft, Users, Plus, Sparkles, Settings } from "lucide-react"
 
 export interface SettingsSection {
   id: string

@@ -98,14 +98,14 @@ const categoryColors: Record<DocumentCategory, string> = {
 }
 
 export function DocumentCard({
-  id,
+  id: _id,
   name,
   type,
   category,
   description,
   thumbnail,
   updatedAt,
-  updatedBy,
+  updatedBy: _updatedBy,
   size,
   shared = false,
   starred = false,

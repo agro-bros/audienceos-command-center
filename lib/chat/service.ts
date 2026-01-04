@@ -14,10 +14,6 @@ import { withTimeout } from '@/lib/security';
 import type {
   ChatMessage,
   ChatServiceConfig,
-  RouterDecision,
-  SessionContext,
-  StreamChunk,
-  ChatError,
   FunctionCall,
 } from './types';
 

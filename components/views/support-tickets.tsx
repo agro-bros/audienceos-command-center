@@ -4,13 +4,9 @@ import React, { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import {
   InboxItem,
-  InboxItemSkeleton,
   TicketDetailPanel,
   ListHeader,
-  type TicketPriority,
-  type TicketStatus,
   type Ticket,
-  type TicketActivity,
 } from "@/components/linear"
 import { mockClients } from "@/lib/mock-data"
 import {
@@ -18,7 +14,6 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Filter,
 } from "lucide-react"
 
 // Mock tickets data
@@ -282,10 +277,8 @@ export function SupportTickets() {
     <div className="flex h-full overflow-hidden">
       {/* Ticket list - shrinks when detail panel is open */}
       <div
-        className={cn(
-          "flex flex-col border-r border-border overflow-hidden transition-all duration-300 ease-out",
-          selectedTicket ? "w-[280px] min-w-[280px]" : "flex-1"
-        )}
+        className="flex flex-col border-r border-border overflow-hidden transition-[width] duration-300 ease-out"
+        style={{ width: selectedTicket ? 280 : "100%" }}
       >
         <ListHeader
           title="Support Tickets"
@@ -347,10 +340,11 @@ export function SupportTickets() {
 
       {/* Ticket detail panel */}
       <div
-        className={cn(
-          "flex flex-col bg-background overflow-hidden transition-all duration-300 ease-out",
-          selectedTicket ? "flex-1 opacity-100" : "w-0 opacity-0"
-        )}
+        className="flex flex-col bg-background overflow-hidden transition-[width,opacity] duration-300 ease-out"
+        style={{
+          width: selectedTicket ? "calc(100% - 280px)" : 0,
+          opacity: selectedTicket ? 1 : 0
+        }}
       >
         {selectedTicket && (
           <TicketDetailPanel

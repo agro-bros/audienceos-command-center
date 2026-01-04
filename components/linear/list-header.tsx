@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Search, Filter, LayoutGrid, List, SortAsc, MoreHorizontal, X, ChevronDown, Download, RefreshCw, Settings, Columns } from "lucide-react"
+import { Search, LayoutGrid, List, SortAsc, MoreHorizontal, X, ChevronDown, Download, RefreshCw, Settings, Columns } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -192,7 +192,7 @@ export function ListHeader({
           role="toolbar"
           aria-label="Filter options"
         >
-          {filters.map((filter, index) => {
+          {filters.map((filter, _index) => {
             const activeValue = activeFilters[filter.id]
             const activeOption = filter.options.find(o => o.value === activeValue)
             const filterLabel = activeOption ? `${filter.label}: ${activeOption.label}` : filter.label

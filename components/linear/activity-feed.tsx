@@ -2,14 +2,12 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   MessageSquare,
   Tag,
   User,
   AlertCircle,
   CheckCircle,
-  Clock,
   ArrowRight,
   Paperclip,
   AtSign,

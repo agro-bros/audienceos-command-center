@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand'
+import { fetchWithCsrf } from '@/lib/csrf'
 import type { Workflow, WorkflowRun, WorkflowTrigger, WorkflowAction } from '@/types/workflow'
 
 interface AutomationsState {
@@ -131,9 +132,8 @@ export const useAutomationsStore = create<AutomationsState>((set, get) => ({
   // Toggle workflow active state
   toggleWorkflow: async (id, isActive) => {
     try {
-      const res = await fetch(`/api/v1/workflows/${id}/toggle`, {
+      const res = await fetchWithCsrf(`/api/v1/workflows/${id}/toggle`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: isActive }),
       })
 
@@ -155,7 +155,7 @@ export const useAutomationsStore = create<AutomationsState>((set, get) => ({
   // Delete workflow
   deleteWorkflow: async (id) => {
     try {
-      const res = await fetch(`/api/v1/workflows/${id}`, {
+      const res = await fetchWithCsrf(`/api/v1/workflows/${id}`, {
         method: 'DELETE',
       })
 
@@ -240,9 +240,8 @@ export const useAutomationsStore = create<AutomationsState>((set, get) => ({
         : '/api/v1/workflows'
       const method = editingWorkflow ? 'PATCH' : 'POST'
 
-      const res = await fetch(url, {
+      const res = await fetchWithCsrf(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
