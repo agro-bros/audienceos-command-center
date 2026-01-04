@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useSettingsStore } from "@/stores/settings-store"
 import { createClient } from "@/lib/supabase"
+import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import {
   Bell,
   Mail,
@@ -19,21 +20,13 @@ import {
   Send,
   CheckCircle2,
   Loader2,
-  X,
-  ChevronRight,
   Globe,
   AlertCircle,
 } from "lucide-react"
 import type { NotificationPreferences } from "@/types/settings"
+import type { MultiSelectOption } from "@/components/ui/multi-select-dropdown"
 
-// Mock clients for muting (in production, fetch from API)
-const MOCK_CLIENTS = [
-  { id: "1", name: "CloudMetrics Pro", health: "green" },
-  { id: "2", name: "Urban Thread Co.", health: "yellow" },
-  { id: "3", name: "Horizon Wealth Partners", health: "green" },
-  { id: "4", name: "Apex Consulting Group", health: "green" },
-  { id: "5", name: "GreenLeaf Markets", health: "red" },
-]
+// Clients will be fetched from API
 
 // Timezone list (common options)
 const TIMEZONES = [
@@ -100,7 +93,6 @@ export function NotificationsSection() {
   // Form state
   const [isSaving, setIsSaving] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
-  const [showMutedClients, setShowMutedClients] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
   // Notification preferences
@@ -123,6 +115,8 @@ export function NotificationsSection() {
 
   // Client muting (TASK-028)
   const [mutedClients, setMutedClients] = useState<string[]>([])
+  const [clients, setClients] = useState<MultiSelectOption[]>([])
+  const [isLoadingClients, setIsLoadingClients] = useState(false)
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
@@ -163,6 +157,28 @@ export function NotificationsSection() {
     }
   }, [])
 
+  // Fetch available clients for muting
+  const loadClients = useCallback(async () => {
+    setIsLoadingClients(true)
+    try {
+      const response = await fetch('/api/v1/clients?limit=1000')
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients')
+      }
+      const { data } = await response.json()
+      const clientOptions: MultiSelectOption[] = (data || []).map((client: any) => ({
+        value: client.id,
+        label: client.name,
+      }))
+      setClients(clientOptions)
+    } catch (error) {
+      console.error('Failed to load clients:', error)
+      // Continue with empty client list on error
+    } finally {
+      setIsLoadingClients(false)
+    }
+  }, [])
+
   useEffect(() => {
     const initializeUser = async () => {
       try {
@@ -175,6 +191,7 @@ export function NotificationsSection() {
 
         setUserId(user.id)
         await loadPreferences(user.id)
+        await loadClients()
       } catch (error) {
         console.error('Failed to initialize user:', error)
         setIsLoading(false)
@@ -182,7 +199,7 @@ export function NotificationsSection() {
     }
 
     initializeUser()
-  }, [loadPreferences])
+  }, [loadPreferences, loadClients])
 
   // Get current timezone display
   const currentTimezoneLabel = TIMEZONES.find(tz => tz.value === timezone)?.label || timezone
@@ -199,22 +216,6 @@ export function NotificationsSection() {
         ? prev.filter(d => d !== day)
         : [...prev, day]
     )
-    handleChange()
-  }
-
-  // Toggle client mute
-  const toggleMuteClient = (clientId: string) => {
-    setMutedClients(prev =>
-      prev.includes(clientId)
-        ? prev.filter(id => id !== clientId)
-        : [...prev, clientId]
-    )
-    handleChange()
-  }
-
-  // Unmute all clients
-  const unmuteAllClients = () => {
-    setMutedClients([])
     handleChange()
   }
 
@@ -594,93 +595,37 @@ export function NotificationsSection() {
 
       {/* Client Muting - TASK-028 */}
       <section className="rounded-lg border border-border overflow-hidden">
-        <div
-          className="px-4 py-3 bg-secondary/30 border-b border-border cursor-pointer hover:bg-secondary/50 transition-colors"
-          onClick={() => setShowMutedClients(!showMutedClients)}
-        >
-          <div className="flex items-center justify-between">
-            <SectionHeader
-              icon={Users}
-              title="Muted Clients"
-              description="Silence notifications from specific clients"
-            />
-            <div className="flex items-center gap-2">
-              {mutedClients.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {mutedClients.length} muted
-                </Badge>
-              )}
-              <ChevronRight
-                className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform",
-                  showMutedClients && "rotate-90"
-                )}
-              />
-            </div>
-          </div>
+        <div className="px-4 py-3 bg-secondary/30 border-b border-border">
+          <SectionHeader
+            icon={Users}
+            title="Muted Clients"
+            description="Silence notifications from specific clients"
+          />
         </div>
-
-        {showMutedClients && (
-          <div className="px-4 py-3">
-            {mutedClients.length > 0 && (
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
-                <span className="text-xs text-muted-foreground">
-                  {mutedClients.length} client{mutedClients.length !== 1 ? 's' : ''} muted
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
-                  onClick={unmuteAllClients}
-                >
-                  Unmute All
-                </Button>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {MOCK_CLIENTS.map((client) => {
-                const isMuted = mutedClients.includes(client.id)
-                return (
-                  <div
-                    key={client.id}
-                    className={cn(
-                      "flex items-center justify-between py-2 px-3 rounded-lg transition-colors",
-                      isMuted ? "bg-secondary/50" : "hover:bg-secondary/30"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full",
-                          client.health === "green" && "bg-emerald-500",
-                          client.health === "yellow" && "bg-yellow-500",
-                          client.health === "red" && "bg-red-500"
-                        )}
-                      />
-                      <span className="text-sm text-foreground">{client.name}</span>
-                    </div>
-                    <Button
-                      variant={isMuted ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => toggleMuteClient(client.id)}
-                    >
-                      {isMuted ? (
-                        <>
-                          <X className="h-3 w-3 mr-1" />
-                          Unmute
-                        </>
-                      ) : (
-                        "Mute"
-                      )}
-                    </Button>
-                  </div>
-                )
-              })}
+        <div className="px-4 py-4">
+          <SettingRow
+            label="Select Clients"
+            description="Choose which clients you want to mute"
+          >
+            <MultiSelectDropdown
+              options={clients}
+              selected={mutedClients}
+              onChange={(selected) => {
+                setMutedClients(selected)
+                handleChange()
+              }}
+              placeholder="Select clients..."
+              searchable={true}
+              selectAllOption={true}
+              disabled={isLoadingClients || clients.length === 0}
+            />
+          </SettingRow>
+          {clients.length === 0 && !isLoadingClients && (
+            <div className="py-3 text-xs text-muted-foreground">
+              No clients available to mute.
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </section>
 
       {/* Test Notification - TASK-029 */}
