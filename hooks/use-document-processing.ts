@@ -58,18 +58,17 @@ export function useDocumentProcessing() {
       setIsProcessing(true)
       setError(null)
 
-      // Get CSRF token
-      const csrfResponse = await fetch('/api/csrf-token')
-      if (!csrfResponse.ok) {
-        throw new Error('Failed to get CSRF token')
+      // Get CSRF token from meta tag (consistent with upload hook)
+      const csrfToken = getCsrfToken()
+      if (!csrfToken) {
+        throw new Error('CSRF token not found. Page may need to be reloaded.')
       }
-      const { token } = await csrfResponse.json()
 
       const response = await fetch('/api/v1/documents/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': token,
+          'X-CSRF-Token': csrfToken,
         },
       })
 
@@ -101,4 +100,15 @@ export function useDocumentProcessing() {
     fetchStatus,
     startProcessing,
   }
+}
+
+// Helper to get CSRF token from meta tag (consistent with upload hook)
+function getCsrfToken(): string {
+  if (typeof document === 'undefined') return ''
+
+  const metaTag = document.querySelector('meta[name="csrf-token"]')
+  if (metaTag) {
+    return metaTag.getAttribute('content') || ''
+  }
+  return ''
 }

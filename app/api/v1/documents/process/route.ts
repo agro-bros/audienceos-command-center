@@ -6,6 +6,47 @@ import { geminiFileService } from '@/lib/gemini/file-service'
 import type { IndexStatus } from '@/types/database'
 
 /**
+ * Wait for Gemini to finish processing a file with exponential backoff retry
+ */
+async function waitForGeminiProcessing(fileId: string, maxAttempts = 10) {
+  let attempt = 0
+  let backoffMs = 500 // Start with 500ms
+
+  while (attempt < maxAttempts) {
+    try {
+      const status = await geminiFileService.getFileStatus(fileId)
+      const stateStr = String(status.state || '')
+
+      // File is ready or failed - return regardless
+      if (!stateStr.includes('PROCESSING')) {
+        return status
+      }
+
+      // Still processing, wait and retry
+      attempt++
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        backoffMs = Math.min(backoffMs * 1.5, 5000) // Cap at 5 seconds
+      }
+    } catch (error) {
+      // Retry on error (temporary network issue)
+      console.error(`Attempt ${attempt + 1} to get file status failed:`, error)
+      attempt++
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        backoffMs = Math.min(backoffMs * 1.5, 5000)
+      } else {
+        throw error
+      }
+    }
+  }
+
+  // Max attempts reached, return last known status
+  const lastStatus = await geminiFileService.getFileStatus(fileId)
+  return lastStatus
+}
+
+/**
  * POST /api/v1/documents/process
  * Process pending documents by uploading them to Gemini File API for indexing
  */
@@ -110,11 +151,8 @@ export async function POST(request: NextRequest) {
           displayName
         )
 
-        // Wait a moment for Gemini to process
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        // Check file status
-        const fileStatus = await geminiFileService.getFileStatus(geminiFileId)
+        // Wait for Gemini to process using exponential backoff
+        const fileStatus = await waitForGeminiProcessing(geminiFileId)
 
         let finalStatus: IndexStatus = 'indexed'
         if (fileStatus.state === 'PROCESSING') {

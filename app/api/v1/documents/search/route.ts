@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: documents, error: fetchError } = await docQuery
+      .select('id, title, category, gemini_file_id, mime_type, file_name')
       .order('updated_at', { ascending: false })
       .limit(20) // Limit to avoid too many file references
 
@@ -87,12 +88,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Extract Gemini file IDs
-    const fileIds = documents
-      .filter(doc => doc.gemini_file_id)
-      .map(doc => doc.gemini_file_id!)
+    // Extract Gemini file references with mime types
+    const docReferences = documents
+      .filter(doc => doc.gemini_file_id && doc.mime_type)
+      .map(doc => ({
+        id: doc.gemini_file_id!,
+        mimeType: doc.mime_type!
+      }))
 
-    if (fileIds.length === 0) {
+    if (docReferences.length === 0) {
       return NextResponse.json({
         answer: "No documents are currently available for search. Please wait for document processing to complete.",
         documentsSearched: [],
@@ -101,9 +105,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Perform search using Gemini File API
+    // Perform search using Gemini File API with actual MIME types
     try {
-      const searchAnswer = await geminiFileService.searchDocuments(query.trim(), fileIds)
+      const searchAnswer = await geminiFileService.searchDocuments(query.trim(), docReferences)
 
       const result: SearchResult = {
         answer: searchAnswer,

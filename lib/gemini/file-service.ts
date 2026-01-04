@@ -97,18 +97,21 @@ export class GeminiFileService {
   /**
    * Search documents using Gemini File API
    * @param query - Search query
-   * @param fileIds - Array of Gemini file IDs to search within
+   * @param documents - Array of {id, mimeType} to search within
    * @returns Search results
    */
-  async searchDocuments(query: string, fileIds: string[]): Promise<string> {
+  async searchDocuments(
+    query: string,
+    documents: Array<{ id: string; mimeType: string }>
+  ): Promise<string> {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" })
 
-      // Create file references for the prompt
-      const fileRefs = fileIds.map(id => ({
+      // Create file references with actual MIME types
+      const fileRefs = documents.map(doc => ({
         fileData: {
-          mimeType: "application/pdf", // We'll assume PDF for now, could be enhanced
-          fileUri: id
+          mimeType: doc.mimeType,
+          fileUri: doc.id
         }
       }))
 
