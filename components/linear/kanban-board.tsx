@@ -2,11 +2,11 @@
 
 import React from "react"
 import { KanbanColumn } from "./kanban-column"
-import { stages, type Client, type Stage } from "@/lib/mock-data"
+import { PIPELINE_STAGES, type Stage, type MinimalClient } from "@/types/client"
 
 interface KanbanBoardProps {
-  clients: Client[]
-  onClientClick?: (client: Client) => void
+  clients: MinimalClient[]
+  onClientClick?: (client: MinimalClient) => void
 }
 
 export function KanbanBoard({ clients, onClientClick }: KanbanBoardProps) {
@@ -17,7 +17,7 @@ export function KanbanBoard({ clients, onClientClick }: KanbanBoardProps) {
   return (
     <div className="flex-1 overflow-x-auto">
       <div className="flex h-full min-w-max">
-        {stages.map((stage) => (
+        {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage}
             title={stage}

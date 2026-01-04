@@ -1,3 +1,22 @@
+/**
+ * MOCK DATA - Development and Demo Only
+ *
+ * WARNING: This file contains hardcoded mock data for development purposes.
+ * In production, all data should come from Supabase.
+ *
+ * The pipeline store (stores/pipeline-store.ts) fetches from /api/v1/clients
+ * which queries Supabase directly. Components should use that store, not this file.
+ */
+
+// Guard: Warn if mock data is accessed in production
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[MOCK DATA] Warning: mock-data.ts is being accessed in production. ' +
+    'This should only happen as a fallback when Supabase returns no data. ' +
+    'If you see this frequently, check Supabase connection and data seeding.'
+  )
+}
+
 export type Stage = "Onboarding" | "Installation" | "Audit" | "Live" | "Needs Support" | "Off-boarding"
 export type HealthStatus = "Green" | "Yellow" | "Red" | "Blocked"
 export type Owner = "Luke" | "Garrett" | "Josh" | "Jeff"

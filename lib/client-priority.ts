@@ -1,4 +1,4 @@
-import type { Client, HealthStatus, Stage } from "./mock-data"
+import type { MinimalClient, UIHealthStatus, Stage } from "@/types/client"
 
 /**
  * Calculate priority score for a client.
@@ -7,9 +7,9 @@ import type { Client, HealthStatus, Stage } from "./mock-data"
  * Key insight: urgency should DECAY for external blockers.
  * A DNS issue on day 1 is "we're waiting" but on day 20 it's "their problem".
  */
-export function calculateClientPriority(client: Client): number {
+export function calculateClientPriority(client: MinimalClient): number {
   // Base health score (higher = needs attention)
-  const healthScores: Record<HealthStatus, number> = {
+  const healthScores: Record<UIHealthStatus, number> = {
     Red: 100,
     Yellow: 60,
     Blocked: 40,
@@ -40,13 +40,13 @@ export function calculateClientPriority(client: Client): number {
   }
 
   // Bonus for open support tickets (active issues)
-  const ticketBonus = client.supportTickets * 5
+  const ticketBonus = (client.supportTickets || 0) * 5
 
   return healthScore * actionabilityMultiplier + ticketBonus
 }
 
 // Health priority for sorting (lower = more urgent)
-const healthOrder: Record<HealthStatus, number> = {
+const healthOrder: Record<UIHealthStatus, number> = {
   Red: 0,
   Yellow: 1,
   Blocked: 2,
@@ -68,7 +68,7 @@ export type SortMode = "priority" | "health" | "stage" | "owner" | "days" | "nam
 /**
  * Sort clients by the specified mode
  */
-export function sortClients<T extends Client>(clients: T[], mode: SortMode): T[] {
+export function sortClients<T extends MinimalClient>(clients: T[], mode: SortMode): T[] {
   return [...clients].sort((a, b) => {
     switch (mode) {
       case "priority":
@@ -104,6 +104,6 @@ export function sortClients<T extends Client>(clients: T[], mode: SortMode): T[]
 /**
  * Sort clients by priority (highest first) - convenience alias
  */
-export function sortClientsByPriority<T extends Client>(clients: T[]): T[] {
+export function sortClientsByPriority<T extends MinimalClient>(clients: T[]): T[] {
   return sortClients(clients, "priority")
 }

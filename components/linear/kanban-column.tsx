@@ -11,13 +11,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Client } from "@/lib/mock-data"
+import type { MinimalClient } from "@/types/client"
 
 interface KanbanColumnProps {
   title: string
-  clients: Client[]
+  clients: MinimalClient[]
   color?: string
-  onClientClick?: (client: Client) => void
+  onClientClick?: (client: MinimalClient) => void
   onAddClick?: () => void
 }
 

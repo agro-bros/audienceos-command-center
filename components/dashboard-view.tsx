@@ -11,7 +11,7 @@ import {
   type DashboardTab,
   type FirehoseTab,
 } from "./dashboard"
-import { type Client, owners } from "@/lib/mock-data"
+import { type MinimalClient, getOwnerData } from "@/types/client"
 import { cn } from "@/lib/utils"
 import { MessageSquare, Send, Clock, AlertCircle, ExternalLink, X, CheckCircle2, CheckSquare, AlertTriangle, TrendingUp } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -19,13 +19,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 interface DashboardViewProps {
-  clients: Client[]
-  onClientClick: (client: Client) => void
+  clients: MinimalClient[]
+  onClientClick: (client: MinimalClient) => void
   onNavigateToChat?: () => void
 }
 
 // Mock firehose data - will be replaced with real data
-function generateMockFirehoseItems(clients: Client[]): FirehoseItemData[] {
+function generateMockFirehoseItems(clients: MinimalClient[]): FirehoseItemData[] {
   const items: FirehoseItemData[] = []
   const now = new Date()
 
@@ -124,11 +124,12 @@ function TasksByAssigneeWidget({
   clients,
   onOwnerClick
 }: {
-  clients: Client[]
+  clients: MinimalClient[]
   onOwnerClick: (owner: string) => void
 }) {
   const tasksByOwner = clients.reduce((acc, client) => {
-    acc[client.owner] = (acc[client.owner] || 0) + (client.tasks?.length || 0)
+    // TODO: Get task count from database when tasks are implemented
+    acc[client.owner] = (acc[client.owner] || 0)
     return acc
   }, {} as Record<string, number>)
 
@@ -139,7 +140,7 @@ function TasksByAssigneeWidget({
       <h3 className="text-sm font-medium text-foreground mb-3">Tasks by Assignee</h3>
       <div className="space-y-2">
         {Object.entries(tasksByOwner).slice(0, 4).map(([owner, count]) => {
-          const ownerData = owners.find(o => o.name === owner)
+          const ownerData = getOwnerData(owner)
           return (
             <button
               key={owner}
@@ -170,11 +171,11 @@ function ClientProgressWidget({
   clients,
   onClientClick
 }: {
-  clients: Client[]
-  onClientClick: (client: Client) => void
+  clients: MinimalClient[]
+  onClientClick: (client: MinimalClient) => void
 }) {
   // Calculate progress based on stage (Live = 100%, Installation = 75%, etc.)
-  const getProgress = (client: Client): number => {
+  const getProgress = (client: MinimalClient): number => {
     const stageProgress: Record<string, number> = {
       "Live": 100,
       "Installation": 75,
@@ -195,7 +196,7 @@ function ClientProgressWidget({
       <h3 className="text-sm font-medium text-foreground mb-3">Client Progress</h3>
       <div className="space-y-2">
         {sortedClients.map(client => {
-          const owner = owners.find(o => o.name === client.owner)
+          const owner = getOwnerData(client.owner)
           const progress = getProgress(client)
           return (
             <button
@@ -227,7 +228,7 @@ function ClientsByStageWidget({
   clients,
   onStageClick
 }: {
-  clients: Client[]
+  clients: MinimalClient[]
   onStageClick: (stage: string) => void
 }) {
   const stages = [
@@ -273,7 +274,7 @@ function ClientsByTierWidget({
   clients,
   onTierClick
 }: {
-  clients: Client[]
+  clients: MinimalClient[]
   onTierClick: (tier: string) => void
 }) {
   // Always show all three tiers, even if empty
@@ -321,7 +322,7 @@ function ClientsByTierWidget({
 }
 
 // Load by Status Widget (donut chart style)
-function LoadByStatusWidget({ clients }: { clients: Client[] }) {
+function LoadByStatusWidget({ clients }: { clients: MinimalClient[] }) {
   const healthCounts = clients.reduce((acc, client) => {
     acc[client.health] = (acc[client.health] || 0) + 1
     return acc
@@ -514,10 +515,10 @@ function ClientDetailDrawer({
   client,
   onClose
 }: {
-  client: Client
+  client: MinimalClient
   onClose: () => void
 }) {
-  const ownerData = owners.find(o => o.name === client.owner)
+  const ownerData = getOwnerData(client.owner)
 
   return (
     <div className="flex flex-col h-full bg-card border-l border-border">
@@ -804,7 +805,7 @@ export function DashboardView({ clients, onClientClick, onNavigateToChat }: Dash
     },
     {
       label: "pending resolution",
-      value: clients.filter(c => c.supportTickets > 0).length,
+      value: clients.filter(c => (c.supportTickets || 0) > 0).length,
       change: -58,
       changeLabel: "from last week",
       sparklineData: [12, 10, 8, 7, 6, 5, 5],
@@ -991,7 +992,7 @@ export function DashboardView({ clients, onClientClick, onNavigateToChat }: Dash
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-foreground mb-3">All Clients ({clients.length})</h3>
                 {clients.map(client => {
-                  const owner = owners.find(o => o.name === client.owner)
+                  const owner = getOwnerData(client.owner)
                   return (
                     <button
                       key={client.id}

@@ -1,7 +1,18 @@
 /**
  * Mock data for Knowledge Base feature
  * Based on features/knowledge-base.md spec
+ *
+ * WARNING: This file contains hardcoded mock data for development purposes.
+ * In production, documents should come from Supabase.
  */
+
+// Guard: Warn if mock data is accessed in production
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[MOCK DATA] Warning: mock-knowledge-base.ts is being accessed in production. ' +
+    'This should only happen as a fallback when Supabase returns no data.'
+  )
+}
 
 import type { KnowledgeBaseDocument, CategoryWithCount, DocumentSearchResult } from '@/types/knowledge-base'
 import type { DocumentCategory, IndexStatus } from '@/types/database'

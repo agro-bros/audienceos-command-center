@@ -15,8 +15,26 @@ import {
   type ActiveFilters,
   type SortOption,
 } from "@/components/linear"
-import { mockClients, type Client, owners } from "@/lib/mock-data"
+import { usePipelineStore, type Client as StoreClient } from "@/stores/pipeline-store"
+import { getOwnerData, type MinimalClient } from "@/types/client"
 import { sortClients, type SortMode } from "@/lib/client-priority"
+
+// Convert store client to UI client format (returns MinimalClient)
+function adaptStoreClient(client: StoreClient): MinimalClient {
+  return {
+    id: client.id,
+    name: client.name,
+    logo: client.name.substring(0, 2).toUpperCase(),
+    stage: client.stage,
+    health: client.health_status,
+    owner: client.owner || "Unassigned",
+    daysInStage: client.days_in_stage,
+    supportTickets: 0,
+    statusNote: client.notes || undefined,
+    tier: "Core",
+    blocker: null,
+  }
+}
 
 // Filter configurations for Client List
 const clientFiltersConfig: FilterConfig[] = [
@@ -117,7 +135,7 @@ function CommandCenterContent() {
   const pathname = usePathname()
 
   const [activeView, setActiveView] = useState<LinearView>("pipeline")
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [selectedClient, setSelectedClient] = useState<MinimalClient | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   // Separate view modes: Pipeline defaults to board (Kanban), Clients defaults to list
   const [pipelineViewMode, setPipelineViewMode] = useState<"list" | "board">("board")
@@ -140,8 +158,18 @@ function CommandCenterContent() {
   const [intelligenceInitialSection, setIntelligenceInitialSection] = useState<string | undefined>()
   const [intelligenceInitialCartridgeTab, setIntelligenceInitialCartridgeTab] = useState<"voice" | "style" | "preferences" | "instructions" | "brand" | undefined>()
 
-  // Use mock clients for now
-  const clients = mockClients
+  // Pipeline store - fetches from Supabase API
+  const { clients: storeClients, fetchClients, isLoading: _isLoading } = usePipelineStore()
+
+  // Fetch clients on mount
+  useEffect(() => {
+    fetchClients()
+  }, [fetchClients])
+
+  // Convert store clients to UI format
+  const clients: MinimalClient[] = useMemo(() => {
+    return storeClients.map(adaptStoreClient)
+  }, [storeClients])
 
   // Sync URL params when filters change
   const updateUrlParams = useCallback((filters: ActiveFilters) => {
@@ -220,11 +248,7 @@ function CommandCenterContent() {
   // Transform client to detail panel format
   const clientForPanel = useMemo(() => {
     if (!selectedClient) return null
-    const ownerData = owners.find((o) => o.name === selectedClient.owner) || {
-      name: selectedClient.owner,
-      avatar: selectedClient.owner[0],
-      color: "bg-primary",
-    }
+    const ownerData = getOwnerData(selectedClient.owner)
     return {
       id: selectedClient.logo,
       name: selectedClient.name,
@@ -235,7 +259,7 @@ function CommandCenterContent() {
         initials: ownerData.avatar,
         color: ownerData.color,
       },
-      tier: selectedClient.tier,
+      tier: selectedClient.tier || "Core",
       daysInStage: selectedClient.daysInStage,
       blocker: selectedClient.blocker,
       statusNote: selectedClient.statusNote,
@@ -283,11 +307,7 @@ function CommandCenterContent() {
             ) : (
               <div className="flex-1 overflow-y-auto">
                 {filteredClients.map((client) => {
-                  const ownerData = owners.find((o) => o.name === client.owner) || {
-                    name: client.owner,
-                    avatar: client.owner[0],
-                    color: "bg-primary",
-                  }
+                  const ownerData = getOwnerData(client.owner)
                   return (
                     <ClientRow
                       key={client.id}
@@ -341,7 +361,7 @@ function CommandCenterContent() {
         return (
           <OnboardingHub
             onClientClick={(clientId) => {
-              const client = mockClients.find((c) => c.id === clientId)
+              const client = clients.find((c) => c.id === clientId)
               if (client) setSelectedClient(client)
             }}
           />

@@ -171,3 +171,44 @@ export const PIPELINE_STAGES: Stage[] = [
 
 // Owner list (temporary until we use real user assignments)
 export const OWNERS: Owner[] = ['Luke', 'Garrett', 'Josh', 'Jeff']
+
+// Owner data with avatars for UI display
+export interface OwnerData {
+  name: Owner
+  avatar: string
+  color: string
+}
+
+export const OWNER_DATA: OwnerData[] = [
+  { name: 'Luke', avatar: 'L', color: 'bg-blue-500' },
+  { name: 'Garrett', avatar: 'G', color: 'bg-green-500' },
+  { name: 'Josh', avatar: 'J', color: 'bg-purple-500' },
+  { name: 'Jeff', avatar: 'JF', color: 'bg-orange-500' },
+]
+
+// Helper to get owner data by name
+export function getOwnerData(name: string): OwnerData {
+  return OWNER_DATA.find((o) => o.name === name) || {
+    name: name as Owner,
+    avatar: name[0],
+    color: 'bg-primary',
+  }
+}
+
+/**
+ * Minimal client interface for components that don't need all fields
+ * Used by kanban, sorting, and other display components
+ */
+export interface MinimalClient {
+  id: string
+  name: string
+  logo: string
+  stage: Stage
+  health: UIHealthStatus
+  owner: string
+  daysInStage: number
+  tier?: Tier | string
+  blocker?: BlockerType | string | null
+  statusNote?: string
+  supportTickets?: number
+}
