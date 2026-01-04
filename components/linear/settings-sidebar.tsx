@@ -131,7 +131,6 @@ export const intelligenceSettingsGroups: SettingsGroup[] = [
     icon: <Sparkles className="w-4 h-4" />,
     sections: [
       { id: "overview", label: "Overview" },
-      { id: "chat", label: "Chat" },
       { id: "history", label: "Chat History" },
       { id: "activity", label: "Activity" },
     ],

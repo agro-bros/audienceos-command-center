@@ -21,18 +21,8 @@ test.describe('Intelligence Center', () => {
     await expect(page.locator('text=At-Risk Detection')).toBeVisible()
   })
 
-  test('Chat section displays chat interface', async ({ page }) => {
-    // Click on Chat in sub-nav
-    await page.click('nav >> text=Chat')
-
-    // Wait for section to load
-    await page.waitForTimeout(1000)
-
-    // Should show chat interface with input
-    await expect(
-      page.locator('textarea[placeholder*="Ask"], input[placeholder*="Ask"]')
-    ).toBeVisible({ timeout: 5000 })
-  })
+  // Note: "Chat" section removed - use "Chat History" for conversation access
+  // See CLAUDE.md "Intelligence Center > Sidebar Navigation" for canonical nav structure
 
   test('Chat History section displays conversation logs', async ({ page }) => {
     // Click on Chat History in sub-nav

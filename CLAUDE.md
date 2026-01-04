@@ -109,10 +109,23 @@ npm run typecheck    # TypeScript check
 
 The Intelligence Center (`/intelligence`) is the AI hub of the application, combining chat, cartridges, and knowledge management.
 
-### Structure
+### Sidebar Navigation (CANONICAL - do not duplicate)
+
+**Assistant group:**
+- Overview - AI capabilities dashboard
+- Chat History - Past conversations with filters (NOT "Chat" - that was removed)
+- Activity - AI activity feed
+
+**Configuration group:**
+- Training Cartridges - AI personality/behavior config (NOT "Cartridges")
+- Custom Prompts - User-defined prompt templates
+- AI Training Data - Documents for RAG
+
+### File Structure
 
 ```
 components/views/intelligence-center.tsx  # Main view with sub-navigation
+components/linear/settings-sidebar.tsx    # Sidebar nav config (intelligenceSettingsGroups)
 components/chat/
 ├── chat-interface.tsx                    # Chat UI component
 lib/chat/
@@ -128,7 +141,7 @@ lib/chat/
 app/api/chat/route.ts                     # API endpoint
 ```
 
-### Cartridges (AI Configuration)
+### Training Cartridges (AI Configuration)
 
 5-tab system for configuring AI assistant behavior:
 - **Voice** - Tone and personality

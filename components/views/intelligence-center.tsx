@@ -17,8 +17,6 @@ import {
 } from "@/components/dashboard"
 import { cn } from "@/lib/utils"
 import { CartridgesPage } from "@/components/cartridges"
-import { ChatInterface } from "@/components/chat/chat-interface"
-import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -345,7 +343,6 @@ interface IntelligenceCenterProps {
 export function IntelligenceCenter({ onBack, initialSection = "overview", initialCartridgeTab }: IntelligenceCenterProps) {
   const [activeSection, setActiveSection] = useState(initialSection)
   const [chatFilter, setChatFilter] = useState<ChatFilterTab>("all")
-  const { agencyId, isLoading: authLoading } = useAuth()
 
   // Training Data state
   const [trainingDocs, setTrainingDocs] = useState<TrainingDocument[]>(mockTrainingDocs)
@@ -458,7 +455,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
       title: "Client Communication",
       description: "Draft professional responses to client messages across Slack and email",
       primaryAction: "Try now",
-      onPrimaryClick: () => setActiveSection("chat"),
+      onPrimaryClick: () => setActiveSection("history"),
       accentColor: "blue" as const,
     },
     {
@@ -474,7 +471,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
       title: "At-Risk Detection",
       description: "Automatically identify clients showing signs of churn or dissatisfaction",
       primaryAction: "View alerts",
-      onPrimaryClick: () => setActiveSection("chat"),
+      onPrimaryClick: () => setActiveSection("history"),
       accentColor: "pink" as const,
     },
     {
@@ -482,7 +479,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
       title: "Performance Insights",
       description: "Get AI-powered summaries of ad performance and optimization suggestions",
       primaryAction: "View insights",
-      onPrimaryClick: () => setActiveSection("chat"),
+      onPrimaryClick: () => setActiveSection("history"),
       accentColor: "green" as const,
     },
     {
@@ -570,32 +567,6 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
         </>
       )}
 
-      {activeSection === "chat" && (
-        <SettingsContentSection title="Chat">
-          {authLoading ? (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          ) : agencyId ? (
-            <ChatInterface agencyId={agencyId} />
-          ) : (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">Authentication Required</h3>
-              <p className="text-muted-foreground mb-4">
-                Please sign in to use the chat interface.
-              </p>
-              <button
-                onClick={() => window.location.href = "/login"}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors cursor-pointer"
-              >
-                Sign In
-              </button>
-            </div>
-          )}
-        </SettingsContentSection>
-      )}
-
       {activeSection === "history" && (
         <SettingsContentSection title="Chat History">
           {/* Chat Filter Tabs */}
@@ -679,7 +650,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
               onItemClick={(item) => {
                 // Navigate to appropriate section based on target tab
                 if (item.targetTab === "alerts") {
-                  setActiveSection("chat")
+                  setActiveSection("history")
                 }
               }}
             />
