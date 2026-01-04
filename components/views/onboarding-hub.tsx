@@ -480,7 +480,6 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
     <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Stages List (always visible) */}
       <motion.div
-        layout
         initial={false}
         animate={{ width: isCompact ? 288 : "100%" }}
         transition={slideTransition}

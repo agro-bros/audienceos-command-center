@@ -277,7 +277,6 @@ export function AutomationsHub() {
     <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Automations list (shrinks when detail is open) */}
       <motion.div
-        layout
         initial={false}
         animate={{ width: selectedAutomation ? 280 : "100%" }}
         transition={slideTransition}

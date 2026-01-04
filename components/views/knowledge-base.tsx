@@ -266,7 +266,6 @@ export function KnowledgeBase() {
     <div className="flex h-full overflow-hidden">
       {/* Document list - shrinks when preview panel is open */}
       <motion.div
-        layout
         initial={false}
         animate={{ width: selectedDocument ? 280 : "100%" }}
         transition={slideTransition}

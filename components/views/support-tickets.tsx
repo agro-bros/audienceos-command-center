@@ -284,7 +284,6 @@ export function SupportTickets() {
     <div className="flex h-full overflow-hidden">
       {/* Ticket list - shrinks when detail panel is open */}
       <motion.div
-        layout
         initial={false}
         animate={{ width: selectedTicket ? 280 : "100%" }}
         transition={slideTransition}
