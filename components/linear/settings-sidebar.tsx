@@ -123,6 +123,7 @@ export function SettingsSidebar({
 
 // Default groups for AudienceOS Intelligence Center
 // Note: Account section removed - use main Settings nav instead
+// Note: "training-data" was renamed from "knowledge" to avoid collision with main nav's Knowledge Base
 export const intelligenceSettingsGroups: SettingsGroup[] = [
   {
     id: "assistant",
@@ -142,7 +143,7 @@ export const intelligenceSettingsGroups: SettingsGroup[] = [
     sections: [
       { id: "cartridges", label: "Training Cartridges" },
       { id: "prompts", label: "Custom Prompts" },
-      { id: "knowledge", label: "AI Training Data" },
+      { id: "training-data", label: "AI Training Data" },
     ],
   },
 ]

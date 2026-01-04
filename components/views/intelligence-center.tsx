@@ -466,7 +466,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
       title: "Knowledge Search",
       description: "Search across all client documents, conversations, and notes instantly",
       primaryAction: "Search",
-      onPrimaryClick: () => setActiveSection("knowledge"),
+      onPrimaryClick: () => setActiveSection("training-data"),
       accentColor: "purple" as const,
     },
     {
@@ -848,7 +848,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
         </SettingsContentSection>
       )}
 
-      {activeSection === "knowledge" && (
+      {activeSection === "training-data" && (
         <SettingsContentSection
           title="AI Training Data"
           action={
@@ -967,7 +967,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
         </SettingsContentSection>
       )}
 
-      {!["overview", "chat", "activity", "cartridges", "prompts", "knowledge"].includes(activeSection) && (
+      {!["overview", "chat", "activity", "cartridges", "prompts", "training-data", "history"].includes(activeSection) && (
         <SettingsContentSection title="Coming Soon">
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <p className="text-muted-foreground">
