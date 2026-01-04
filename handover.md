@@ -26,12 +26,33 @@ SUPABASE_SERVICE_ROLE_KEY=[get from Supabase dashboard → API settings]
 
 After updating, redeploy the site.
 
-### Remaining
+### Completed
 - [x] Fix silent API error display in Pipeline view ✅ **VERIFIED WORKING**
   - Commit: `a12dea2 fix: add error state display for Pipeline API failures`
   - UI shows "Failed to load clients" with retry button when API returns 401
   - Loading spinner shows during fetch
   - Note: HMR can interfere with state during dev - full refresh confirms fix works
+
+- [x] **Add comprehensive test coverage** ✅ **326 TESTS PASSING (+20)**
+  - Commit: `550b1d5 test: add comprehensive error handling test coverage`
+  - 12 new unit tests for pipeline-store error handling:
+    - Loading state, 401/500 errors, network failures, CORS, retry flow, edge cases
+  - 8 new integration tests for component error display:
+    - Error message rendering, loading spinner, successful retry, state isolation
+  - Test file: `__tests__/stores/pipeline-store.test.ts` (expanded)
+  - Test file: `__tests__/pages/page-error-display.test.tsx` (new)
+  - Documentation: `docs/06-reference/ERROR-HANDLING.md` (200+ line comprehensive guide)
+  - Build: ✅ Passes
+  - All 326 tests: ✅ Passing (15 test files)
+
+### Key Documentation
+Created comprehensive ERROR-HANDLING.md that includes:
+- Three-layer error architecture (Store → Component → UI)
+- State machine diagram
+- Error type mapping (401, 500, network, CORS, etc.)
+- Complete testing strategy
+- Common pitfalls avoided & solutions
+- Verification checklist for future changes
 
 ---
 
