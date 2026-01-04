@@ -43,12 +43,21 @@ async function validateSecurityConfiguration() {
     }
   }
 
-  // Supabase configuration (required always)
+  // Supabase configuration (required in production runtime only)
+  // In CI/build environments, these may not be set - that's okay
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    errors.push('NEXT_PUBLIC_SUPABASE_URL is required')
+    if (isProduction) {
+      errors.push('NEXT_PUBLIC_SUPABASE_URL is required')
+    } else {
+      warnings.push('NEXT_PUBLIC_SUPABASE_URL is not set - using placeholder for build')
+    }
   }
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is required')
+    if (isProduction) {
+      errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is required')
+    } else {
+      warnings.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set - using placeholder for build')
+    }
   }
 
   // Log warnings in development

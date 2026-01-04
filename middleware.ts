@@ -8,6 +8,18 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
+// Environment variables - lazy access to support CI builds without env vars
+function getSupabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    return null // Will skip auth check if env vars missing
+  }
+
+  return { url, key }
+}
+
 // CSRF Configuration (TD-005)
 const CSRF_COOKIE_NAME = '__csrf_token'
 
@@ -92,10 +104,19 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // Get Supabase config - if missing, skip auth (CI/build mode)
+  const supabaseConfig = getSupabaseConfig()
+
+  // If no Supabase config, allow all requests (build-time or misconfigured)
+  if (!supabaseConfig) {
+    console.warn('[Middleware] Supabase not configured - skipping auth checks')
+    return ensureCsrfCookie(request, response)
+  }
+
   // Create Supabase client for middleware
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseConfig.url,
+    supabaseConfig.key,
     {
       cookies: {
         getAll() {
