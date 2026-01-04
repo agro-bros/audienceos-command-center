@@ -19,7 +19,7 @@ Integrate Holy Grail Chat (HGC) backend into AudienceOS:
 HGC is already built and tested at 9.5/10 confidence. This is about wiring it into AudienceOS UI, not rebuilding.
 
 **Source:** `/holy-grail-chat/src/lib/`
-**Target:** `/command_center_linear/lib/chat/`
+**Target:** `/Users/rodericandrews/_PAI/projects/command_center_audience_OS/lib/chat/`
 
 ---
 

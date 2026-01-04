@@ -29,10 +29,9 @@ npm run dev
 
 | Branch | Worktree Path | Purpose |
 |--------|---------------|---------|
-| `main` | `/Users/rodericandrews/_PAI/projects/command_center_audience_OS` | Production/stable |
-| `linear-rebuild` | `/Users/rodericandrews/_PAI/projects/command_center_linear` | **ACTIVE** - Linear UI rebuild (PR #1) |
+| `main` | `/Users/rodericandrews/_PAI/projects/command_center_audience_OS` | Production/stable (primary worktree) |
 
-**Current Work:** `linear-rebuild` worktree. Always `cd` there first.
+**Current Work:** All development uses the `main` branch in `/Users/rodericandrews/_PAI/projects/command_center_audience_OS`.
 
 ## Environment Variables
 

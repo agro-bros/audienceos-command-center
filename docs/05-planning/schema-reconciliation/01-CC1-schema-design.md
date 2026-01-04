@@ -242,7 +242,7 @@ await supabase.from('users').insert({
 ## Output Location
 
 ```
-/Users/rodericandrews/_PAI/projects/command_center_linear/docs/04-technical/UNIFIED-DATA-MODEL.md
+/Users/rodericandrews/_PAI/projects/command_center_audience_OS/docs/04-technical/DATA-MODEL.md
 ```
 
 ---

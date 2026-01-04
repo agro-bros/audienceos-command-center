@@ -19,9 +19,9 @@ Consolidate three systems into a unified AudienceOS Command Center:
 ## Systems Being Consolidated
 
 ### Source 1: AudienceOS (This Project)
-- **Location:** `/command_center_linear/`
-- **Branch:** `linear-rebuild`
-- **Status:** Running on `localhost:3004`
+- **Location:** `/Users/rodericandrews/_PAI/projects/command_center_audience_OS/`
+- **Branch:** `main`
+- **Status:** Running on `localhost:3000`
 - **Key Components:**
   - `components/linear/sidebar.tsx` - Main nav
   - `components/views/intelligence-center.tsx` - AI section

@@ -22,7 +22,7 @@ Port the 5-tab Cartridge system from RevOS to AudienceOS. This includes:
 - `/revos/components/cartridges/cartridge-edit-form.tsx` (~640 lines)
 
 **Target:**
-- `/command_center_linear/components/cartridges/`
+- `/Users/rodericandrews/_PAI/projects/command_center_audience_OS/components/cartridges/`
 - Integration into Intelligence Center
 
 ---
