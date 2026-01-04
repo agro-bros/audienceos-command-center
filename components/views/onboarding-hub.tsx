@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
+import { useSlideTransition } from "@/hooks/use-slide-transition"
 import { mockClients } from "@/lib/mock-data"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -444,11 +445,7 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
   )
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
-  // Reduced motion support
-  const prefersReducedMotion = useReducedMotion()
-  const slideTransition = prefersReducedMotion
-    ? { duration: 0 }
-    : { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }
+  const slideTransition = useSlideTransition()
 
   // Group clients by onboarding stage
   const clientsByStage = mockClients.reduce((acc, client) => {

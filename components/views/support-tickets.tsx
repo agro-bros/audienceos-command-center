@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
+import { useSlideTransition } from "@/hooks/use-slide-transition"
 import { cn } from "@/lib/utils"
 import {
   InboxItem,
@@ -228,11 +229,7 @@ export function SupportTickets() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Reduced motion support
-  const prefersReducedMotion = useReducedMotion()
-  const slideTransition = prefersReducedMotion
-    ? { duration: 0 }
-    : { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }
+  const slideTransition = useSlideTransition()
 
   // Calculate counts
   const counts = useMemo(() => {

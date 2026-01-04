@@ -4,107 +4,122 @@
 
 ## Completed This Session
 
-### Vercel Deployment Verification (2026-01-04)
+### CI Smoke-test Fix + Validation (2026-01-04 Evening)
 
-**Deployment Testing:**
-- Fixed 500 errors by adding env vars: `OAUTH_STATE_SECRET`, `TOKEN_ENCRYPTION_KEY`
-- Fixed jsdom error by lazy-loading DOMPurify in `lib/security.ts`
-- Verified full login flow on production Vercel site
-- Created test user: `test@audienceos.com` / `TestPassword123!`
-- Confirmed authenticated state shows full UI with data
+**CI Smoke-test Fixed (PR #6 merged):**
+- Replaced `listCommitStatusesForRef` with GitHub Deployments API
+- Gets actual `environment_url` from deployment status (correct preview URL)
+- Added deployment protection handling - accepts HTTP 401 as "deployment running"
+- Supports optional `VERCEL_BYPASS_TOKEN` secret for full health checks
 
-**Issue Found - Intelligence Center Missing Chat:**
-- Chat History section exists but shows only past conversation logs
-- NO actual chat input to send new messages
-- `ChatInterface` component exists at `components/chat/chat-interface.tsx`
-- Component IS imported in `intelligence-center.tsx` (line 18)
-- Section IS defined: `activeSection === "chat"` renders `<ChatInterface />`
-- **ROOT CAUSE:** Sidebar shows "Chat History" but should show "Chat"
-- Config says `{ id: "chat", label: "Chat" }` but UI renders as "Chat History"
-- Clicking "Chat History" doesn't navigate to `chat` section properly
+**Animation Fix (PR #8 merged):**
+- Removed `layout` prop from AnimatedPanel components
+- Fixes production animation targeting issues
+- Affected: automations-hub, knowledge-base, onboarding-hub, support-tickets
 
-**Files Changed:**
-- `lib/security.ts` - Lazy DOMPurify import (commit: b4a4863)
-- `__tests__/lib/security.test.ts` - Updated for async sanitizeHtml
-- `package.json` - Moved jsdom to dependencies
+**TypeScript Config Fixed:**
+- Excluded `e2e/` and `playwright.config.ts` from tsconfig
+- Added `@vitest/coverage-v8` for test coverage
 
-**URLs:**
-- Production: https://audienceos-command-center-5e7i.vercel.app
-- Supabase: ebxshdqfaqupnvpghodi
+**Validation Passed:**
+- 0 ESLint warnings
+- 0 TypeScript errors
+- 299 tests passing (13 files)
+- Build passes (use `TURBOPACK=0` locally if needed)
 
----
-
-### Chi Infrastructure & Email Triage (2026-01-03)
-
-**Email Triage:**
-- Processed 18 emails → Inbox ZERO
-- Logged 3 payments to Master Dashboard:
-  - Google Cloud $197.10 → ProperDress
-  - Google Cloud €18.96 → ProperDress
-  - ScoreApp $19.50 → Google Ads Funnelizer
-
-**Project Sync System Created:**
-- `~/.claude/hooks/sync-project-symlinks.sh` - syncs symlinks from PAI to Chi
-- `~/.claude/commands/sync-projects.md` - slash command to run it
-- Cleaned up chi-intelligent-chat → renamed to holy-grail-chat
-
-**Holy Grail Chat Drive Sync:**
-- Synced 6 docs to Drive folder (PRD, USER-STORIES, DESIGN-BRIEF, DATA-MODEL, ROADMAP, RUNBOOK)
-- Added Drive folder IDs to project CLAUDE.md
+**Branch Status:**
+- `main` - production ready
+- `linear-rebuild` - synced with main, clean
 
 ---
 
-## Manual Action Required
+### Vercel Fix + Main Merge (2026-01-04 PM)
 
-**Delete duplicate expense row 10** in [Master Dashboard](https://docs.google.com/spreadsheets/d/1UaPdTrOmzl5ujLLezYC05mwTvhXklbgCszdcQYFWhjE/edit):
-- Row 7: Google Cloud $197.10 ← KEEP
-- Row 10: Google Cloud $197.10 ← DELETE (duplicate)
+**Deployment Fix:**
+- Fixed Vercel pnpm lockfile error → added `installCommand: "npm install"` to vercel.json
+- Commit: 8ceb4a0
 
----
+**Branch Merge:**
+- Merged `linear-rebuild` into `main` with conflict resolution
+- Resolved conflicts: vercel.json, ci.yml (kept reduced motion a11y)
+- Commit: 53033f6
 
-## Prior Session Work
-
-### Chi Maintenance System (2026-01-03)
-- Created ChiAudit skill v2.0 (37 checks, 8 categories)
-- Created 4 automated hooks: chi-audit-daily, chi-audit-reminder, cost-tracker, claude-code-updater
-- Auto-updated Claude Code 2.0.72 → 2.0.76
-
-### Linear UI Accessibility (2026-01-02)
-- Added keyboard navigation to DocumentCard and InboxItem
-- Master-detail pattern with compact viewMode
-- Red Team QA passed (9/10)
+**Production Verified:**
+- Pipeline view ✅
+- Settings page ✅
+- Brand button navigation ✅ (Settings → Intelligence > Training Cartridges > Brand)
+- All 5 cartridge tabs ✅
 
 ---
 
-## Open PR
+### Vercel Production Env Vars Configured (2026-01-04)
 
-**PR #1:** feat: Linear UI rebuild with Codia-based components
-- URL: https://github.com/growthpigs/audienceos-command-center/pull/1
-- Branch: `linear-rebuild`
-- Status: Awaiting team review
+**Configured env vars for production:**
+- `NEXT_PUBLIC_SUPABASE_URL` = `https://qwlhdeiigwnbmqcydpvu.supabase.co`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `sb_publishable_HyUE52-f158lAC5qmcWoZg_Do8-C0fx`
+- `OAUTH_STATE_SECRET` = generated (32-byte base64)
+- `TOKEN_ENCRYPTION_KEY` = generated (32-byte base64)
+
+**Verification:**
+- Production deployment successful
+- App loads with real Supabase data (14 clients in Pipeline)
+- User "Luke" (Head of Fulfillment) visible
+
+**Production URL:** https://audienceos-command-center-5e7i.vercel.app/
+
+---
+
+### Login Flow Verified (2026-01-04)
+
+**Supabase Auth User Created:**
+- Email: `test@audienceos.dev`
+- Password: `TestPassword123`
+- UID: `51f804ff-1c23-41d1-a602-cb2bbab770ee`
+- Auto-confirmed: ✅
+
+**Login Test:**
+- Production login page working ✅
+- Successful authentication → redirects to dashboard ✅
+- User session persists ✅
+- Real data visible (Support Tickets, Clients) ✅
+
+**Note:** Special characters in passwords may cause issues with browser automation form input. Use alphanumeric passwords for test users.
+
+---
+
+## Prior Session (2026-01-04)
+
+### PR #4 Merged - Linear UI + Security Hardening
+
+**Critical Bug Fixes:**
+- Moved `jsdom` from devDependencies → dependencies
+- Removed stale `pnpm-lock.yaml`
+- Fixed instrumentation VERCEL_ENV=preview detection
+- Fixed Supabase client lazy-loading
+
+**Security:**
+- XSS protection, rate limiting, CSRF, input sanitization
+- Test coverage: 197 → 255 → 299 tests
+- Sentry error monitoring integration
+
+---
+
+## Known Issues
+
+- Turbopack local build issue - use `TURBOPACK=0 npm run build` locally (CI works fine)
+
+## Coverage Gaps (Non-blocking)
+
+- `lib/supabase.ts` - 5% (database client, needs mocking)
+- `stores/pipeline-store.ts` - 5% (CRUD operations)
+- `stores/ticket-store.ts` - 12% (lifecycle tests)
 
 ## Next Steps
 
-### Immediate (Bug Fix)
-1. **Fix Chat navigation** - "Chat History" should link to `chat` section with ChatInterface
-2. Redeploy to Vercel after fix
-
-### Hardening Checklist
-| Area | Status | Notes |
-|------|--------|-------|
-| Test Coverage | ⚠️ | Only security.test.ts exists |
-| E2E Tests | ❌ | No Playwright/Cypress setup |
-| API Tests | ❌ | No API route tests |
-| Error Handling | ⚠️ | Basic try/catch, no Sentry |
-| Logging | ❌ | No structured logging |
-| Security Audit | ✅ | RLS validated, sanitization in place |
-| Performance | ❓ | No monitoring |
-| Documentation | ⚠️ | CLAUDE.md exists, missing API docs |
-
-### Lower Priority
-1. Delete duplicate expense row 10 (Master Dashboard)
-2. Test FeatureBuilder skill on AudienceOS features
+1. Ready for feature development
+2. Add OAuth integrations when ready (Slack, Google, Meta)
+3. Consider adding integration tests for coverage gaps later
 
 ---
 
-*Written: 2026-01-03*
+*Updated: 2026-01-04*
