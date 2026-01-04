@@ -96,7 +96,7 @@ function formatLastActive(dateString: string | null): string {
 
 export function TeamMembersSection() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [_isInviteModalOpen, _setIsInviteModalOpen] = useState(false)
 
   // In production, this would come from the store
   const teamMembers = MOCK_TEAM_MEMBERS

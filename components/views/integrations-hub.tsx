@@ -133,14 +133,6 @@ const statusConfig: Record<IntegrationStatus, { icon: React.ReactNode; label: st
   },
 }
 
-const categoryLabels: Record<IntegrationCategory, string> = {
-  advertising: "Advertising",
-  communication: "Communication",
-  analytics: "Analytics",
-  crm: "CRM",
-  productivity: "Productivity",
-}
-
 interface IntegrationCardProps {
   integration: Integration
   onClick?: () => void

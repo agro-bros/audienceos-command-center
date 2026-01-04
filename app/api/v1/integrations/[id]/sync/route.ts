@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { withCsrfProtection } from '@/lib/security'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -8,6 +9,10 @@ interface RouteParams {
 
 // POST /api/v1/integrations/[id]/sync - Trigger manual sync
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   try {
     const { id } = await params
     const supabase = await createRouteHandlerClient(cookies)

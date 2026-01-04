@@ -58,12 +58,36 @@ interface AutomationTemplate {
   steps: AutomationStep[]
 }
 
+// Step configuration types for automation workflows
+interface StepConfig {
+  // Trigger configs
+  stage?: string
+  schedule?: string
+  channels?: string
+  // Delay configs
+  duration?: number
+  unit?: 'minutes' | 'hours' | 'days'
+  // Action configs
+  template?: string
+  pattern?: string
+  channel?: string
+  endpoint?: string
+  priority?: string
+  recipient?: string
+  source?: string
+  model?: string
+  delay?: string
+  // Condition configs
+  condition?: string
+  threshold?: number
+}
+
 interface AutomationStep {
   id: string
   order: number
   name: string
   type: "trigger" | "delay" | "action" | "condition"
-  config: Record<string, any>
+  config: StepConfig
   icon: React.ReactNode
 }
 

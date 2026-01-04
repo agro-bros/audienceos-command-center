@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, sanitizeString, isValidUUID, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, sanitizeString, isValidUUID, createErrorResponse } from '@/lib/security'
 import type { TicketCategory, TicketPriority, TicketStatus } from '@/types/database'
 
 // Valid enum values
@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
   // Rate limit: 30 creates per minute (stricter for writes)
   const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const supabase = await createRouteHandlerClient(cookies)

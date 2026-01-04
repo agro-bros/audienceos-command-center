@@ -67,8 +67,8 @@ export function AIConfigurationSection() {
   const {
     tokenUsage,
     setTokenUsage,
-    isLoadingTokenUsage,
-    setLoadingTokenUsage,
+    isLoadingTokenUsage: _isLoadingTokenUsage,
+    setLoadingTokenUsage: _setLoadingTokenUsage,
     setHasUnsavedChanges,
   } = useSettingsStore()
 

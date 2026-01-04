@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, isValidUUID, createErrorResponse, withTimeout } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, isValidUUID, createErrorResponse, withTimeout } from '@/lib/security'
 import { decryptToken, deserializeEncryptedToken } from '@/lib/crypto'
 import type { IntegrationProvider } from '@/types/database'
 
@@ -128,6 +128,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 50, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   try {
     const { id } = await params
 
@@ -202,6 +206,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   // Rate limit: 20 deletes per minute (stricter for destructive ops)
   const rateLimitResponse = withRateLimit(request, { maxRequests: 20, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const { id } = await params

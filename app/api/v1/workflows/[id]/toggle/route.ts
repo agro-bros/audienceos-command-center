@@ -6,11 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { withCsrfProtection } from '@/lib/security'
 import { toggleWorkflow } from '@/lib/workflows'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   try {
     const { id } = await context.params
     const supabase = await createRouteHandlerClient(cookies)

@@ -208,9 +208,8 @@ export function useSendReply() {
       sendImmediately?: boolean
     }) => {
       // Call the API to send reply via Slack/Gmail
-      const response = await fetch(`/api/v1/communications/${messageId}/reply`, {
+      const response = await fetchWithCsrf(`/api/v1/communications/${messageId}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, send_immediately: sendImmediately }),
       })
 
@@ -241,9 +240,8 @@ export function useGenerateDraft() {
       messageId: string
       tone?: 'professional' | 'casual'
     }) => {
-      const response = await fetch('/api/v1/assistant/draft', {
+      const response = await fetchWithCsrf('/api/v1/assistant/draft', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'reply',
           context: { message_id: messageId },

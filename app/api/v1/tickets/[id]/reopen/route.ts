@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
 
 // POST /api/v1/tickets/[id]/reopen - Reopen a resolved ticket
 export async function POST(
@@ -11,6 +11,10 @@ export async function POST(
   // Rate limit: 30 reopens per minute
   const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const { id: ticketId } = await params

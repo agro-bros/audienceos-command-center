@@ -215,9 +215,7 @@ export const useCommunicationsStore = create<CommunicationsState>()(
  * Groups messages by thread_id and sorts by received_at
  */
 function buildThreadHierarchy(messages: CommunicationWithMeta[]): ThreadGroup[] {
-  const messageMap = new Map(messages.map(m => [m.id, m]))
   const threadMap = new Map<string, CommunicationWithMeta[]>()
-  const standaloneMessages: CommunicationWithMeta[] = []
 
   // Group messages by thread_id
   messages.forEach(msg => {

@@ -259,7 +259,8 @@ export function SortableList({
     onChange(items.filter((i) => i.id !== id))
   }
 
-  const moveItem = (fromIndex: number, toIndex: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _moveItem = (fromIndex: number, toIndex: number) => {
     const newItems = [...items]
     const [movedItem] = newItems.splice(fromIndex, 1)
     newItems.splice(toIndex, 0, movedItem)

@@ -660,7 +660,8 @@ function MessageContent({
     }
 
     return elements
-  }, [content, citations, getCitation])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getCitation already depends on citations
+  }, [content, getCitation])
 
   return <>{renderContent}</>
 }

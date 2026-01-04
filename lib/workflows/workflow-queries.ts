@@ -329,11 +329,6 @@ export async function completeWorkflowRun(
 
   if (runError) return { error: runError }
 
-  // Update workflow stats
-  const incrementField = success
-    ? { run_count: 1, success_count: 1 }
-    : { run_count: 1 }
-
   // Use raw SQL for increment (Supabase doesn't have built-in increment)
   const { error: statsError } = await supabase.rpc('increment_workflow_stats', {
     workflow_id: workflowId,

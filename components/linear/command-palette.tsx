@@ -13,9 +13,6 @@ import {
   Trash2,
   Archive,
   Search,
-  Plus,
-  Settings,
-  HelpCircle,
 } from "lucide-react"
 
 export interface CommandAction {
@@ -46,13 +43,6 @@ const defaultActions: CommandAction[] = [
   { id: "copy-id", icon: <Copy className="w-4 h-4" />, label: "Copy ID", shortcut: "⌘⇧C", group: "Quick" },
   { id: "archive", icon: <Archive className="w-4 h-4" />, label: "Archive", shortcut: "E", group: "Danger" },
   { id: "delete", icon: <Trash2 className="w-4 h-4" />, label: "Delete", shortcut: "⌘⌫", group: "Danger" },
-]
-
-const globalActions: CommandAction[] = [
-  { id: "new-client", icon: <Plus className="w-4 h-4" />, label: "Create new client", shortcut: "C", group: "Create" },
-  { id: "search", icon: <Search className="w-4 h-4" />, label: "Search clients...", shortcut: "/", group: "Navigate" },
-  { id: "settings", icon: <Settings className="w-4 h-4" />, label: "Settings", shortcut: "G S", group: "Navigate" },
-  { id: "help", icon: <HelpCircle className="w-4 h-4" />, label: "Help & Support", shortcut: "?", group: "Navigate" },
 ]
 
 export function CommandPalette({

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, isValidUUID, sanitizeString, createErrorResponse } from '@/lib/security'
 import {
   getWorkflowWithStats,
   updateWorkflow,
@@ -74,6 +74,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   // Rate limit: 50 updates per minute
   const rateLimitResponse = withRateLimit(request, { maxRequests: 50, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const { id } = await context.params
@@ -229,6 +233,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   // Rate limit: 20 deletes per minute (stricter for destructive ops)
   const rateLimitResponse = withRateLimit(request, { maxRequests: 20, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const { id } = await context.params

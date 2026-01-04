@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
   X,
@@ -152,11 +153,14 @@ export function DocumentPreviewPanel({
         {/* Preview area */}
         <div className="aspect-[4/3] bg-secondary/50 flex items-center justify-center border-b border-border">
           {document.thumbnail ? (
-            <img
-              src={document.thumbnail}
-              alt={document.name}
-              className="w-full h-full object-contain"
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={document.thumbnail}
+                alt={document.name}
+                fill
+                className="object-contain"
+              />
+            </div>
           ) : (
             <div className="text-center text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />

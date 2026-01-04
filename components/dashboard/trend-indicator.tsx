@@ -31,7 +31,6 @@ export function TrendIndicator({
 
   // Determine visual treatment based on trend and inversion
   const isPositive = inverted ? trend === "down" : trend === "up"
-  const isNegative = inverted ? trend === "up" : trend === "down"
 
   const getIcon = () => {
     switch (trend) {

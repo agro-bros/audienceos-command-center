@@ -17,12 +17,13 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 export function useTicketSubscription() {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const { tickets, fetchTickets } = useTicketStore()
+  const hasTickets = tickets.length > 0
 
   useEffect(() => {
     const supabase = createClient()
 
     // Only subscribe if we have tickets loaded
-    if (tickets.length === 0) {
+    if (!hasTickets) {
       return
     }
 
@@ -100,7 +101,7 @@ export function useTicketSubscription() {
         channelRef.current = null
       }
     }
-  }, [tickets.length > 0, fetchTickets])
+  }, [hasTickets, fetchTickets])
 
   return null
 }

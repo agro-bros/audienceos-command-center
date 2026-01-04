@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, isValidUUID, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, isValidUUID, createErrorResponse } from '@/lib/security'
 import type { TicketStatus } from '@/types/database'
 
 const VALID_STATUSES: TicketStatus[] = ['new', 'in_progress', 'waiting_client', 'resolved']
@@ -22,6 +22,10 @@ export async function PATCH(
   // Rate limit: 50 status changes per minute
   const rateLimitResponse = withRateLimit(request, { maxRequests: 50, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const { id } = await params

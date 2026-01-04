@@ -163,9 +163,9 @@ function formatChanges(changes: Record<string, { before: unknown; after: unknown
 }
 
 export function AuditLogSection() {
-  const { auditLog, setAuditLog, isLoadingAuditLog, setLoadingAuditLog } = useSettingsStore()
+  const { auditLog, setAuditLog, isLoadingAuditLog, setLoadingAuditLog: _setLoadingAuditLog } = useSettingsStore()
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null)
+  const [_selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null)
 
   // Load mock data
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { mockClients } from "@/lib/mock-data"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -443,6 +444,12 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
   )
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
+  // Reduced motion support
+  const prefersReducedMotion = useReducedMotion()
+  const slideTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }
+
   // Group clients by onboarding stage
   const clientsByStage = mockClients.reduce((acc, client) => {
     const stage = getOnboardingStage(client.stage)
@@ -472,9 +479,13 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
   return (
     <div className="flex h-full overflow-hidden">
       {/* LEFT PANEL - Stages List (always visible) */}
-      <div
-        className="flex flex-col border-r border-border/50 bg-muted/30 overflow-hidden transition-[width] duration-300 ease-out"
-        style={{ width: isCompact ? 288 : "100%" }}
+      <motion.div
+        layout
+        initial={false}
+        animate={{ width: isCompact ? 288 : "100%" }}
+        transition={slideTransition}
+        className="flex flex-col border-r border-border/50 bg-muted/30 overflow-hidden"
+        style={{ minWidth: isCompact ? 288 : undefined }}
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-border/50 bg-background shrink-0">

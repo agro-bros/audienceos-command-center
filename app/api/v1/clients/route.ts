@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
-import { withRateLimit, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
 import type { HealthStatus } from '@/types/database'
 
 // Admin client for dev mode (bypasses RLS)
@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
   // Rate limit: 30 creates per minute (stricter for writes)
   const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
+
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
 
   try {
     const supabase = await createRouteHandlerClient(cookies)

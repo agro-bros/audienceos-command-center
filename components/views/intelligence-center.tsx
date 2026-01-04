@@ -345,7 +345,7 @@ interface IntelligenceCenterProps {
 export function IntelligenceCenter({ onBack, initialSection = "overview", initialCartridgeTab }: IntelligenceCenterProps) {
   const [activeSection, setActiveSection] = useState(initialSection)
   const [chatFilter, setChatFilter] = useState<ChatFilterTab>("all")
-  const { agencyId, isLoading: authLoading } = useAuth()
+  const { agencyId: _agencyId, isLoading: _authLoading } = useAuth()
 
   // Training Data state
   const [trainingDocs, setTrainingDocs] = useState<TrainingDocument[]>(mockTrainingDocs)
@@ -450,14 +450,7 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
   // Generate firehose items for Activity feed
   const firehoseItems = useMemo(() => generateMockActivityFirehose(), [])
 
-  // Filter chat activities based on selected tab
-  const filteredChatActivities = mockAIActivities.filter((activity) => {
-    if (chatFilter === "all") return true
-    if (chatFilter === "chat") return activity.actor.name === "You"
-    if (chatFilter === "ai") return activity.actor.name === "Chi Assistant"
-    if (chatFilter === "system") return activity.actor.name === "System"
-    return true
-  })
+  // Note: Filtered activities are computed inline in the JSX for each session
 
   const aiCapabilities = [
     {

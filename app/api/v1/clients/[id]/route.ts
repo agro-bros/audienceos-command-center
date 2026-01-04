@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
-import { withRateLimit, isValidUUID, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
+import { withRateLimit, withCsrfProtection, isValidUUID, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
 import { getMockClientDetail } from '@/lib/mock-data'
 import type { HealthStatus } from '@/types/database'
 
@@ -213,6 +213,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 50, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   try {
     const { id } = await params
 
@@ -224,9 +228,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const supabase = await createRouteHandlerClient(cookies)
 
     // Get authenticated user with server verification (SEC-006)
-    const { user, error: authError } = await getAuthenticatedUser(supabase)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (!user) {
+    if (!user || !agencyId) {
       return createErrorResponse(401, authError || 'Unauthorized')
     }
 
@@ -362,6 +366,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .from('client')
       .update(updates)
       .eq('id', id)
+      .eq('agency_id', agencyId) // Multi-tenant isolation (SEC-007)
       .select()
       .single()
 
@@ -384,6 +389,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 20, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
+  // CSRF protection (TD-005)
+  const csrfError = withCsrfProtection(request)
+  if (csrfError) return csrfError
+
   try {
     const { id } = await params
 
@@ -395,9 +404,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const supabase = await createRouteHandlerClient(cookies)
 
     // Get authenticated user with server verification (SEC-006)
-    const { user, error: authError } = await getAuthenticatedUser(supabase)
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
 
-    if (!user) {
+    if (!user || !agencyId) {
       return createErrorResponse(401, authError || 'Unauthorized')
     }
 
@@ -406,6 +415,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('client')
       .update({ is_active: false })
       .eq('id', id)
+      .eq('agency_id', agencyId) // Multi-tenant isolation (SEC-007)
       .select()
       .single()
 
