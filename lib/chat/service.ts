@@ -8,6 +8,8 @@
  * Part of: 3-System Consolidation
  */
 
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { routeQuery } from './router';
 import { hgcFunctions, executeFunction } from './functions';
 import { withTimeout } from '@/lib/security';
@@ -54,9 +56,15 @@ Always be concise and actionable. If something requires attention, highlight it.
  */
 export class ChatService {
   private config: ChatServiceConfig;
+  private supabase: SupabaseClient | null = null;
 
   constructor(config: ChatServiceConfig) {
     this.config = config;
+
+    // Initialize Supabase client if credentials provided
+    if (config.supabaseUrl && config.supabaseAnonKey) {
+      this.supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+    }
   }
 
   /**
@@ -172,7 +180,7 @@ export class ChatService {
           try {
             const result = await executeFunction(
               functionName,
-              { agencyId: this.config.agencyId, userId: this.config.userId },
+              { agencyId: this.config.agencyId, userId: this.config.userId, supabase: this.supabase || undefined },
               functionArgs
             );
 

@@ -101,6 +101,8 @@ export interface ChatServiceConfig {
   userId: string;
   geminiApiKey: string;
   mem0ApiKey?: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
 }
 
 /**

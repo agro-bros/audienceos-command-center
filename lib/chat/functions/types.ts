@@ -5,12 +5,15 @@
  * Part of: 3-System Consolidation
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 /**
  * Context passed to all function executors
  */
 export interface ExecutorContext {
   agencyId: string;
   userId: string;
+  supabase?: SupabaseClient;
 }
 
 /**
