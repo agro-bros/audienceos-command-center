@@ -277,11 +277,8 @@ export function KnowledgeBase() {
     setSelectedDocument(prev =>
       prev?.id === docId ? { ...prev, starred: !prev.starred } : prev
     )
-<<<<<<< HEAD
-=======
     // TODO: Persist to API when backend is ready
     // fetchWithCsrf(`/api/v1/documents/${docId}/star`, { method: 'POST' })
->>>>>>> feature/integration-phase-2-3
   }, [])
 
   // Toggle AI training status on a document
@@ -316,13 +313,8 @@ export function KnowledgeBase() {
       id: `drive-${fileId}`,
       name: displayName || "Google Drive Document",
       type: "document",
-<<<<<<< HEAD
       category: "templates",
       description: "Imported from Google Drive",
-=======
-      category: "templates", // Default category, could be detected
-      description: `Imported from Google Drive`,
->>>>>>> feature/integration-phase-2-3
       updatedAt: "Just now",
       createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       updatedBy: "You",

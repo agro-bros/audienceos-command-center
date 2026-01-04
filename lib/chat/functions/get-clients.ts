@@ -9,7 +9,7 @@
  * Part of: 3-System Consolidation
  */
 
-import type { ExecutorContext, GetClientsArgs, ClientSummary, ClientDetails } from './types';
+import type { ExecutorContext, GetClientsArgs, GetClientDetailsArgs, ClientSummary, ClientDetails } from './types';
 
 /**
  * Mock data for standalone testing (fallback when Supabase unavailable)
@@ -151,7 +151,7 @@ export async function getClientDetails(
   context: ExecutorContext,
   rawArgs: Record<string, unknown>
 ): Promise<ClientDetails | null> {
-  const args = rawArgs as GetClientsArgs;
+  const args = rawArgs as GetClientDetailsArgs;
   const { agencyId, supabase } = context;
 
   // If Supabase is available, use real queries

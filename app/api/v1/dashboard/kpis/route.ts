@@ -30,38 +30,36 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
 
-    // Query active onboardings (clients in onboarding/discovery/implementation stages)
-    const onboardingStages = ['discovery', 'onboarding', 'implementation']
+    // Query active onboardings (clients in Onboarding/Implementation stages)
+    const onboardingStages = ['Onboarding', 'Implementation']
     const { count: activeOnboardingsCount, error: onboardingError } = await supabase
       .from('client')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
-      .in('pipeline_stage', onboardingStages)
-      .eq('is_active', true)
+      .in('stage', onboardingStages)
 
     // Previous period onboardings
     const { count: prevOnboardingsCount } = await supabase
       .from('client')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
-      .in('pipeline_stage', onboardingStages)
-      .eq('is_active', true)
+      .in('stage', onboardingStages)
       .lt('created_at', thirtyDaysAgo.toISOString())
       .gte('created_at', sixtyDaysAgo.toISOString())
 
-    // Query at-risk clients (health_status = 'at_risk' or 'critical')
+    // Query at-risk clients (health_status = 'red' or 'yellow')
     const { count: atRiskCount, error: riskError } = await supabase
       .from('client')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
-      .in('health_status', ['at_risk', 'critical'])
+      .in('health_status', ['red', 'yellow'])
       .eq('is_active', true)
 
     const { count: prevAtRiskCount } = await supabase
       .from('client')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
-      .in('health_status', ['at_risk', 'critical'])
+      .in('health_status', ['red', 'yellow'])
       .eq('is_active', true)
       .lt('updated_at', sevenDaysAgo.toISOString())
 
@@ -91,20 +89,19 @@ export async function GET(request: NextRequest) {
     )
     const prevSupportHoursWeek = Math.round(prevSupportMinutesWeek / 60 * 10) / 10
 
-    // Calculate avg install time (days from discovery to live)
+    // Calculate avg install time (days from creation to last update)
     const { data: recentCompletions } = await supabase
       .from('client')
-      .select('created_at, first_live_date')
+      .select('created_at, updated_at')
       .eq('agency_id', agencyId)
-      .eq('pipeline_stage', 'live')
-      .not('first_live_date', 'is', null)
-      .gte('first_live_date', thirtyDaysAgo.toISOString())
+      .eq('stage', 'Live')
+      .gte('updated_at', thirtyDaysAgo.toISOString())
 
     let avgInstallDays = 0
     if (recentCompletions && recentCompletions.length > 0) {
       const totalDays = recentCompletions.reduce((sum, c) => {
         const start = new Date(c.created_at).getTime()
-        const end = new Date(c.first_live_date!).getTime()
+        const end = new Date(c.updated_at).getTime()
         return sum + (end - start) / (24 * 60 * 60 * 1000)
       }, 0)
       avgInstallDays = Math.round(totalDays / recentCompletions.length * 10) / 10
@@ -112,18 +109,17 @@ export async function GET(request: NextRequest) {
 
     const { data: prevCompletions } = await supabase
       .from('client')
-      .select('created_at, first_live_date')
+      .select('created_at, updated_at')
       .eq('agency_id', agencyId)
-      .eq('pipeline_stage', 'live')
-      .not('first_live_date', 'is', null)
-      .gte('first_live_date', sixtyDaysAgo.toISOString())
-      .lt('first_live_date', thirtyDaysAgo.toISOString())
+      .eq('stage', 'Live')
+      .gte('updated_at', sixtyDaysAgo.toISOString())
+      .lt('updated_at', thirtyDaysAgo.toISOString())
 
     let prevAvgInstallDays = 0
     if (prevCompletions && prevCompletions.length > 0) {
       const totalDays = prevCompletions.reduce((sum, c) => {
         const start = new Date(c.created_at).getTime()
-        const end = new Date(c.first_live_date!).getTime()
+        const end = new Date(c.updated_at).getTime()
         return sum + (end - start) / (24 * 60 * 60 * 1000)
       }, 0)
       prevAvgInstallDays = Math.round(totalDays / prevCompletions.length * 10) / 10
