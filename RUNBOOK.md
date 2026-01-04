@@ -13,6 +13,8 @@ npm run dev
 
 ## Important Notes
 
+> **Development Workflow:** We develop via **push-to-Vercel**, NOT localhost. Make changes, commit, push to `main`, and verify on Vercel preview URLs. The "Failed to load clients" error on Vercel is expected - the app uses mock data locally but Supabase isn't fully configured for production data yet.
+
 > **Chat/AI Integration:** The chat functionality in Intelligence Center will come from a **separate project called Holy Grail Chat (HGC)**. Do NOT implement chat features directly in this codebase. The current `lib/chat/` code is placeholder/mock only. When ready, HGC will be integrated as an external service.
 
 ## URLs
@@ -61,13 +63,29 @@ Copy `.env.example` to `.env.local` and configure:
 
 ## Development
 
+### Development Workflow (Push-to-Vercel)
+
+**We do NOT use localhost for development.** All changes are verified on Vercel.
+
+```bash
+# 1. Make code changes
+# 2. Build locally to catch errors
+npm run build
+
+# 3. Commit and push
+git add . && git commit -m "feat: description" && git push
+
+# 4. Verify on Vercel preview URL
+# Check deployment at: https://command-center-linear.vercel.app
+```
+
 ### Available Scripts
 
 ```bash
-npm run dev          # Start development server (localhost:3000)
-npm run build        # Create production build
-npm run start        # Run production build locally
+npm run build        # Create production build (use before committing)
 npm run lint         # Run ESLint checks
+npm run dev          # Local dev server (NOT recommended - use Vercel)
+npm run start        # Run production build locally
 ```
 
 ### Tech Stack
