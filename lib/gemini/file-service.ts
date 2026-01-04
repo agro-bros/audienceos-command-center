@@ -134,5 +134,27 @@ export class GeminiFileService {
   }
 }
 
-// Singleton instance
-export const geminiFileService = new GeminiFileService()
+// Lazy singleton instance - only instantiated when accessed
+let _geminiFileService: GeminiFileService | null = null
+
+export function getGeminiFileService(): GeminiFileService {
+  if (!_geminiFileService) {
+    _geminiFileService = new GeminiFileService()
+  }
+  return _geminiFileService
+}
+
+// For backwards compatibility - but prefer getGeminiFileService()
+export const geminiFileService = {
+  get instance() {
+    return getGeminiFileService()
+  },
+  uploadFile: (...args: Parameters<GeminiFileService['uploadFile']>) =>
+    getGeminiFileService().uploadFile(...args),
+  deleteFile: (...args: Parameters<GeminiFileService['deleteFile']>) =>
+    getGeminiFileService().deleteFile(...args),
+  getFileStatus: (...args: Parameters<GeminiFileService['getFileStatus']>) =>
+    getGeminiFileService().getFileStatus(...args),
+  searchDocuments: (...args: Parameters<GeminiFileService['searchDocuments']>) =>
+    getGeminiFileService().searchDocuments(...args),
+}
