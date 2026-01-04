@@ -1,0 +1,191 @@
+/**
+ * User Preferences API
+ * GET /api/v1/settings/users/[id]/preferences - Get user notification preferences
+ * PATCH /api/v1/settings/users/[id]/preferences - Update user notification preferences
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { withRateLimit, createErrorResponse } from '@/lib/security'
+import type { NotificationPreferences } from '@/types/settings'
+
+// ============================================================================
+// GET /api/v1/settings/users/[id]/preferences
+// ============================================================================
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const rateLimitResponse = withRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
+  try {
+    const { id: userId } = await params
+    const supabase = await createRouteHandlerClient(cookies)
+
+    // Get authenticated user with agency_id
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
+
+    if (!user || !agencyId) {
+      return createErrorResponse(401, authError || 'Unauthorized')
+    }
+
+    // Permission check: user can only access own preferences, admins can access any user
+    if (user.id !== userId) {
+      // Check if user is admin
+      const { data: userRole, error: roleError } = await supabase
+        .from('user')
+        .select('role')
+        .eq('id', user.id)
+        .eq('agency_id', agencyId)
+        .single()
+
+      if (roleError || userRole?.role !== 'admin') {
+        return createErrorResponse(403, 'You can only access your own preferences')
+      }
+    }
+
+    // Fetch user preferences
+    const { data: userPrefs, error: prefsError } = await supabase
+      .from('user')
+      .select('preferences')
+      .eq('id', userId)
+      .eq('agency_id', agencyId)
+      .single()
+
+    if (prefsError) {
+      return createErrorResponse(500, 'Failed to fetch preferences')
+    }
+
+    // Return preferences or defaults if not set
+    const preferences = userPrefs?.preferences || {
+      notifications: {
+        email_alerts: true,
+        email_tickets: true,
+        email_mentions: true,
+        slack_channel_id: undefined,
+        digest_mode: false,
+        digest_time: '08:00',
+        quiet_hours_start: undefined,
+        quiet_hours_end: undefined,
+        muted_clients: [],
+      },
+    }
+
+    return NextResponse.json({ preferences })
+  } catch (error) {
+    console.error('Preferences GET error:', error)
+    return createErrorResponse(500, 'Internal server error')
+  }
+}
+
+// ============================================================================
+// PATCH /api/v1/settings/users/[id]/preferences
+// ============================================================================
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const rateLimitResponse = withRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
+  try {
+    const { id: userId } = await params
+    const supabase = await createRouteHandlerClient(cookies)
+
+    // Get authenticated user
+    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
+
+    if (!user || !agencyId) {
+      return createErrorResponse(401, authError || 'Unauthorized')
+    }
+
+    // Permission check
+    if (user.id !== userId) {
+      const { data: userRole, error: roleError } = await supabase
+        .from('user')
+        .select('role')
+        .eq('id', user.id)
+        .eq('agency_id', agencyId)
+        .single()
+
+      if (roleError || userRole?.role !== 'admin') {
+        return createErrorResponse(403, 'You can only update your own preferences')
+      }
+    }
+
+    // Parse and validate request body
+    const body = await request.json()
+    const { notifications } = body
+
+    if (!notifications || typeof notifications !== 'object') {
+      return createErrorResponse(400, 'Invalid notification preferences format')
+    }
+
+    // Validate quiet hours if provided
+    const { quiet_hours_start, quiet_hours_end } = notifications as any
+
+    if (quiet_hours_start !== undefined && quiet_hours_end !== undefined) {
+      // Validate time format (HH:mm)
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+      if (!timeRegex.test(quiet_hours_start) || !timeRegex.test(quiet_hours_end)) {
+        return createErrorResponse(400, 'Invalid time format. Use HH:mm format.')
+      }
+
+      // FIXED: Handle overnight quiet hours (e.g., 22:00 to 08:00)
+      // String comparison fails for overnight spans, so we handle both cases
+      const isOvernightSpan = quiet_hours_start > quiet_hours_end
+
+      if (!isOvernightSpan && quiet_hours_start >= quiet_hours_end) {
+        return createErrorResponse(
+          400,
+          'Invalid quiet hours range. Start time must be before end time (or use overnight span like 22:00-08:00).'
+        )
+      }
+    }
+
+    // Fetch current preferences
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('user')
+      .select('preferences')
+      .eq('id', userId)
+      .eq('agency_id', agencyId)
+      .single()
+
+    if (fetchError) {
+      return createErrorResponse(500, 'Failed to fetch current preferences')
+    }
+
+    // Merge preferences (don't overwrite entire preferences object)
+    const currentPrefs = (currentUser?.preferences as any) || {}
+    const updatedPreferences = {
+      notifications: {
+        ...(currentPrefs.notifications || {}),
+        ...notifications,
+      },
+    }
+
+    // Update preferences
+    const { error: updateError } = await supabase
+      .from('user')
+      .update({ preferences: updatedPreferences, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .eq('agency_id', agencyId)
+
+    if (updateError) {
+      console.error('Preferences update error:', updateError)
+      return createErrorResponse(500, 'Failed to update preferences')
+    }
+
+    return NextResponse.json(
+      { preferences: updatedPreferences },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Preferences PATCH error:', error)
+    return createErrorResponse(500, 'Internal server error')
+  }
+}
