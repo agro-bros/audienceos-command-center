@@ -11,6 +11,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Important Notes
+
+> **Chat/AI Integration:** The chat functionality in Intelligence Center will come from a **separate project called Holy Grail Chat (HGC)**. Do NOT implement chat features directly in this codebase. The current `lib/chat/` code is placeholder/mock only. When ready, HGC will be integrated as an external service.
+
 ## URLs
 
 | Environment | URL | Status |
