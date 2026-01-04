@@ -21,6 +21,8 @@ import {
   Edit,
   History,
   FolderInput,
+  BrainCircuit,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,6 +49,7 @@ interface Document {
   size?: string
   shared?: boolean
   starred?: boolean
+  useForTraining?: boolean
   tags?: string[]
   clientName?: string
   viewCount?: number
@@ -60,6 +63,7 @@ interface DocumentPreviewPanelProps {
   onDownload?: () => void
   onShare?: () => void
   onDelete?: () => void
+  onToggleTraining?: () => void
   className?: string
 }
 
@@ -70,6 +74,7 @@ export function DocumentPreviewPanel({
   onDownload,
   onShare,
   onDelete,
+  onToggleTraining,
   className,
 }: DocumentPreviewPanelProps) {
   return (
@@ -288,6 +293,34 @@ export function DocumentPreviewPanel({
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* AI Training */}
+          {onToggleTraining && (
+            <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BrainCircuit className="w-4 h-4" />
+                <span>Use for AI Training</span>
+              </div>
+              <button
+                onClick={onToggleTraining}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer",
+                  document.useForTraining
+                    ? "bg-foreground text-background"
+                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                )}
+              >
+                {document.useForTraining ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Enabled
+                  </>
+                ) : (
+                  "Enable"
+                )}
+              </button>
             </div>
           )}
         </div>

@@ -40,7 +40,7 @@ export function LinearShell({
           <motion.aside
             key="detail-panel"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 384, opacity: 1 }}
+            animate={{ width: 480, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
             className="bg-card border-l border-border flex flex-col overflow-hidden"

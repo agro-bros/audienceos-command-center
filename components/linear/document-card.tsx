@@ -20,6 +20,8 @@ import {
   Trash2,
   ExternalLink,
   Copy,
+  BrainCircuit,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -46,8 +48,10 @@ interface DocumentCardProps {
   shared?: boolean
   starred?: boolean
   selected?: boolean
+  useForTraining?: boolean
   onClick?: () => void
   onStar?: () => void
+  onToggleTraining?: () => void
   viewMode?: "grid" | "list" | "compact"
 }
 
@@ -110,8 +114,10 @@ export function DocumentCard({
   shared = false,
   starred = false,
   selected = false,
+  useForTraining = false,
   onClick,
   onStar,
+  onToggleTraining,
   viewMode = "grid",
 }: DocumentCardProps) {
   // Keyboard handler for accessibility
@@ -165,6 +171,9 @@ export function DocumentCard({
           </div>
           {starred && (
             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+          )}
+          {useForTraining && (
+            <BrainCircuit className="w-3 h-3 text-foreground flex-shrink-0" />
           )}
         </div>
       </div>
@@ -220,6 +229,26 @@ export function DocumentCard({
         {/* Shared indicator */}
         {shared && (
           <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        )}
+
+        {/* AI Training toggle */}
+        {onToggleTraining && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleTraining()
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer flex-shrink-0",
+              useForTraining
+                ? "bg-foreground text-background"
+                : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+            )}
+            title={useForTraining ? "Remove from AI training" : "Use for AI training"}
+          >
+            <BrainCircuit className="w-3.5 h-3.5" />
+            {useForTraining && <Check className="w-3 h-3" />}
+          </button>
         )}
 
         {/* Updated */}
@@ -392,6 +421,25 @@ export function DocumentCard({
               </span>
             )}
             {shared && <Users className="w-3.5 h-3.5" />}
+            {/* AI Training toggle in grid */}
+            {onToggleTraining && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleTraining()
+                }}
+                className={cn(
+                  "flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors cursor-pointer",
+                  useForTraining
+                    ? "bg-foreground text-background"
+                    : "hover:bg-secondary"
+                )}
+                title={useForTraining ? "Remove from AI training" : "Use for AI training"}
+              >
+                <BrainCircuit className="w-3 h-3" />
+                {useForTraining && <Check className="w-2.5 h-2.5" />}
+              </button>
+            )}
           </div>
           <span>{updatedAt}</span>
         </div>

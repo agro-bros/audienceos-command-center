@@ -150,12 +150,20 @@ export function SettingsLayout({ children, onBack, onBrandClick }: SettingsLayou
               <span className="text-sm font-medium text-gray-700">Teams</span>
             </div>
 
-            <div className="flex items-center px-3 py-2 text-sm text-gray-600">
+            <button
+              onClick={() => setActiveSection("team_members")}
+              className={cn(
+                "w-full flex items-center px-3 py-2 text-sm rounded-md transition-colors cursor-pointer",
+                activeSection === "team_members"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-100"
+              )}
+            >
               <div className="w-6 h-6 bg-blue-500 rounded mr-3 flex items-center justify-center">
                 <span className="text-white text-xs font-medium">A</span>
               </div>
               {user?.agency_id ? "Agency Team" : "Default Team"}
-            </div>
+            </button>
           </div>
         </div>
 
