@@ -1,63 +1,67 @@
 # Session Handover
 
-**Last Session:** 2026-01-03
+**Last Session:** 2026-01-04
 
 ## Completed This Session
 
-### Chi Infrastructure & Email Triage (2026-01-03)
+### Vercel Fix + Main Merge (2026-01-04 PM)
 
-**Email Triage:**
-- Processed 18 emails → Inbox ZERO
-- Logged 3 payments to Master Dashboard:
-  - Google Cloud $197.10 → ProperDress
-  - Google Cloud €18.96 → ProperDress
-  - ScoreApp $19.50 → Google Ads Funnelizer
+**Deployment Fix:**
+- Fixed Vercel pnpm lockfile error → added `installCommand: "npm install"` to vercel.json
+- Commit: 8ceb4a0
 
-**Project Sync System Created:**
-- `~/.claude/hooks/sync-project-symlinks.sh` - syncs symlinks from PAI to Chi
-- `~/.claude/commands/sync-projects.md` - slash command to run it
-- Cleaned up chi-intelligent-chat → renamed to holy-grail-chat
+**Branch Merge:**
+- Merged `linear-rebuild` into `main` with conflict resolution
+- Resolved conflicts: vercel.json, ci.yml (kept reduced motion a11y)
+- Commit: 53033f6
 
-**Holy Grail Chat Drive Sync:**
-- Synced 6 docs to Drive folder (PRD, USER-STORIES, DESIGN-BRIEF, DATA-MODEL, ROADMAP, RUNBOOK)
-- Added Drive folder IDs to project CLAUDE.md
-
----
-
-## Manual Action Required
-
-**Delete duplicate expense row 10** in [Master Dashboard](https://docs.google.com/spreadsheets/d/1UaPdTrOmzl5ujLLezYC05mwTvhXklbgCszdcQYFWhjE/edit):
-- Row 7: Google Cloud $197.10 ← KEEP
-- Row 10: Google Cloud $197.10 ← DELETE (duplicate)
+**Production Verified:**
+- Pipeline view ✅
+- Settings page ✅
+- Brand button navigation ✅ (Settings → Intelligence > Training Cartridges > Brand)
+- All 5 cartridge tabs ✅
 
 ---
 
-## Prior Session Work
+### Vercel Production Env Vars Configured (2026-01-04)
 
-### Chi Maintenance System (2026-01-03)
-- Created ChiAudit skill v2.0 (37 checks, 8 categories)
-- Created 4 automated hooks: chi-audit-daily, chi-audit-reminder, cost-tracker, claude-code-updater
-- Auto-updated Claude Code 2.0.72 → 2.0.76
+**Configured env vars for production:**
+- `NEXT_PUBLIC_SUPABASE_URL` = `https://qwlhdeiigwnbmqcydpvu.supabase.co`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `sb_publishable_HyUE52-f158lAC5qmcWoZg_Do8-C0fx`
+- `OAUTH_STATE_SECRET` = generated (32-byte base64)
+- `TOKEN_ENCRYPTION_KEY` = generated (32-byte base64)
 
-### Linear UI Accessibility (2026-01-02)
-- Added keyboard navigation to DocumentCard and InboxItem
-- Master-detail pattern with compact viewMode
-- Red Team QA passed (9/10)
+**Verification:**
+- Production deployment successful
+- App loads with real Supabase data (14 clients in Pipeline)
+- User "Luke" (Head of Fulfillment) visible
+
+**Production URL:** https://audienceos-command-center-5e7i.vercel.app/
 
 ---
 
-## Open PR
+## Prior Session (2026-01-04)
 
-**PR #1:** feat: Linear UI rebuild with Codia-based components
-- URL: https://github.com/growthpigs/audienceos-command-center/pull/1
-- Branch: `linear-rebuild`
-- Status: Awaiting team review
+### PR #4 Merged - Linear UI + Security Hardening
+
+**Critical Bug Fixes:**
+- Moved `jsdom` from devDependencies → dependencies
+- Removed stale `pnpm-lock.yaml`
+- Fixed instrumentation VERCEL_ENV=preview detection
+- Fixed Supabase client lazy-loading
+
+**Security:**
+- XSS protection, rate limiting, CSRF, input sanitization
+- Test coverage: 197 → 255 tests
+- Sentry error monitoring integration
+
+---
 
 ## Next Steps
-1. Delete duplicate expense row 10
-2. Await PR #1 approval
-3. Test FeatureBuilder skill on AudienceOS features
+
+1. Add OAuth integrations when ready (Slack, Google, Meta)
+2. Continue feature development per feature specs
 
 ---
 
-*Written: 2026-01-03*
+*Written: 2026-01-04*
