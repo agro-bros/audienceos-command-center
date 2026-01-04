@@ -299,7 +299,7 @@ export function KnowledgeBase() {
                   key={filter.id}
                   onClick={() => setViewFilter(filter.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
                     viewFilter === filter.id
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
@@ -320,7 +320,7 @@ export function KnowledgeBase() {
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
                   className={cn(
-                    "px-2.5 py-1 rounded text-sm font-medium transition-colors whitespace-nowrap",
+                    "px-2.5 py-1 rounded text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                     categoryFilter === cat
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"

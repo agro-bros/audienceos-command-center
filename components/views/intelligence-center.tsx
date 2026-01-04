@@ -679,7 +679,8 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
               {prompts.map((prompt) => (
                 <div
                   key={prompt.id}
-                  className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors"
+                  onClick={() => handleOpenPromptModal(prompt)}
+                  className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
