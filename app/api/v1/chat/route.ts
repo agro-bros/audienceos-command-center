@@ -35,14 +35,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return createErrorResponse(400, 'Invalid JSON in request body');
+    }
+
     const { message, sessionId } = body as {
       message: string;
       sessionId?: string;
     };
 
+    // Validate message: must be string and non-empty after trim
     if (!message || typeof message !== 'string') {
       return createErrorResponse(400, 'Missing or invalid message parameter');
+    }
+
+    const trimmedMessage = message.trim();
+    if (trimmedMessage.length === 0) {
+      return createErrorResponse(400, 'Message cannot be empty or whitespace-only');
     }
 
     // Fetch session history if provided
@@ -57,8 +69,14 @@ export async function POST(request: NextRequest) {
         .order('created_at', { ascending: true });
 
       if (fetchError) {
-        console.warn('[Supabase] Error fetching chat history:', fetchError);
-      } else if (messages) {
+        // Log but don't fail: chat works without history context
+        console.warn('[Supabase] Error fetching chat history:', {
+          code: fetchError.code,
+          message: fetchError.message,
+          sessionId,
+        });
+        // Continue with empty history - user gets response but without context
+      } else if (messages && Array.isArray(messages)) {
         history = messages.map((msg: any): ChatMessage => ({
           id: msg.id,
           role: (msg.role as ChatRole) as 'user' | 'assistant' | 'system',
@@ -80,7 +98,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Process message through HGC service
-    const result = await chatService.processMessage(message.trim(), history);
+    const result = await chatService.processMessage(trimmedMessage, history);
 
     // Store message in database if sessionId provided
     if (sessionId) {
@@ -91,7 +109,7 @@ export async function POST(request: NextRequest) {
             session_id: sessionId,
             agency_id: agencyId,
             role: 'user' as ChatRole,
-            content: message.trim(),
+            content: trimmedMessage,
             created_at: new Date().toISOString(),
           },
           {
@@ -106,7 +124,9 @@ export async function POST(request: NextRequest) {
         ]);
 
       if (storeError) {
-        console.warn('[Supabase] Error storing chat message:', storeError);
+        console.error('[Supabase] Error storing chat message:', storeError);
+        // Log the error but continue - response already generated, user gets AI response
+        // TODO: Add alerting for persistent persistence failures
       }
     }
 
