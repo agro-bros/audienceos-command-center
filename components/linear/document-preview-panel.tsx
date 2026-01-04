@@ -153,39 +153,39 @@ export function DocumentPreviewPanel({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Preview area - compact */}
-        <div className="min-h-[120px] max-h-[200px] bg-secondary/50 flex items-center justify-center border-b border-border">
-          {document.thumbnail ? (
-            <div className="relative w-full h-full min-h-[120px]">
-              <Image
-                src={document.thumbnail}
-                alt={document.name}
-                fill
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-6">
-              <FileText className="w-10 h-10 mx-auto mb-1.5 opacity-50" />
-              <p className="text-xs">Preview not available</p>
-            </div>
-          )}
-        </div>
+      {/* Preview area - fills available space */}
+      <div className="flex-1 bg-secondary/50 flex items-center justify-center min-h-0">
+        {document.thumbnail ? (
+          <div className="relative w-full h-full">
+            <Image
+              src={document.thumbnail}
+              alt={document.name}
+              fill
+              className="object-contain"
+            />
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground">
+            <FileText className="w-16 h-16 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Preview not available</p>
+          </div>
+        )}
+      </div>
 
-        {/* Document info */}
-        <div className="p-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground mb-1">
+      {/* Document info + Metadata - anchored to bottom */}
+      <div className="border-t border-border">
+        {/* Document title and description */}
+        <div className="px-3 py-2 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground">
             {document.name}
           </h2>
           {document.description && (
-            <p className="text-xs text-muted-foreground leading-relaxed">{document.description}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{document.description}</p>
           )}
         </div>
 
         {/* Metadata - compact */}
-        <div className="px-3 py-2 space-y-1.5">
+        <div className="px-3 py-2 space-y-1.5 max-h-[200px] overflow-y-auto">
           {/* Category */}
           {document.category && (
             <div className="flex items-center justify-between">
@@ -324,10 +324,9 @@ export function DocumentPreviewPanel({
             </div>
           )}
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="p-4 border-t border-border">
+        {/* Actions - inside bottom section */}
+        <div className="p-3 border-t border-border">
         <div className="flex items-center gap-2">
           <button
             onClick={onShare}
@@ -351,6 +350,7 @@ export function DocumentPreviewPanel({
           <Trash2 className="w-4 h-4" />
           Delete
         </button>
+        </div>
       </div>
     </div>
   )
