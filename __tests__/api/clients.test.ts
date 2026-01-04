@@ -157,15 +157,10 @@ describe('API: /api/v1/clients', () => {
   describe('Authentication', () => {
     it('should require authentication in production', async () => {
       // In production, unauthenticated requests should fail
-      const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'production'
-
       const { createErrorResponse } = await import('@/lib/security')
       const errorResponse = createErrorResponse(401, 'Unauthorized')
 
       expect(errorResponse.status).toBe(401)
-
-      process.env.NODE_ENV = originalEnv
     })
   })
 
