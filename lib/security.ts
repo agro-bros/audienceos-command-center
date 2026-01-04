@@ -398,11 +398,20 @@ export function createErrorResponse(
 
 /**
  * Validate request body exists and is valid JSON
+ * @param request - The incoming request
+ * @param maxSize - Maximum body size in bytes (default: 1MB)
  */
 export async function parseJsonBody<T = Record<string, unknown>>(
-  request: NextRequest
+  request: NextRequest,
+  maxSize: number = 1024 * 1024 // 1MB default
 ): Promise<{ data: T | null; error: string | null }> {
   try {
+    // Check content-length header for early rejection
+    const contentLength = request.headers.get('content-length')
+    if (contentLength && parseInt(contentLength, 10) > maxSize) {
+      return { data: null, error: `Request body too large (max ${Math.round(maxSize / 1024)}KB)` }
+    }
+
     const contentType = request.headers.get('content-type')
     if (!contentType?.includes('application/json')) {
       return { data: null, error: 'Content-Type must be application/json' }
