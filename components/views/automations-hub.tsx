@@ -281,7 +281,7 @@ export function AutomationsHub() {
         animate={{ width: selectedAutomation ? 280 : "100%" }}
         transition={slideTransition}
         className="flex flex-col border-r border-border overflow-hidden"
-        style={{ minWidth: selectedAutomation ? 280 : undefined }}
+        style={{ minWidth: selectedAutomation ? 280 : undefined, flexShrink: selectedAutomation ? 0 : undefined }}
       >
         <ListHeader
           title="Automations"

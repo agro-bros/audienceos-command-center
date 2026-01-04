@@ -288,7 +288,7 @@ export function SupportTickets() {
         animate={{ width: selectedTicket ? 280 : "100%" }}
         transition={slideTransition}
         className="flex flex-col border-r border-border overflow-hidden"
-        style={{ minWidth: selectedTicket ? 280 : undefined }}
+        style={{ minWidth: selectedTicket ? 280 : undefined, flexShrink: selectedTicket ? 0 : undefined }}
       >
         <ListHeader
           title="Support Tickets"
