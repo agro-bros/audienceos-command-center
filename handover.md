@@ -4,6 +4,35 @@
 
 ## Completed This Session
 
+### CI Smoke-test Fix + Validation (2026-01-04 Evening)
+
+**CI Smoke-test Fixed (PR #6 merged):**
+- Replaced `listCommitStatusesForRef` with GitHub Deployments API
+- Gets actual `environment_url` from deployment status (correct preview URL)
+- Added deployment protection handling - accepts HTTP 401 as "deployment running"
+- Supports optional `VERCEL_BYPASS_TOKEN` secret for full health checks
+
+**Animation Fix (PR #8 merged):**
+- Removed `layout` prop from AnimatedPanel components
+- Fixes production animation targeting issues
+- Affected: automations-hub, knowledge-base, onboarding-hub, support-tickets
+
+**TypeScript Config Fixed:**
+- Excluded `e2e/` and `playwright.config.ts` from tsconfig
+- Added `@vitest/coverage-v8` for test coverage
+
+**Validation Passed:**
+- 0 ESLint warnings
+- 0 TypeScript errors
+- 299 tests passing (13 files)
+- Build passes (use `TURBOPACK=0` locally if needed)
+
+**Branch Status:**
+- `main` - production ready
+- `linear-rebuild` - synced with main, clean
+
+---
+
 ### Vercel Fix + Main Merge (2026-01-04 PM)
 
 **Deployment Fix:**
@@ -70,16 +99,27 @@
 
 **Security:**
 - XSS protection, rate limiting, CSRF, input sanitization
-- Test coverage: 197 → 255 tests
+- Test coverage: 197 → 255 → 299 tests
 - Sentry error monitoring integration
 
 ---
 
+## Known Issues
+
+- Turbopack local build issue - use `TURBOPACK=0 npm run build` locally (CI works fine)
+
+## Coverage Gaps (Non-blocking)
+
+- `lib/supabase.ts` - 5% (database client, needs mocking)
+- `stores/pipeline-store.ts` - 5% (CRUD operations)
+- `stores/ticket-store.ts` - 12% (lifecycle tests)
+
 ## Next Steps
 
-1. Add OAuth integrations when ready (Slack, Google, Meta)
-2. Continue feature development per feature specs
+1. Ready for feature development
+2. Add OAuth integrations when ready (Slack, Google, Meta)
+3. Consider adding integration tests for coverage gaps later
 
 ---
 
-*Written: 2026-01-04*
+*Updated: 2026-01-04*
