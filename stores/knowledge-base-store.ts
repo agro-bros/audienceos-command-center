@@ -41,7 +41,6 @@ interface KnowledgeBaseState {
   // Modals
   isUploadModalOpen: boolean
   isPreviewModalOpen: boolean
-  isDriveLinkModalOpen: boolean
 
   // Actions
   setDocuments: (documents: KnowledgeBaseDocument[]) => void
@@ -69,15 +68,12 @@ interface KnowledgeBaseState {
   closeUploadModal: () => void
   openPreviewModal: (document: KnowledgeBaseDocument) => void
   closePreviewModal: () => void
-  openDriveLinkModal: () => void
-  closeDriveLinkModal: () => void
 
   // Document actions
   addDocument: (document: KnowledgeBaseDocument) => void
   updateDocument: (id: string, updates: Partial<KnowledgeBaseDocument>) => void
   deleteDocument: (id: string) => void
   reindexDocument: (id: string) => void
-  toggleTraining: (id: string, isActive: boolean) => void
 
   // Refresh
   applyFiltersAndSort: () => void
@@ -109,7 +105,6 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseState>((set, get) => ({
   viewMode: 'grid',
   isUploadModalOpen: false,
   isPreviewModalOpen: false,
-  isDriveLinkModalOpen: false,
 
   // Document setters
   setDocuments: (documents) => {
@@ -199,9 +194,6 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseState>((set, get) => ({
       // Keep selectedDocument for animation, clear after modal closes
     }),
 
-  openDriveLinkModal: () => set({ isDriveLinkModalOpen: true }),
-  closeDriveLinkModal: () => set({ isDriveLinkModalOpen: false }),
-
   // Document mutations
   addDocument: (document) => {
     set((state) => ({
@@ -248,15 +240,6 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseState>((set, get) => ({
         updated_at: new Date().toISOString(),
       })
     }, 3000)
-  },
-
-  toggleTraining: (id, isActive) => {
-    // Update is_active to include/exclude from AI training
-    get().updateDocument(id, {
-      is_active: isActive,
-      updated_at: new Date().toISOString(),
-    })
-    // In production, this would also call the API to update Supabase
   },
 
   // Apply filters and sort
