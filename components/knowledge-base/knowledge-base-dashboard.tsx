@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Switch } from "@/components/ui/switch"
 import {
   Search,
   FileText,
@@ -42,6 +43,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Cloud,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { KnowledgeBaseDocument, DocumentSortField } from "@/types/knowledge-base"
@@ -55,6 +57,7 @@ import {
 import { useKnowledgeBaseStore } from "@/stores/knowledge-base-store"
 import { DocumentUploadModal } from "./document-upload-modal"
 import { DocumentPreviewModal } from "./document-preview-modal"
+import { DriveLinkModal } from "./drive-link-modal"
 
 // Sort option labels
 const SORT_OPTIONS: { value: DocumentSortField; label: string }[] = [
@@ -77,6 +80,7 @@ export function KnowledgeBaseDashboard() {
     viewMode,
     isUploadModalOpen,
     isPreviewModalOpen,
+    isDriveLinkModalOpen,
     setSearchQuery,
     setCategory,
     setIndexStatus,
@@ -87,7 +91,11 @@ export function KnowledgeBaseDashboard() {
     closeUploadModal,
     openPreviewModal,
     closePreviewModal,
+    openDriveLinkModal,
+    closeDriveLinkModal,
     reindexDocument,
+    toggleTraining,
+    addDocument,
   } = useKnowledgeBaseStore()
 
   // Handle document actions
@@ -98,6 +106,53 @@ export function KnowledgeBaseDashboard() {
   const handleReindex = useCallback((doc: KnowledgeBaseDocument) => {
     reindexDocument(doc.id)
   }, [reindexDocument])
+
+  const handleToggleTraining = useCallback((doc: KnowledgeBaseDocument, isActive: boolean) => {
+    toggleTraining(doc.id, isActive)
+  }, [toggleTraining])
+
+  // Handle adding document from Google Drive
+  const handleAddDriveLink = useCallback(async (url: string, displayName?: string) => {
+    // Extract file ID from URL for tracking
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    const fileId = fileIdMatch?.[1] || `drive-${Date.now()}`
+
+    // Create document entry (in production, this would call an API to process the Drive file)
+    const newDoc: KnowledgeBaseDocument = {
+      id: `drive-${fileId}`,
+      agency_id: 'mock-agency', // Will be set from auth in production
+      title: displayName || `Google Drive Document - ${fileId.slice(0, 8)}`,
+      file_name: `drive-doc-${fileId}.gdoc`,
+      file_size: 0, // Will be fetched from Drive API
+      mime_type: 'application/vnd.google-apps.document',
+      storage_path: url,
+      category: 'tech', // Default category for Drive imports
+      client_id: null,
+      client_name: undefined,
+      page_count: null,
+      word_count: null,
+      index_status: 'pending',
+      gemini_file_id: null,
+      uploaded_by: 'mock-user', // Will be set from auth in production
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      tags: ['google-drive', 'imported'],
+      description: `Imported from Google Drive: ${url}`,
+      usage_count: 0,
+    }
+
+    addDocument(newDoc)
+
+    // Simulate processing delay, then update to indexed
+    setTimeout(() => {
+      // In production, this would be handled by a real API call
+      useKnowledgeBaseStore.getState().updateDocument(newDoc.id, {
+        index_status: 'indexed',
+        gemini_file_id: `gemini-${Date.now()}`,
+      })
+    }, 2000)
+  }, [addDocument])
 
   // Get file type icon and color
   const getFileTypeInfo = (mimeType: string) => {
@@ -139,10 +194,16 @@ export function KnowledgeBaseDashboard() {
             SOPs, training materials, and documentation for AI-powered search
           </p>
         </div>
-        <Button onClick={openUploadModal} className="h-8 text-[11px]">
-          <Upload className="mr-1.5 h-3.5 w-3.5" />
-          Upload Document
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openDriveLinkModal} className="h-8 text-[11px]">
+            <Cloud className="mr-1.5 h-3.5 w-3.5" />
+            From Drive
+          </Button>
+          <Button onClick={openUploadModal} className="h-8 text-[11px]">
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            Upload Document
+          </Button>
+        </div>
       </div>
 
       {/* Filters Row */}
@@ -276,6 +337,7 @@ export function KnowledgeBaseDashboard() {
               document={doc}
               onPreview={handlePreview}
               onReindex={handleReindex}
+              onToggleTraining={handleToggleTraining}
               getFileTypeInfo={getFileTypeInfo}
               renderIndexStatus={renderIndexStatus}
             />
@@ -291,6 +353,7 @@ export function KnowledgeBaseDashboard() {
                   document={doc}
                   onPreview={handlePreview}
                   onReindex={handleReindex}
+                  onToggleTraining={handleToggleTraining}
                   getFileTypeInfo={getFileTypeInfo}
                   renderIndexStatus={renderIndexStatus}
                 />
@@ -361,6 +424,13 @@ export function KnowledgeBaseDashboard() {
           onClose={closePreviewModal}
         />
       )}
+
+      {/* Drive Link Modal */}
+      <DriveLinkModal
+        isOpen={isDriveLinkModalOpen}
+        onClose={closeDriveLinkModal}
+        onAddDriveLink={handleAddDriveLink}
+      />
     </div>
   )
 }
@@ -370,6 +440,7 @@ interface DocumentCardProps {
   document: KnowledgeBaseDocument
   onPreview: (doc: KnowledgeBaseDocument) => void
   onReindex: (doc: KnowledgeBaseDocument) => void
+  onToggleTraining?: (doc: KnowledgeBaseDocument, isActive: boolean) => void
   getFileTypeInfo: (mimeType: string) => { label: string; color: string; bgColor: string }
   renderIndexStatus: (status: IndexStatus) => ReactNode
 }
@@ -378,6 +449,7 @@ function DocumentCard({
   document: doc,
   onPreview,
   onReindex,
+  onToggleTraining,
   getFileTypeInfo,
   renderIndexStatus,
 }: DocumentCardProps) {
@@ -474,6 +546,18 @@ function DocumentCard({
             </Badge>
           )}
         </div>
+
+        {/* Include in AI Training Toggle */}
+        {onToggleTraining && (
+          <div className="mt-3 pt-2 border-t border-border flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">Include in AI Training</span>
+            <Switch
+              checked={doc.is_active}
+              onCheckedChange={(checked) => onToggleTraining(doc, checked)}
+              className="scale-90"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -484,6 +568,7 @@ function DocumentListItem({
   document: doc,
   onPreview,
   onReindex,
+  onToggleTraining,
   getFileTypeInfo,
   renderIndexStatus,
 }: DocumentCardProps) {
@@ -517,6 +602,18 @@ function DocumentListItem({
         <span>{new Date(doc.updated_at).toLocaleDateString()}</span>
         {doc.client_name && <Badge variant="outline" className="text-[9px] px-1 py-0">{doc.client_name}</Badge>}
       </div>
+
+      {/* Training Toggle */}
+      {onToggleTraining && (
+        <div className="hidden md:flex items-center gap-2 px-2 flex-shrink-0">
+          <span className="text-[9px] text-muted-foreground">AI Training</span>
+          <Switch
+            checked={doc.is_active}
+            onCheckedChange={(checked) => onToggleTraining(doc, checked)}
+            className="scale-75"
+          />
+        </div>
+      )}
 
       {/* Actions - inline right with hover reveal */}
       <div className="flex items-center gap-1 flex-shrink-0">

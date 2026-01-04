@@ -149,15 +149,23 @@ export function ProcessingPanel({ onProcessingComplete }: ProcessingPanelProps) 
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Error Message - Handle auth errors gracefully */}
       {error && (
-        <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-          <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-destructive">
-            <div className="font-medium">Processing Error</div>
-            <div className="text-xs mt-1 opacity-90">{error}</div>
+        error.includes('401') || error.includes('500') ? (
+          <div className="text-center py-6 text-muted-foreground">
+            <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">Sign in to manage documents</p>
+            <p className="text-xs mt-1">Document processing requires authentication.</p>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+            <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-destructive">
+              <div className="font-medium">Processing Error</div>
+              <div className="text-xs mt-1 opacity-90">{error}</div>
+            </div>
+          </div>
+        )
       )}
 
       {/* Instructions */}
