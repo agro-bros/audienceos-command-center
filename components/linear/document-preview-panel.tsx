@@ -12,16 +12,10 @@ import {
   Share2,
   Trash2,
   Copy,
-  Clock,
-  User,
-  Folder,
-  Tag,
   FileText,
-  Eye,
   Edit,
   History,
   FolderInput,
-  BrainCircuit,
   Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -185,124 +179,116 @@ export function DocumentPreviewPanel({
           )}
         </div>
 
-        {/* Metadata - Two Column Layout */}
+        {/* Metadata - Properties List (Key-Value Rows) */}
         <div className="px-3 py-2 max-h-[220px] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {/* Left Column */}
-            <div className="space-y-2">
-              {/* Category */}
-              {document.category && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Category</p>
-                  <span
-                    className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded font-medium inline-block",
-                      categoryColors[document.category]
-                    )}
-                  >
-                    {categoryLabels[document.category]}
-                  </span>
-                </div>
-              )}
-
-              {/* Size */}
-              {document.size && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Size</p>
-                  <p className="text-xs text-foreground font-medium">{document.size}</p>
-                </div>
-              )}
-
-              {/* Created */}
-              <div>
-                <p className="text-[10px] text-muted-foreground mb-0.5">Created</p>
-                <p className="text-xs text-foreground font-medium">
-                  {document.createdAt}
-                  {document.createdBy && (
-                    <span className="text-muted-foreground font-normal"> by {document.createdBy}</span>
+          <div className="space-y-1.5">
+            {/* Category */}
+            {document.category && (
+              <div className="flex items-center justify-between py-0.5">
+                <span className="text-xs text-muted-foreground">Category</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                    categoryColors[document.category]
                   )}
-                </p>
+                >
+                  {categoryLabels[document.category]}
+                </span>
               </div>
+            )}
+
+            {/* Size */}
+            {document.size && (
+              <div className="flex items-center justify-between py-0.5">
+                <span className="text-xs text-muted-foreground">Size</span>
+                <span className="text-xs text-foreground">{document.size}</span>
+              </div>
+            )}
+
+            {/* Views */}
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-xs text-muted-foreground">Views</span>
+              <span className="text-xs text-foreground">{document.viewCount ?? 0}</span>
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-2">
-              {/* Views */}
-              <div>
-                <p className="text-[10px] text-muted-foreground mb-0.5">Views</p>
-                <p className="text-xs text-foreground font-medium">{document.viewCount ?? 0}</p>
-              </div>
-
-              {/* Downloads */}
-              <div>
-                <p className="text-[10px] text-muted-foreground mb-0.5">Downloads</p>
-                <p className="text-xs text-foreground font-medium">{document.downloadCount ?? 0}</p>
-              </div>
-
-              {/* Updated */}
-              <div>
-                <p className="text-[10px] text-muted-foreground mb-0.5">Updated</p>
-                <p className="text-xs text-foreground font-medium">
-                  {document.updatedAt}
-                  {document.updatedBy && (
-                    <span className="text-muted-foreground font-normal"> by {document.updatedBy}</span>
-                  )}
-                </p>
-              </div>
+            {/* Downloads */}
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-xs text-muted-foreground">Downloads</span>
+              <span className="text-xs text-foreground">{document.downloadCount ?? 0}</span>
             </div>
+
+            {/* Created */}
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-xs text-muted-foreground">Created</span>
+              <span className="text-xs text-foreground text-right">
+                {document.createdAt}
+                {document.createdBy && (
+                  <span className="text-muted-foreground"> by {document.createdBy}</span>
+                )}
+              </span>
+            </div>
+
+            {/* Updated */}
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-xs text-muted-foreground">Updated</span>
+              <span className="text-xs text-foreground text-right">
+                {document.updatedAt}
+                {document.updatedBy && (
+                  <span className="text-muted-foreground"> by {document.updatedBy}</span>
+                )}
+              </span>
+            </div>
+
+            {/* Client */}
+            {document.clientName && (
+              <div className="flex items-center justify-between py-0.5">
+                <span className="text-xs text-muted-foreground">Client</span>
+                <span className="text-xs text-foreground">{document.clientName}</span>
+              </div>
+            )}
+
+            {/* AI Training */}
+            {onToggleTraining && (
+              <div className="flex items-center justify-between py-0.5">
+                <span className="text-xs text-muted-foreground">AI Training</span>
+                <button
+                  onClick={onToggleTraining}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
+                    document.useForTraining
+                      ? "bg-foreground text-background"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                  )}
+                >
+                  {document.useForTraining ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      Enabled
+                    </>
+                  ) : (
+                    "Enable"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Tags */}
+            {document.tags && document.tags.length > 0 && (
+              <div className="flex items-start justify-between py-0.5">
+                <span className="text-xs text-muted-foreground pt-0.5">Tags</span>
+                <div className="flex flex-wrap gap-1 justify-end max-w-[60%]">
+                  {document.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Tags - Two Column Distribution */}
-          {document.tags && document.tags.length > 0 && (
-            <div className="mt-3 pt-2 border-t border-border">
-              <p className="text-[10px] text-muted-foreground mb-1.5">Tags</p>
-              <div className="grid grid-cols-2 gap-1">
-                {document.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground truncate"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Client & AI Training Row */}
-          {(document.clientName || onToggleTraining) && (
-            <div className="mt-3 pt-2 border-t border-border grid grid-cols-2 gap-x-4">
-              {document.clientName && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Client</p>
-                  <p className="text-xs text-foreground font-medium">{document.clientName}</p>
-                </div>
-              )}
-              {onToggleTraining && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-0.5">AI Training</p>
-                  <button
-                    onClick={onToggleTraining}
-                    className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
-                      document.useForTraining
-                        ? "bg-foreground text-background"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                    )}
-                  >
-                    {document.useForTraining ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        Enabled
-                      </>
-                    ) : (
-                      "Enable"
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Action Buttons - 2x2 Grid */}
