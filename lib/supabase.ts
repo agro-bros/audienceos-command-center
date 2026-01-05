@@ -140,6 +140,33 @@ export function createMiddlewareClient(
 }
 
 // =============================================================================
+// SERVICE ROLE CLIENT (bypasses RLS for admin operations)
+// =============================================================================
+
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+/**
+ * Create a Supabase client with service role key (bypasses RLS)
+ * USE WITH CAUTION - only for admin operations like invitation lookup
+ */
+export function createServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceKey) {
+    console.warn('[Supabase] Service role key not configured')
+    return null
+  }
+
+  return createSupabaseClient<Database>(url, serviceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
+// =============================================================================
 // AUTH HELPERS (SEC-003, SEC-006)
 // =============================================================================
 

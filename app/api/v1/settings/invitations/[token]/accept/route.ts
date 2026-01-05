@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient, createServiceRoleClient } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 
 export async function POST(
@@ -128,7 +128,41 @@ export async function GET(
       )
     }
 
-    const supabase = await createRouteHandlerClient(cookies)
+    // Use service role client to bypass RLS for public invitation lookup
+    const supabase = createServiceRoleClient()
+
+    if (!supabase) {
+      // Fall back to route handler client if service role not configured
+      const fallbackSupabase = await createRouteHandlerClient(cookies)
+      const { data: invitation, error } = await (fallbackSupabase
+        .from('user_invitations' as any)
+        .select(`id, email, role, expires_at, accepted_at, agencies:agency_id(name)`)
+        .eq('token', token)
+        .single() as any)
+
+      if (error || !invitation) {
+        return NextResponse.json({ error: 'Invalid invitation' }, { status: 404 })
+      }
+
+      if (invitation.accepted_at) {
+        return NextResponse.json({ error: 'Invitation has already been accepted' }, { status: 410 })
+      }
+
+      if (new Date(invitation.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 })
+      }
+
+      return NextResponse.json({
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          agency_name: invitation.agencies?.name || 'Your Agency',
+          expires_at: invitation.expires_at,
+          accepted_at: invitation.accepted_at,
+        },
+      }, { status: 200 })
+    }
 
     const { data: invitation, error } = await (supabase
       .from('user_invitations' as any)
