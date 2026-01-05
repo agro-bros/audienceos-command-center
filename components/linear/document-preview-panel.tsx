@@ -179,82 +179,51 @@ export function DocumentPreviewPanel({
           )}
         </div>
 
-        {/* Metadata - Single Column Key-Value List */}
+        {/* Metadata - 2x2 Grid (Label|Value | Label|Value) */}
         <div className="px-3 py-2 max-h-[220px] overflow-y-auto">
-          <div className="space-y-1">
-            {/* Category */}
-            {document.category && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Category</span>
-                <span
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded font-medium",
-                    categoryColors[document.category]
-                  )}
-                >
+          <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-1.5 items-center">
+            {/* Row 1: Category | Size */}
+            <span className="text-xs text-muted-foreground">Category</span>
+            <span className="text-right">
+              {document.category ? (
+                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", categoryColors[document.category])}>
                   {categoryLabels[document.category]}
                 </span>
-              </div>
-            )}
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </span>
+            <span className="text-xs text-muted-foreground">Size</span>
+            <span className="text-xs text-foreground text-right">{document.size || "—"}</span>
 
-            {/* Size */}
-            {document.size && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Size</span>
-                <span className="text-xs text-foreground">{document.size}</span>
-              </div>
-            )}
+            {/* Row 2: Views | Downloads */}
+            <span className="text-xs text-muted-foreground">Views</span>
+            <span className="text-xs text-foreground text-right">{document.viewCount ?? 0}</span>
+            <span className="text-xs text-muted-foreground">Downloads</span>
+            <span className="text-xs text-foreground text-right">{document.downloadCount ?? 0}</span>
 
-            {/* Views */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Views</span>
-              <span className="text-xs text-foreground">{document.viewCount ?? 0}</span>
-            </div>
+            {/* Row 3: Created | Updated */}
+            <span className="text-xs text-muted-foreground">Created</span>
+            <span className="text-xs text-foreground text-right">
+              {document.createdAt}
+              {document.createdBy && <span className="text-muted-foreground"> by {document.createdBy}</span>}
+            </span>
+            <span className="text-xs text-muted-foreground">Updated</span>
+            <span className="text-xs text-foreground text-right">
+              {document.updatedAt}
+              {document.updatedBy && <span className="text-muted-foreground"> by {document.updatedBy}</span>}
+            </span>
 
-            {/* Downloads */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Downloads</span>
-              <span className="text-xs text-foreground">{document.downloadCount ?? 0}</span>
-            </div>
-
-            {/* Created */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Created</span>
-              <span className="text-xs text-foreground text-right">
-                {document.createdAt}
-                {document.createdBy && (
-                  <span className="text-muted-foreground"> by {document.createdBy}</span>
-                )}
-              </span>
-            </div>
-
-            {/* Updated */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Updated</span>
-              <span className="text-xs text-foreground text-right">
-                {document.updatedAt}
-                {document.updatedBy && (
-                  <span className="text-muted-foreground"> by {document.updatedBy}</span>
-                )}
-              </span>
-            </div>
-
-            {/* Client */}
-            {document.clientName && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Client</span>
-                <span className="text-xs text-foreground">{document.clientName}</span>
-              </div>
-            )}
-
-            {/* AI Training */}
-            {onToggleTraining && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">AI Training</span>
+            {/* Row 4: Client | AI Training */}
+            <span className="text-xs text-muted-foreground">Client</span>
+            <span className="text-xs text-foreground text-right">{document.clientName || "—"}</span>
+            <span className="text-xs text-muted-foreground">AI Training</span>
+            <span className="text-right">
+              {onToggleTraining ? (
                 <button
                   onClick={onToggleTraining}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
                     document.useForTraining
                       ? "bg-foreground text-background"
                       : "bg-secondary text-muted-foreground hover:bg-secondary/80"
@@ -269,14 +238,16 @@ export function DocumentPreviewPanel({
                     "Enable"
                   )}
                 </button>
-              </div>
-            )}
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </span>
 
-            {/* Tags */}
+            {/* Row 5: Tags (spans all 4 columns) */}
             {document.tags && document.tags.length > 0 && (
-              <div className="flex items-start justify-between">
-                <span className="text-xs text-muted-foreground pt-0.5">Tags</span>
-                <div className="flex flex-wrap gap-1 justify-end max-w-[70%]">
+              <>
+                <span className="text-xs text-muted-foreground">Tags</span>
+                <div className="col-span-3 flex flex-wrap gap-1 justify-end">
                   {document.tags.map((tag) => (
                     <span
                       key={tag}
@@ -286,7 +257,7 @@ export function DocumentPreviewPanel({
                     </span>
                   ))}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
