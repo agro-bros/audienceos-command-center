@@ -44,16 +44,18 @@ let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = nul
  * Uses cookie-based auth with automatic token refresh
  * Returns singleton to prevent re-render loops in hooks
  *
- * NOTE: detectSessionInUrl disabled to fix getSession() hang issue
+ * NOTE: Auth options disabled to fix getSession() hang issue
  * discovered 2026-01-05. The SSR client's auto-detection was causing
- * infinite hangs when reading from cookies.
+ * infinite hangs. Direct REST API works fine, issue is client-side.
  */
 export function createClient() {
   if (!browserClient) {
     const { supabaseUrl, supabaseAnonKey } = getConfig()
     browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
-        detectSessionInUrl: false,  // Disable URL detection - fixes hang
+        persistSession: true,       // Keep session in storage
+        autoRefreshToken: false,    // Disable auto-refresh - was hanging
+        detectSessionInUrl: false,  // Disable URL detection - was hanging
         flowType: 'pkce',
       }
     })
