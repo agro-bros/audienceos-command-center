@@ -20,7 +20,7 @@ import {
   Trash2,
   ExternalLink,
   Copy,
-  BrainCircuit,
+  Sparkles,
   Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -173,7 +173,7 @@ export function DocumentCard({
             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
           )}
           {useForTraining && (
-            <BrainCircuit className="w-3 h-3 text-foreground flex-shrink-0" />
+            <Sparkles className="w-3 h-3 text-foreground flex-shrink-0" />
           )}
         </div>
       </div>
@@ -246,7 +246,7 @@ export function DocumentCard({
             )}
             title={useForTraining ? "Remove from AI training" : "Use for AI training"}
           >
-            <BrainCircuit className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" />
             {useForTraining && <Check className="w-3 h-3" />}
           </button>
         )}
@@ -436,7 +436,7 @@ export function DocumentCard({
                 )}
                 title={useForTraining ? "Remove from AI training" : "Use for AI training"}
               >
-                <BrainCircuit className="w-3 h-3" />
+                <Sparkles className="w-3 h-3" />
                 {useForTraining && <Check className="w-2.5 h-2.5" />}
               </button>
             )}

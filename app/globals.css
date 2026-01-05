@@ -149,6 +149,19 @@
   }
 }
 
+/* Custom grid templates for metadata panels */
+@utility grid-cols-metadata-2x2 {
+  grid-template-columns: 80px 1fr 80px 1fr;
+}
+
+@utility grid-cols-metadata-1x2 {
+  grid-template-columns: 80px 1fr;
+}
+
+@utility grid-cols-metadata-wide {
+  grid-template-columns: 100px 1fr;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

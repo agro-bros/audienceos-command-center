@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Kanban,
   Users,
-  Brain,
+  Sparkles,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -45,7 +45,7 @@ const navSections = [
     items: [
       { id: "onboarding", label: "Onboarding", icon: Inbox },
       { id: "tickets", label: "Support", icon: Ticket },
-      { id: "intelligence", label: "Intelligence", icon: Brain },
+      { id: "intelligence", label: "Intelligence", icon: Sparkles },
     ],
   },
   {

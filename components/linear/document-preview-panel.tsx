@@ -181,7 +181,7 @@ export function DocumentPreviewPanel({
 
         {/* Metadata - 2x2 Grid (Label|Value | Label|Value) - all left-aligned */}
         <div className="px-3 py-2 max-h-[220px] overflow-y-auto">
-          <div className="grid grid-cols-[80px_1fr_80px_1fr] gap-x-3 gap-y-1.5 items-center">
+          <div className="grid grid-cols-metadata-2x2 gap-x-3 gap-y-1.5 items-center">
             {/* Row 1: Category | Size */}
             <span className="text-xs text-muted-foreground">Category</span>
             <span>

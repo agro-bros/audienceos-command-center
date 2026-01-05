@@ -22,7 +22,6 @@ import {
   Paperclip,
   Globe,
   Database,
-  Brain,
   MessageCircle,
   LayoutDashboard,
   X,
@@ -716,7 +715,7 @@ function RouteIndicator({ route }: { route?: RouteType }) {
       color: "bg-purple-500/30 text-purple-400",
     },
     memory: {
-      icon: <Brain className="w-3 h-3" />,
+      icon: <Sparkles className="w-3 h-3" />,
       label: "Memory",
       color: "bg-pink-500/30 text-pink-400",
     },
