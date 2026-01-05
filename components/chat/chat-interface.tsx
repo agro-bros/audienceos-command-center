@@ -57,10 +57,15 @@ export function ChatInterface({
   context,
   onSendMessage,
 }: ChatInterfaceProps) {
-  // DIAGNOSTIC: Log component mount
+  // DIAGNOSTIC: Log component mount and auth state
   useEffect(() => {
-    console.log('[CHAT-COMPONENT] ChatInterface mounted, agencyId:', agencyId)
-  }, [agencyId])
+    console.log('[CHAT-COMPONENT] ChatInterface mounted', {
+      agencyId,
+      userId,
+      isAnonymous: userId === 'anonymous',
+      isDemoAgency: agencyId === 'demo-agency',
+    })
+  }, [agencyId, userId])
 
   // Panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false)
