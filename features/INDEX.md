@@ -30,11 +30,11 @@
 | support-tickets | ✅ Complete | [support-tickets.md](support-tickets.md) | 85% | 15+ components, 8 APIs, full Kanban (1,157 lines) |
 | knowledge-base | ✅ Complete | [knowledge-base.md](knowledge-base.md) | 80% | 4 components, upload modal, store (290 lines) |
 | automations | ✅ Complete | [automations.md](automations.md) | 85% | 5 components, 8 APIs, workflow engine |
-| settings | ✅ Complete | [settings.md](settings.md) | 85% | SET-001/002: Agency + User APIs complete. SET-003-007: Invitations pending |
+| settings | ✅ Complete | [settings.md](settings.md) | 95% | SET-001 to SET-009 complete. All sections wired to real APIs. |
 | ai-intelligence-layer (HGC) | ✅ Complete | [ai-intelligence-layer.md](ai-intelligence-layer.md) | 95% | **Holy Grail Chat** - 6 functions, Mem0, RAG, auth integration. Ready for production. |
 | dashboard-redesign | ✅ Complete | [dashboard-redesign.md](dashboard-redesign.md) | 90% | Linear design system (merged from linear-rebuild worktree) |
 
-**Overall Completion:** ~90% (HGC upgraded 30%→95%, Settings needs invitations + email service)
+**Overall Completion:** ~92% (Settings upgraded 85%→95%, all sections wired to real APIs)
 
 ---
 
@@ -75,13 +75,15 @@
 
 ## What's Missing for Production
 
-| Category | Items |
-|----------|-------|
-| **Database** | Seed Supabase with schema, configure RLS, storage buckets |
-| **Auth** | Real auth context (currently mock "Demo User"), RBAC |
-| **Third-party APIs** | Gmail, Slack, Google Ads, Meta (OAuth handlers exist) |
-| **Testing** | Unit tests (14), E2E tests (3), more tests needed |
-| **Monitoring** | Sentry integration, structured logging |
+| Category | Status | Notes |
+|----------|--------|-------|
+| **Database** | ✅ Done | Supabase seeded (1 agency, 4 users, 20 clients), RLS configured |
+| **Auth** | ✅ Done | Real Supabase auth works. Login page exists. Mock mode only for local dev. |
+| **Settings Wire-up** | ✅ Done | SET-006 to SET-009 complete (2026-01-05) |
+| **Third-party APIs** | ⏳ Pending | Gmail, Slack, Google Ads, Meta (OAuth handlers exist, need testing) |
+| **Testing** | ⏳ Pending | Unit tests (14), E2E tests (3), more tests in progress |
+| **Monitoring** | ⏳ Pending | Sentry integration needed |
+| **Multi-Org Roles** | 📝 Speccing | Feature spec being created |
 
 ---
 
