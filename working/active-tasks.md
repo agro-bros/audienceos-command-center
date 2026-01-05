@@ -21,6 +21,13 @@
 
 ## ✅ Recently Completed
 
+### Pipeline Settings Wire-up (SET-009) - 2026-01-05
+- [x] SET-009: PipelineSection - Connected pipeline settings to real API
+- [x] Replaced setTimeout mock with PATCH to /api/v1/settings/agency
+- [x] Uses fetchWithCsrf for CSRF protection
+- [x] Proper error handling with toast notifications
+- Commit: `7a0b30e`
+
 ### Agency Profile Wire-up (SET-008) - 2026-01-05
 - [x] SET-008: AgencyProfile - Connected agency settings form to real API
 - [x] Replaced DEFAULT_AGENCY mock with /api/v1/settings/agency fetch
