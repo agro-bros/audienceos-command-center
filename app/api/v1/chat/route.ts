@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase';
-import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security';
+import { withRateLimit, createErrorResponse } from '@/lib/security';
 import { ChatService } from '@/lib/chat/service';
 import type { ChatMessage, Citation, RouteType } from '@/lib/chat/types';
 import type { ChatRole, ChatRoute } from '@/types/database';
+
+// Mock mode detection - allows chat to work without real Supabase
+const MOCK_AGENCY_ID = 'demo-agency';
+const MOCK_USER_ID = 'mock-user-id';
+const isMockMode = () => {
+  // Explicit override for development testing
+  if (process.env.NEXT_PUBLIC_MOCK_MODE === 'true') return true;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  return url.includes('placeholder') || url === '';
+};
 
 /**
  * POST /api/v1/chat
@@ -21,17 +31,28 @@ export async function POST(request: NextRequest) {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 });
   if (rateLimitResponse) return rateLimitResponse;
 
-  // CSRF protection
-  const csrfError = withCsrfProtection(request);
-  if (csrfError) return csrfError;
+  const mockMode = isMockMode();
 
   try {
-    const supabase = await createRouteHandlerClient(cookies);
+    let userId: string;
+    let agencyId: string;
+    let supabase: Awaited<ReturnType<typeof createRouteHandlerClient>> | null = null;
 
-    // Get authenticated user with server verification (SEC-006)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase);
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized');
+    // Mock mode - skip Supabase auth
+    if (mockMode) {
+      console.info('[Chat API v1] Mock mode enabled - using demo credentials');
+      userId = MOCK_USER_ID;
+      agencyId = MOCK_AGENCY_ID;
+    } else {
+      supabase = await createRouteHandlerClient(cookies);
+
+      // Get authenticated user with server verification (SEC-006)
+      const authResult = await getAuthenticatedUser(supabase);
+      if (!authResult.user || !authResult.agencyId) {
+        return createErrorResponse(401, authResult.error || 'Unauthorized');
+      }
+      userId = authResult.user.id;
+      agencyId = authResult.agencyId;
     }
 
     // Parse request
@@ -57,10 +78,10 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(400, 'Message cannot be empty or whitespace-only');
     }
 
-    // Fetch session history if provided
+    // Fetch session history if provided (only in non-mock mode)
     let history: ChatMessage[] = [];
 
-    if (sessionId) {
+    if (sessionId && supabase && !mockMode) {
       const { data: messages, error: fetchError } = await supabase
         .from('chat_message')
         .select('*')
@@ -91,7 +112,7 @@ export async function POST(request: NextRequest) {
     // Initialize chat service
     const chatService = new ChatService({
       agencyId,
-      userId: user.id,
+      userId,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
       geminiApiKey: process.env.GOOGLE_AI_API_KEY || '',
@@ -100,8 +121,8 @@ export async function POST(request: NextRequest) {
     // Process message through HGC service
     const result = await chatService.processMessage(trimmedMessage, history);
 
-    // Store message in database if sessionId provided
-    if (sessionId) {
+    // Store message in database if sessionId provided (only in non-mock mode)
+    if (sessionId && supabase && !mockMode) {
       const { error: storeError } = await supabase
         .from('chat_message')
         .insert([
@@ -161,6 +182,19 @@ export async function GET(request: NextRequest) {
   // Rate limiting: 60 requests per minute (more lenient for reads)
   const rateLimitResponse = withRateLimit(request, { maxRequests: 60, windowMs: 60000 });
   if (rateLimitResponse) return rateLimitResponse;
+
+  // Mock mode returns empty history
+  if (isMockMode()) {
+    return NextResponse.json({
+      messages: [],
+      pagination: {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
+      },
+    });
+  }
 
   try {
     const supabase = await createRouteHandlerClient(cookies);

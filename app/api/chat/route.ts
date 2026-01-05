@@ -16,6 +16,8 @@ import { withRateLimit, sanitizeString, createErrorResponse } from '@/lib/securi
 const MOCK_AGENCY_ID = 'demo-agency'
 const MOCK_USER_ID = 'mock-user-id'
 const isMockMode = () => {
+  // Explicit override for development testing
+  if (process.env.NEXT_PUBLIC_MOCK_MODE === 'true') return true
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   return url.includes('placeholder') || url === ''
 }
