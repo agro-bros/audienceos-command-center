@@ -31,11 +31,11 @@
 | knowledge-base | ✅ Complete | [knowledge-base.md](knowledge-base.md) | 85% | Documents loading fixed 2026-01-05 (auth credentials) |
 | automations | ✅ Complete | [automations.md](automations.md) | 90% | Workflows loading fixed 2026-01-05 (auth credentials) |
 | settings | ✅ Complete | [settings.md](settings.md) | 98% | SET-001 to SET-009 complete. All APIs wired + auth fixed 2026-01-05. |
-| ai-intelligence-layer (HGC) | 🔴 Blocked | [ai-intelligence-layer.md](ai-intelligence-layer.md) | 60% | **SEE: audienceos-chat.md** - HGC transplant incomplete. 5 critical blockers found 2026-01-05. |
-| audienceos-chat | 🔴 Blocked | [audienceos-chat.md](audienceos-chat.md) | 60% | **NEW SPEC**: HGC adaptation. 5 CRITICAL issues blocking. Wrong API library, env var, 501 routes. |
+| ai-intelligence-layer (HGC) | 🟡 Testing | [ai-intelligence-layer.md](ai-intelligence-layer.md) | 80% | HGC transplant Phase 1 complete. Gemini 3 enforced. Needs E2E testing. |
+| audienceos-chat | 🟡 Testing | [audienceos-chat.md](audienceos-chat.md) | 80% | Phase 1 COMPLETE (2026-01-05): All 5 blockers resolved. Gemini 3 only. Commit 6a781d2. Needs runtime testing. |
 | dashboard-redesign | ✅ Complete | [dashboard-redesign.md](dashboard-redesign.md) | 95% | Linear design system merged. All features now fully functional. |
 
-**Overall Completion:** **85%** (9/11 features complete. AudienceOS Chat BLOCKED with 5 critical issues. See audienceos-chat.md)
+**Overall Completion:** **90%** (9/11 features complete, 2 in testing phase. AudienceOS Chat blockers RESOLVED 2026-01-05.)
 
 ---
 
@@ -65,6 +65,7 @@
 
 | Date | Score | Gaps Fixed |
 |------|-------|------------|
+| 2026-01-05 | 9/10 | **GEMINI 3 ENFORCEMENT + BLOCKERS FIXED**: All 5 critical blockers resolved. Fixed env var (GOOGLE_AI_API_KEY), rewrote chat route, added credentials to ChatInterface, enforced Gemini 3 in all files. Commit 6a781d2. Needs runtime E2E testing. |
 | 2026-01-05 | 6/10 | **HGC INVESTIGATION**: Parallel agent investigation found 20 issues (5 CRITICAL). Confirmed lib/chat/ IS HGC transplant (95% code match). Created audienceos-chat.md spec. Blockers: wrong API library, env var mismatch, 501 routes, empty ChatService, missing context. |
 | 2026-01-05 | 10/10 | **AUTH FIX**: Fixed 401 "No session" errors in all API calls. Added `credentials: 'include'` to 10+ fetch() calls in stores/hooks. All features now load data correctly. Overall completion: 92%→95%. |
 | 2026-01-04 | 10/10 | **DOC AUDIT**: Fixed metrics (137 components, 34 APIs, 7 stores, 13 hooks). Added dashboard-redesign feature. Corrected test count (14 unit, 3 e2e). |
