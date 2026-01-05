@@ -11,7 +11,7 @@ import type {
   RecallDetection,
   MemorySearchRequest,
 } from './types';
-import { getMem0Service } from './mem0-service';
+import { getMem0Service, initializeMem0Service } from './mem0-service';
 
 /**
  * Memory recall patterns
@@ -141,13 +141,19 @@ export class MemoryInjector {
     agencyId: string,
     userId: string
   ): Promise<MemoryInjection> {
-    const mem0 = getMem0Service();
+    // Auto-initialize if not already done
+    let mem0 = getMem0Service();
     if (!mem0) {
-      return {
-        contextBlock: '',
-        memories: [],
-        relevanceExplanation: 'Memory service not available',
-      };
+      try {
+        mem0 = initializeMem0Service();
+      } catch (error) {
+        console.warn('[Memory] Failed to initialize Mem0:', error);
+        return {
+          contextBlock: '',
+          memories: [],
+          relevanceExplanation: 'Memory service not available',
+        };
+      }
     }
 
     // Search for relevant memories

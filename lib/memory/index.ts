@@ -9,6 +9,7 @@ export {
   createMem0Service,
   getMem0Service,
   resetMem0Service,
+  initializeMem0Service,
 } from './mem0-service';
 export {
   MemoryInjector,

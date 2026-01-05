@@ -366,3 +366,86 @@ export function getMem0Service(): Mem0Service | null {
 export function resetMem0Service(): void {
   mem0ServiceInstance = null;
 }
+
+/**
+ * Chi-gateway HTTP client for Mem0
+ * Calls chi-gateway's mem0_add and mem0_search MCP tools
+ */
+function createChiGatewayMem0Client(): Mem0MCPClient {
+  const gatewayUrl = process.env.CHI_GATEWAY_URL || 'https://chi-gateway.roderic-andrews.workers.dev';
+
+  return {
+    addMemory: async (params: { content: string; userId: string }) => {
+      const response = await fetch(gatewayUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'mem0_add',
+            arguments: params,
+          },
+          id: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chi-gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.result?.content?.[0]?.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        return { id: parsed.id || crypto.randomUUID() };
+      }
+      return { id: crypto.randomUUID() };
+    },
+
+    searchMemories: async (params: { query: string; userId: string }) => {
+      const response = await fetch(gatewayUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'mem0_search',
+            arguments: params,
+          },
+          id: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chi-gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.result?.content?.[0]?.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        // Mem0 returns { results: [...] } or array directly
+        const results = parsed.results || parsed || [];
+        return results.map((r: any) => ({
+          id: r.id || r.memory_id || crypto.randomUUID(),
+          content: r.memory || r.content || '',
+          score: r.score,
+        }));
+      }
+      return [];
+    },
+  };
+}
+
+/**
+ * Initialize Mem0Service with chi-gateway (lazy init)
+ */
+export function initializeMem0Service(): Mem0Service {
+  if (!mem0ServiceInstance) {
+    const client = createChiGatewayMem0Client();
+    mem0ServiceInstance = new Mem0Service(client);
+  }
+  return mem0ServiceInstance;
+}
