@@ -1,42 +1,37 @@
 # Active Tasks
 
-## ✅ Quality Checks
-_Last check: 2026-01-05_
+## ✅ Completed Features
+- [x] Settings (SET-001-002): Agency + User management
+- [x] User Invitations (SET-003): 95% complete - verified 2026-01-05
+- [x] Database Connection: Real Supabase connected (1 agency, 4 users, 20 clients)
+- [x] Mock Mode Disabled: Local dev now uses real database (2026-01-05)
 
-### Preflight (Gate 1)
-- [x] ESLint: Clean ✓
-- [x] TypeScript: Clean ✓
-- [x] Security: Clean ✓
-- [x] Build: Passes ✓
+## 🔒 Production Blockers (Sequential - Must Clear First)
 
-## ✅ Completed Today (2026-01-05)
+### Blocker 1: Vercel Mock Mode
+- status: NEEDS ACTION
+- action: Set `NEXT_PUBLIC_MOCK_MODE=false` in Vercel env vars
+- impact: Production still using mock data
 
-### Module Resolution Fixes (5 DUs)
-- [x] **Fixed 6 module resolution errors** blocking Vercel build
-  - lib/utils.ts: Added generateId() function (UUID v4)
-  - lib/supabase.ts: Added getSessionRepository() + getSupabaseClient() exports
-  - lib/security/timeout.ts: Created new module with withTimeout() + TIMEOUTS
-  - lib/knowledge/index.ts: Created new knowledge management module
-  - lib/chat/service.ts: Simplified to minimal stub (incomplete work)
-  - lib/chat/types.ts: Extended with 10+ type definitions
-- [x] **Installed @types/uuid** package
-- [x] **Disabled chat API routes** (501 Not Implemented)
+### Blocker 2: RESEND_API_KEY
+- status: NEEDS ACTION
+- action: Get real Resend API key, add to Vercel
+- impact: Invitation emails won't send in production
 
-### Production Deployment
-- [x] **CTO Code Review** - Comprehensive audit with fresh eyes, all checks passed
-- [x] **Red Team QA** - Runtime verification approach identified potential issues
-- [x] **Push to Production** - main → staging → production, Vercel auto-deploy enabled
-- [x] **Test Verification** - All 427/427 tests passing, zero regressions
-- [x] **Build Verification** - Production build succeeds (10.7s compile time)
+## 🚧 Next Features (After Blockers Clear)
 
-### Documentation Updates
-- [x] WORK-LEDGER.md - Session logged (5 DUs)
-- [x] Master Dashboard - Work Log entry added
-- [x] All Projects - DU count updated
-- [x] mem0 - Key learning stored
-- [x] active-tasks.md - This file updated
+### Feature: Multi-Org Roles
+- urgency: 8
+- importance: 9
+- confidence: 7
+- impact: 9
+- tier: IMMEDIATE
+- description: Advanced RBAC. Define roles, assign permissions, enforce at API level.
 
-**Status:** Settings feature 9.5/10 complete and production-ready. All blocking issues resolved.
-
-## 📋 Ready for PR
-All preflight checks pass - ready for commit and PR creation
+### Feature: Settings Completion (SET-004-007)
+- urgency: 7
+- importance: 8
+- confidence: 8
+- impact: 7
+- tier: IMMEDIATE
+- description: Billing settings, API keys, webhook management, notification preferences.

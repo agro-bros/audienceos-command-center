@@ -10,8 +10,8 @@
 
 | Metric | Count |
 |--------|-------|
-| React Components | 137 files |
-| API Endpoints | 34 endpoints |
+| React Components | 118 files |
+| API Endpoints | 42 endpoints |
 | Zustand Stores | 7 complete |
 | Custom Hooks | 13 |
 | Type Definitions | 7 files |
@@ -78,7 +78,7 @@
 | Category | Items |
 |----------|-------|
 | **Database** | Seed Supabase with schema, configure RLS, storage buckets |
-| **Auth** | Real auth context (currently hardcoded "Luke"), RBAC |
+| **Auth** | Real auth context (currently mock "Demo User"), RBAC |
 | **Third-party APIs** | Gmail, Slack, Google Ads, Meta (OAuth handlers exist) |
 | **Testing** | Unit tests (14), E2E tests (3), more tests needed |
 | **Monitoring** | Sentry integration, structured logging |
