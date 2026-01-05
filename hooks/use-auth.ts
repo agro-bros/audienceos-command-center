@@ -222,8 +222,11 @@ export function useAuth() {
     const authStartTime = performance.now()
     console.log('[AUTH-INIT] Starting auth initialization')
 
-    // Add timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
+    // Timeout reference - will be cleared on auth success
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    // Add timeout to prevent infinite loading (only fires if auth doesn't complete)
+    timeoutId = setTimeout(() => {
       const elapsed = performance.now() - authStartTime
       console.warn(`[AUTH-TIMEOUT] Auth timeout after ${elapsed.toFixed(0)}ms`)
       if (isMounted) {
@@ -237,7 +240,14 @@ export function useAuth() {
       }
     }, 5000)
 
-    initAuth()
+    // Run auth and clear timeout on completion
+    initAuth().finally(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        const elapsed = performance.now() - authStartTime
+        console.log(`[AUTH-COMPLETE] Auth completed in ${elapsed.toFixed(0)}ms, timeout cleared`)
+      }
+    })
 
     // Subscribe to auth changes - uses direct REST API to avoid hanging Supabase client
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -270,10 +280,10 @@ export function useAuth() {
 
     return () => {
       isMounted = false
-      clearTimeout(timeout)
+      if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
-  }, [supabase, fetchProfile])
+  }, [supabase])
 
   // Sign out
   const signOut = useCallback(async () => {
