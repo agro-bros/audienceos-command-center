@@ -226,14 +226,20 @@ export function ChatInterface({
         throw new Error(data.error)
       }
 
+      // API returns nested structure: { message: {...}, sessionId: "..." }
+      const messageData = data.message
+      if (!messageData) {
+        throw new Error('Invalid API response: missing message data')
+      }
+
       const assistantMessage: ChatMessageType = {
-        id: data.id || crypto.randomUUID(),
+        id: messageData.id || crypto.randomUUID(),
         role: "assistant",
-        content: data.content || "I received your message.",
-        timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
-        route: data.route,
-        citations: data.citations || [],
-        suggestions: data.suggestions,
+        content: messageData.content || "I received your message.",
+        timestamp: messageData.timestamp ? new Date(messageData.timestamp) : new Date(),
+        route: messageData.route,
+        citations: messageData.citations || [],
+        suggestions: messageData.suggestions,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
