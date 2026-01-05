@@ -16,8 +16,6 @@ import {
   X,
   Download,
   FileText,
-  Clock,
-  User,
   Tag,
   BarChart3,
   RefreshCw,
@@ -37,7 +35,7 @@ import {
   INDEX_STATUS_INFO,
 } from "@/types/knowledge-base"
 import { SendToAiButton } from "@/components/ui/send-to-ai-button"
-import { Share2, Trash2, Eye } from "lucide-react"
+import { Share2, Trash2 } from "lucide-react"
 
 interface DocumentPreviewModalProps {
   document: KnowledgeBaseDocument
