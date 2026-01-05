@@ -313,13 +313,17 @@ export function ChatInterface({
       {/* SLIDE-UP MESSAGE PANEL */}
       {isPanelOpen && (
         <>
-          {/* Backdrop - covers entire viewport */}
+          {/* Backdrop - frosted blur effect (no dark overlay) */}
           <div
-            className="fixed inset-0 bg-black/40 z-[9998]"
+            className="fixed inset-0 z-[9998]"
+            style={{
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+            }}
             onClick={closePanel}
           />
 
-          {/* Message Panel */}
+          {/* Message Panel - iOS Liquid Glass style */}
           <div
             className="fixed left-1/2 z-[9999] flex flex-col"
             style={{
@@ -329,12 +333,12 @@ export function ChatInterface({
               maxHeight: "85vh",
               bottom: "88px", // Above the chat bar
               transform: "translateX(-50%)",
-              background: "rgba(30, 30, 35, 0.85)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "16px",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(24px) saturate(180%)",
+              WebkitBackdropFilter: "blur(24px) saturate(180%)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              borderRadius: "20px",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.05)",
               animation: isClosing
                 ? "slideDown 0.2s ease-out forwards"
                 : "slideUp 0.35s ease-out forwards",
@@ -481,7 +485,7 @@ export function ChatInterface({
         </>
       )}
 
-      {/* PERSISTENT CHAT BAR - Fixed at bottom of viewport */}
+      {/* PERSISTENT CHAT BAR - iOS Liquid Glass style */}
       <div
         className="fixed left-1/2 flex items-center gap-3 z-[10000]"
         style={{
@@ -489,12 +493,12 @@ export function ChatInterface({
           maxWidth: MAX_PANEL_WIDTH,
           bottom: "16px", // 16px from bottom of viewport
           transform: "translateX(-50%)",
-          background: "rgba(30, 30, 35, 0.95)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
-          borderRadius: "16px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+          background: "rgba(255, 255, 255, 0.08)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          borderRadius: "20px",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05)",
           padding: "12px 16px",
         }}
       >
@@ -524,7 +528,7 @@ export function ChatInterface({
           onKeyDown={handleKeyDown}
           onFocus={handleInputFocus}
           disabled={isLoading}
-          className="flex-1 min-h-[48px] max-h-[120px] p-3 bg-white/5 border border-white/10 rounded-xl text-gray-100 text-[14px] leading-[1.5] resize-none outline-none transition-colors placeholder:text-gray-500 focus:border-white/20 hover:border-white/15"
+          className="flex-1 min-h-[48px] max-h-[120px] p-3 bg-black/5 border border-black/10 rounded-xl text-gray-800 text-[14px] leading-[1.5] resize-none outline-none transition-colors placeholder:text-gray-500 focus:border-black/20 hover:border-black/15"
         />
 
         {/* Send Button */}
