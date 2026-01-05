@@ -16,6 +16,7 @@ interface UserInvitation {
   role: "admin" | "user"
   expires_at: string
   accepted_at: string | null
+  agency_name?: string
 }
 
 export default function InvitePage({

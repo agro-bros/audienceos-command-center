@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useSettingsStore } from "@/stores/settings-store"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { Bot, Sparkles, MessageSquare, Zap, BarChart3, CheckCircle2, Loader2 } from "lucide-react"
 import type { TokenUsageStats } from "@/types/settings"
 
@@ -124,9 +125,8 @@ export function AIConfigurationSection() {
     setError(null)
 
     try {
-      const response = await fetch('/api/v1/settings/agency', {
+      const response = await fetchWithCsrf('/api/v1/settings/agency', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ai_config: {
             assistant_name: assistantName,

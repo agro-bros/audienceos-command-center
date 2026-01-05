@@ -42,11 +42,11 @@ export async function POST(
       )
     }
 
-    // Check if already accepted
+    // Check if already accepted (410 Gone - same as expired)
     if (invitation.accepted_at) {
       return NextResponse.json(
-        { error: 'Invitation already accepted' },
-        { status: 400 }
+        { error: 'Invitation has already been accepted' },
+        { status: 410 }
       )
     }
 
@@ -134,9 +134,11 @@ export async function GET(
       .from('user_invitations' as any)
       .select(
         `
+        id,
         email,
         role,
         expires_at,
+        accepted_at,
         agencies:agency_id(name)
       `
       )
@@ -147,6 +149,14 @@ export async function GET(
       return NextResponse.json(
         { error: 'Invalid invitation' },
         { status: 404 }
+      )
+    }
+
+    // Check if already accepted
+    if (invitation.accepted_at) {
+      return NextResponse.json(
+        { error: 'Invitation has already been accepted' },
+        { status: 410 }
       )
     }
 
@@ -163,10 +173,12 @@ export async function GET(
     return NextResponse.json(
       {
         invitation: {
+          id: invitation.id,
           email: invitation.email,
           role: invitation.role,
           agency_name: invitation.agencies?.name || 'Your Agency',
           expires_at: invitation.expires_at,
+          accepted_at: invitation.accepted_at,
         },
       },
       { status: 200 }

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import "./globals.css"
 import { ChatInterface } from "@/components/chat/chat-interface"
+import { useAuth } from "@/hooks/use-auth"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   const pathname = usePathname()
+  const { profile, agencyId, isLoading, isAuthenticated } = useAuth()
   const [chatPortalHost, setChatPortalHost] = useState<HTMLElement | null>(null)
-  const [showChat, setShowChat] = useState(true)
   const [chatContext, setChatContext] = useState<any>(null)
 
   // Initialize portal host after DOM is ready
@@ -39,9 +40,17 @@ export default function RootLayout({
   }, [])
 
   // Determine if chat should be visible
+  // Only show chat when:
+  // 1. Portal host is ready
+  // 2. Not on excluded paths (login, invite, onboarding)
+  // 3. Auth check complete (not loading)
+  // 4. User is authenticated with valid agencyId
   const shouldShowChat =
     chatPortalHost &&
-    !EXCLUDED_PATHS.some((path) => pathname.startsWith(path))
+    !EXCLUDED_PATHS.some((path) => pathname.startsWith(path)) &&
+    !isLoading &&
+    isAuthenticated &&
+    agencyId
 
   return (
     <html lang="en">
@@ -50,8 +59,8 @@ export default function RootLayout({
         {shouldShowChat &&
           createPortal(
             <ChatInterface
-              agencyId="11111111-1111-1111-1111-111111111111"
-              userId="user"
+              agencyId={agencyId}
+              userId={profile?.id || 'anonymous'}
               context={chatContext}
             />,
             chatPortalHost
