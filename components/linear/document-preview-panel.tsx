@@ -179,12 +179,12 @@ export function DocumentPreviewPanel({
           )}
         </div>
 
-        {/* Metadata - 2x2 Grid (Label|Value | Label|Value) */}
+        {/* Metadata - 2x2 Grid (Label|Value | Label|Value) - all left-aligned */}
         <div className="px-3 py-2 max-h-[220px] overflow-y-auto">
-          <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-1.5 items-center">
+          <div className="grid grid-cols-[80px_1fr_80px_1fr] gap-x-3 gap-y-1.5 items-center">
             {/* Row 1: Category | Size */}
             <span className="text-xs text-muted-foreground">Category</span>
-            <span className="text-right">
+            <span>
               {document.category ? (
                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", categoryColors[document.category])}>
                   {categoryLabels[document.category]}
@@ -194,31 +194,31 @@ export function DocumentPreviewPanel({
               )}
             </span>
             <span className="text-xs text-muted-foreground">Size</span>
-            <span className="text-xs text-foreground text-right">{document.size || "—"}</span>
+            <span className="text-xs text-foreground">{document.size || "—"}</span>
 
             {/* Row 2: Views | Downloads */}
             <span className="text-xs text-muted-foreground">Views</span>
-            <span className="text-xs text-foreground text-right">{document.viewCount ?? 0}</span>
+            <span className="text-xs text-foreground">{document.viewCount ?? 0}</span>
             <span className="text-xs text-muted-foreground">Downloads</span>
-            <span className="text-xs text-foreground text-right">{document.downloadCount ?? 0}</span>
+            <span className="text-xs text-foreground">{document.downloadCount ?? 0}</span>
 
             {/* Row 3: Created | Updated */}
             <span className="text-xs text-muted-foreground">Created</span>
-            <span className="text-xs text-foreground text-right">
+            <span className="text-xs text-foreground">
               {document.createdAt}
               {document.createdBy && <span className="text-muted-foreground"> by {document.createdBy}</span>}
             </span>
             <span className="text-xs text-muted-foreground">Updated</span>
-            <span className="text-xs text-foreground text-right">
+            <span className="text-xs text-foreground">
               {document.updatedAt}
               {document.updatedBy && <span className="text-muted-foreground"> by {document.updatedBy}</span>}
             </span>
 
             {/* Row 4: Client | AI Training */}
             <span className="text-xs text-muted-foreground">Client</span>
-            <span className="text-xs text-foreground text-right">{document.clientName || "—"}</span>
+            <span className="text-xs text-foreground">{document.clientName || "—"}</span>
             <span className="text-xs text-muted-foreground">AI Training</span>
-            <span className="text-right">
+            <span>
               {onToggleTraining ? (
                 <button
                   onClick={onToggleTraining}
@@ -243,11 +243,11 @@ export function DocumentPreviewPanel({
               )}
             </span>
 
-            {/* Row 5: Tags (spans all 4 columns) */}
+            {/* Row 5: Tags (spans remaining columns) */}
             {document.tags && document.tags.length > 0 && (
               <>
                 <span className="text-xs text-muted-foreground">Tags</span>
-                <div className="col-span-3 flex flex-wrap gap-1 justify-end">
+                <div className="col-span-3 flex flex-wrap gap-1">
                   {document.tags.map((tag) => (
                     <span
                       key={tag}

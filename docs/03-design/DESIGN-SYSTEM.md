@@ -373,6 +373,101 @@ In dark mode, shadows are less visible. Use subtle glows or border emphasis inst
 
 ---
 
+## Properties Panel Pattern (CRITICAL)
+
+> **Reference:** Mobbin's Properties panel pattern
+> **This pattern is frequently misimplemented. Follow exactly.**
+
+### The Pattern
+
+A Properties panel displays key-value metadata in a structured grid format.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Label1      Value1           Label2      Value2        │
+│  Label3      Value3           Label4      Value4        │
+│  Label5      Value5           Label6      Value6        │
+└─────────────────────────────────────────────────────────┘
+```
+
+### CRITICAL RULES
+
+1. **ALL text is LEFT-aligned** - Labels AND values are left-aligned
+2. **Fixed-width label columns** - Labels use fixed width (e.g., 80px) for consistency
+3. **Values start at consistent position** - Like tab stops, not right-aligned
+4. **NO text-right on values** - This is the most common mistake
+
+### Correct Implementation
+
+```tsx
+// ✅ CORRECT - 4-column grid, all left-aligned
+<div className="grid grid-cols-[80px_1fr_80px_1fr] gap-x-3 gap-y-1.5 items-center">
+  <span className="text-xs text-muted-foreground">Category</span>
+  <span className="text-xs text-foreground">{category}</span>
+  <span className="text-xs text-muted-foreground">Size</span>
+  <span className="text-xs text-foreground">{size}</span>
+
+  <span className="text-xs text-muted-foreground">Views</span>
+  <span className="text-xs text-foreground">{views}</span>
+  <span className="text-xs text-muted-foreground">Downloads</span>
+  <span className="text-xs text-foreground">{downloads}</span>
+</div>
+```
+
+### WRONG Implementation
+
+```tsx
+// ❌ WRONG - values right-aligned
+<div className="flex items-center justify-between">
+  <span>Category</span>
+  <span className="text-right">{category}</span>  // DON'T DO THIS
+</div>
+
+// ❌ WRONG - auto-width labels (inconsistent tab stops)
+<div className="grid grid-cols-[auto_1fr_auto_1fr]">  // DON'T DO THIS
+```
+
+### Visual Comparison
+
+```
+❌ WRONG (right-aligned values):
+Category                              Onboarding
+Size                                       48 KB
+Views                                        342
+
+✅ CORRECT (left-aligned values at consistent position):
+Category    Onboarding      Size        48 KB
+Views       342             Downloads   89
+```
+
+### Single Column Variant
+
+For narrow panels, use single column with same left-aligned pattern:
+
+```tsx
+<div className="grid grid-cols-[80px_1fr] gap-x-3 gap-y-1.5">
+  <span className="text-xs text-muted-foreground">Status</span>
+  <span className="text-xs text-foreground">{status}</span>
+
+  <span className="text-xs text-muted-foreground">Lead</span>
+  <span className="text-xs text-foreground">{lead}</span>
+</div>
+```
+
+### Specifications
+
+| Property | Value |
+|----------|-------|
+| Label Width | 80px (fixed) |
+| Gap X | 12px (`gap-x-3`) |
+| Gap Y | 6px (`gap-y-1.5`) |
+| Label Color | `text-muted-foreground` |
+| Value Color | `text-foreground` |
+| Font Size | 12px (`text-xs`) |
+| Alignment | ALL LEFT |
+
+---
+
 ## Iconography
 
 ### Icon Library
