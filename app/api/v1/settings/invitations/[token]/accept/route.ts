@@ -18,10 +18,13 @@ export async function POST(
       )
     }
 
+    // Use service role client to bypass RLS for invitation lookup
+    const serviceSupabase = createServiceRoleClient()
     const supabase = await createRouteHandlerClient(cookies)
 
-    // 1. Validate invitation
-    const { data: invitation, error: invError } = await (supabase
+    // 1. Validate invitation (using service role to bypass RLS)
+    const invClient = serviceSupabase || supabase
+    const { data: invitation, error: invError } = await (invClient
       .from('user_invitations' as any)
       .select('*')
       .eq('token', token)
@@ -69,8 +72,8 @@ export async function POST(
       )
     }
 
-    // 3. Create user record in database
-    const { data: newUser, error: userError } = await (supabase
+    // 3. Create user record in database (using service role to bypass RLS)
+    const { data: newUser, error: userError } = await (invClient
       .from('user' as any)
       .insert({
         id: authData.user.id,
@@ -84,16 +87,18 @@ export async function POST(
       .single() as any)
 
     if (userError) {
-      // Clean up auth user if database insert fails
-      await supabase.auth.admin.deleteUser(authData.user.id)
+      // Clean up auth user if database insert fails (need service role for admin operations)
+      if (serviceSupabase) {
+        await serviceSupabase.auth.admin.deleteUser(authData.user.id)
+      }
       return NextResponse.json(
         { error: userError.message || 'Failed to create user profile' },
         { status: 400 }
       )
     }
 
-    // 4. Mark invitation as accepted
-    await (supabase
+    // 4. Mark invitation as accepted (using service role to bypass RLS)
+    await (invClient
       .from('user_invitations' as any)
       .update({ accepted_at: new Date().toISOString() })
       .eq('token', token) as any)
