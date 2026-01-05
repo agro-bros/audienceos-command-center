@@ -9,6 +9,61 @@ import { cookies } from 'next/headers'
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
 
+// Mock mode detection
+const isMockMode = () => {
+  if (process.env.NEXT_PUBLIC_MOCK_MODE === 'true') return true
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  return url.includes('placeholder') || url === ''
+}
+
+// Mock users for demo
+const MOCK_USERS = [
+  {
+    id: 'user-001',
+    email: 'brent@chasedigital.com',
+    first_name: 'Brent',
+    last_name: 'Walker',
+    role: 'admin',
+    avatar_url: null,
+    is_active: true,
+    last_active_at: new Date().toISOString(),
+    created_at: '2024-01-15T00:00:00Z',
+  },
+  {
+    id: 'user-002',
+    email: 'roderic@chasedigital.com',
+    first_name: 'Roderic',
+    last_name: 'Andrews',
+    role: 'admin',
+    avatar_url: null,
+    is_active: true,
+    last_active_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    created_at: '2024-01-20T00:00:00Z',
+  },
+  {
+    id: 'user-003',
+    email: 'trevor@chasedigital.com',
+    first_name: 'Trevor',
+    last_name: 'Mills',
+    role: 'member',
+    avatar_url: null,
+    is_active: true,
+    last_active_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    created_at: '2024-02-01T00:00:00Z',
+  },
+  {
+    id: 'user-004',
+    email: 'chase@chasedigital.com',
+    first_name: 'Chase',
+    last_name: 'Digital',
+    role: 'member',
+    avatar_url: null,
+    is_active: true,
+    last_active_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: '2024-02-15T00:00:00Z',
+  },
+]
+
 // ============================================================================
 // GET /api/v1/settings/users
 // ============================================================================
@@ -17,6 +72,18 @@ export async function GET(request: NextRequest) {
   // Rate limit: 100 requests per minute
   const rateLimitResponse = withRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
+
+  // Mock mode - return demo data without auth
+  if (isMockMode()) {
+    return NextResponse.json({
+      data: MOCK_USERS,
+      pagination: {
+        total: MOCK_USERS.length,
+        limit: 50,
+        offset: 0,
+      },
+    })
+  }
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
