@@ -60,6 +60,7 @@ const PUBLIC_ROUTES = [
   '/login',
   '/auth/callback',
   '/api/v1/oauth/callback', // OAuth callback needs to work without auth
+  '/api/v1/settings/invitations/', // Invitation validation/accept API (public for invite flow)
   '/invite', // Invitation acceptance pages
 ]
 
