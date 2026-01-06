@@ -668,7 +668,8 @@ function MessageContent({
   }, [content])
 
   // Custom components for ReactMarkdown
-  const components = useMemo(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const components: any = useMemo(
     () => ({
       // Render cite-marker as CitationBadge
       "cite-marker": ({ "data-index": dataIndex }: { "data-index"?: string }) => {
