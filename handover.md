@@ -238,5 +238,94 @@ supabase/migrations/README.md                          - Migration guide
 
 ---
 
+## Session 2026-01-06 (Multi-Org Roles - Permission Service Layer)
+
+### Completed This Session
+
+**8. Multi-Org Roles - Permission Service Layer (Sprint 2) ✅**
+- **Feature:** RBAC service layer with caching and permission evaluation
+- **Tasks Completed:** TASK-006 through TASK-010 (5 tasks)
+- **What Was Built:**
+  - TASK-006: Created PermissionService class with in-memory caching (5-min TTL) ✅
+  - TASK-007: Implemented getUserPermissions() with role + client-access resolution ✅
+  - TASK-008: Built checkPermission() with permission hierarchy logic ✅
+  - TASK-009: Created permission caching layer with invalidation hooks ✅
+  - TASK-010: Implemented effective permission calculation for custom roles ✅
+
+**Permission Service Features:**
+- **Caching:** In-memory cache with 5-minute TTL
+- **Hierarchy:** manage > delete > write > read
+- **Client-scoped:** Member client-level access support
+- **Invalidation:** Cache invalidation on role/permission changes
+- **Detailed checks:** PermissionCheckResult with reason tracking
+
+**Role Service Features:**
+- Create/update/delete custom roles (10 max per agency)
+- Assign roles to users with hierarchy validation
+- Update role permissions (bulk replace)
+- Owner protection (cannot remove last owner)
+- Automatic cache invalidation
+
+**Key Methods:**
+```typescript
+// Permission checks
+permissionService.getUserPermissions(userId, agencyId)
+permissionService.checkPermission(permissions, resource, action, clientId?)
+permissionService.checkPermissionDetailed() // With reason
+permissionService.hasAnyPermission() // OR logic
+permissionService.hasAllPermissions() // AND logic
+
+// Cache management
+permissionService.invalidateCache(userId, agencyId)
+permissionService.invalidateAgencyCache(agencyId)
+permissionService.getCacheStats()
+
+// Role management
+roleService.createRole(agencyId, createdBy, input)
+roleService.updateRole(roleId, agencyId, input)
+roleService.deleteRole(roleId, agencyId)
+roleService.changeUserRole(userId, newRoleId, agencyId, changedBy)
+roleService.setRolePermissions(roleId, agencyId, permissions, grantedBy)
+```
+
+**Permission Hierarchy Logic:**
+- `manage` permission satisfies ALL actions (read, write, delete, manage)
+- `write` permission satisfies `read` and `write`
+- `delete` permission only satisfies `delete`
+- `read` permission only satisfies `read`
+
+**Client-Scoped Permissions (Members):**
+- Members with client assignments get client-scoped permissions
+- Resources: clients, communications, tickets
+- Actions: read or write (assigned per client)
+- Other Members see nothing for unassigned clients (not just read-only)
+
+### Files Created
+
+```
+lib/rbac/types.ts              - TypeScript types (ResourceType, PermissionAction, etc.)
+lib/rbac/permission-service.ts - Core permission checking with caching (350 lines)
+lib/rbac/role-service.ts       - Role management operations (400 lines)
+lib/rbac/index.ts              - Module exports
+```
+
+### Next Sprint (Tasks 11-20)
+
+**API Middleware (TASK-011 to TASK-015):**
+- Create withPermission() middleware wrapper
+- Implement permission denial logging
+- Add client-scoped permission checking
+- Create error response standardization
+- Apply middleware to existing API routes
+
+**RLS Policy Updates (TASK-016 to TASK-020):**
+- Update client table RLS with role-based access
+- Update communication table RLS for client-scoped Members
+- Update ticket table RLS for client-scoped Members
+- Update settings tables RLS for admin-only access
+- Add RLS policies for new role tables
+
+---
+
 *Session ended: 2026-01-06*
-*Next session: Continue with Permission Service Layer (Sprint 2) or wait for Trevor's PR*
+*Next session: Continue with API Middleware (Sprint 3) or wait for Trevor's PR*
