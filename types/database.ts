@@ -1,10 +1,15 @@
-/**
- * AudienceOS Database Types
- * Generated from DATA-MODEL.md (19 tables)
- *
- * Note: In production, use `supabase gen types typescript` to generate these
- * This is a manual version for initial development
- */
+// Exported enum types for convenience
+export type HealthStatus = 'green' | 'yellow' | 'red'
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TicketCategory = string
+export type DocumentCategory = string
+export type IndexStatus = 'pending' | 'processing' | 'indexing' | 'indexed' | 'completed' | 'failed'
+export type CommunicationPlatform = 'email' | 'slack'
+export type IntegrationProvider = 'slack' | 'gmail' | 'google_ads' | 'meta_ads'
+export type PreferenceCategory = string
+export type UserRole = 'admin' | 'user'
+export type WorkflowStatus = 'active' | 'paused' | 'disabled'
 
 export type Json =
   | string
@@ -14,911 +19,1686 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// Enums matching SQL schema
-export type UserRole = 'admin' | 'user'
-export type HealthStatus = 'green' | 'yellow' | 'red'
-export type AssignmentRole = 'owner' | 'collaborator'
-export type IntegrationProvider = 'slack' | 'gmail' | 'google_ads' | 'meta_ads'
-export type CommunicationPlatform = 'slack' | 'gmail'
-export type AlertType = 'risk_detected' | 'kpi_drop' | 'inactivity' | 'disconnect'
-export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical'
-export type AlertStatus = 'active' | 'snoozed' | 'dismissed' | 'resolved'
-export type DocumentCategory = 'installation' | 'tech' | 'support' | 'process' | 'client_specific'
-export type IndexStatus = 'pending' | 'indexing' | 'indexed' | 'failed'
-export type ChatRole = 'user' | 'assistant'
-export type ChatRoute = 'rag' | 'web' | 'memory' | 'casual' | 'dashboard'
-export type TicketCategory = 'technical' | 'billing' | 'campaign' | 'general' | 'escalation'
-export type TicketPriority = 'low' | 'medium' | 'high' | 'critical'
-export type TicketStatus = 'new' | 'in_progress' | 'waiting_client' | 'resolved'
-export type WorkflowStatus = 'running' | 'completed' | 'failed'
-export type PreferenceCategory = 'notifications' | 'ai' | 'display'
-export type AdPlatform = 'google_ads' | 'meta_ads'
-
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
+      ad_performance: {
+        Row: {
+          account_id: string
+          agency_id: string
+          campaign_id: string | null
+          clicks: number
+          client_id: string
+          conversions: number
+          created_at: string
+          date: string
+          id: string
+          impressions: number
+          platform: Database["public"]["Enums"]["ad_platform"]
+          revenue: number | null
+          spend: number
+        }
+        Insert: {
+          account_id: string
+          agency_id: string
+          campaign_id?: string | null
+          clicks?: number
+          client_id: string
+          conversions?: number
+          created_at?: string
+          date: string
+          id?: string
+          impressions?: number
+          platform: Database["public"]["Enums"]["ad_platform"]
+          revenue?: number | null
+          spend: number
+        }
+        Update: {
+          account_id?: string
+          agency_id?: string
+          campaign_id?: string | null
+          clicks?: number
+          client_id?: string
+          conversions?: number
+          created_at?: string
+          date?: string
+          id?: string
+          impressions?: number
+          platform?: Database["public"]["Enums"]["ad_platform"]
+          revenue?: number | null
+          spend?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_performance_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_performance_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency: {
         Row: {
-          id: string
-          name: string
-          slug: string
-          logo_url: string | null
-          domain: string | null
-          timezone: string
+          ai_config: Json | null
           business_hours: Json | null
-          pipeline_stages: string[]
+          created_at: string
+          domain: string | null
           health_thresholds: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
+          id: string
+          logo_url: string | null
           name: string
+          pipeline_stages: string[]
           slug: string
-          logo_url?: string | null
-          domain?: string | null
-          timezone?: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          ai_config?: Json | null
           business_hours?: Json | null
-          pipeline_stages?: string[]
-          health_thresholds?: Json
           created_at?: string
+          domain?: string | null
+          health_thresholds?: Json
+          id?: string
+          logo_url?: string | null
+          name: string
+          pipeline_stages?: string[]
+          slug: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
+          ai_config?: Json | null
+          business_hours?: Json | null
+          created_at?: string
+          domain?: string | null
+          health_thresholds?: Json
           id?: string
+          logo_url?: string | null
           name?: string
+          pipeline_stages?: string[]
           slug?: string
-          logo_url?: string | null
-          domain?: string | null
           timezone?: string
-          business_hours?: Json | null
-          pipeline_stages?: string[]
-          health_thresholds?: Json
-          created_at?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      user: {
-        Row: {
-          id: string
-          agency_id: string
-          email: string
-          first_name: string
-          last_name: string
-          role: UserRole
-          avatar_url: string | null
-          is_active: boolean
-          last_active_at: string | null
-          preferences: Json | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          agency_id: string
-          email: string
-          first_name: string
-          last_name: string
-          role?: UserRole
-          avatar_url?: string | null
-          is_active?: boolean
-          last_active_at?: string | null
-          preferences?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          email?: string
-          first_name?: string
-          last_name?: string
-          role?: UserRole
-          avatar_url?: string | null
-          is_active?: boolean
-          last_active_at?: string | null
-          preferences?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      client: {
-        Row: {
-          id: string
-          agency_id: string
-          name: string
-          contact_email: string | null
-          contact_name: string | null
-          stage: string
-          health_status: HealthStatus
-          days_in_stage: number
-          install_date: string | null
-          total_spend: number | null
-          lifetime_value: number | null
-          notes: string | null
-          tags: string[] | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          name: string
-          contact_email?: string | null
-          contact_name?: string | null
-          stage?: string
-          health_status?: HealthStatus
-          days_in_stage?: number
-          install_date?: string | null
-          total_spend?: number | null
-          lifetime_value?: number | null
-          notes?: string | null
-          tags?: string[] | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          name?: string
-          contact_email?: string | null
-          contact_name?: string | null
-          stage?: string
-          health_status?: HealthStatus
-          days_in_stage?: number
-          install_date?: string | null
-          total_spend?: number | null
-          lifetime_value?: number | null
-          notes?: string | null
-          tags?: string[] | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      client_assignment: {
-        Row: {
-          id: string
-          agency_id: string
-          client_id: string
-          user_id: string
-          role: AssignmentRole
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          client_id: string
-          user_id: string
-          role?: AssignmentRole
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          client_id?: string
-          user_id?: string
-          role?: AssignmentRole
-          created_at?: string
-        }
-        Relationships: []
-      }
-      stage_event: {
-        Row: {
-          id: string
-          agency_id: string
-          client_id: string
-          from_stage: string | null
-          to_stage: string
-          moved_by: string
-          moved_at: string
-          notes: string | null
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          client_id: string
-          from_stage?: string | null
-          to_stage: string
-          moved_by: string
-          moved_at?: string
-          notes?: string | null
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          client_id?: string
-          from_stage?: string | null
-          to_stage?: string
-          moved_by?: string
-          moved_at?: string
-          notes?: string | null
-        }
-        Relationships: []
-      }
-      task: {
-        Row: {
-          id: string
-          agency_id: string
-          client_id: string
-          name: string
-          description: string | null
-          stage: string | null
-          assigned_to: string | null
-          due_date: string | null
-          is_completed: boolean
-          completed_at: string | null
-          completed_by: string | null
-          sort_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          client_id: string
-          name: string
-          description?: string | null
-          stage?: string | null
-          assigned_to?: string | null
-          due_date?: string | null
-          is_completed?: boolean
-          completed_at?: string | null
-          completed_by?: string | null
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          client_id?: string
-          name?: string
-          description?: string | null
-          stage?: string | null
-          assigned_to?: string | null
-          due_date?: string | null
-          is_completed?: boolean
-          completed_at?: string | null
-          completed_by?: string | null
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      integration: {
-        Row: {
-          id: string
-          agency_id: string
-          provider: IntegrationProvider
-          is_connected: boolean
-          access_token: string | null
-          refresh_token: string | null
-          token_expires_at: string | null
-          last_sync_at: string | null
-          config: Json | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          provider: IntegrationProvider
-          is_connected?: boolean
-          access_token?: string | null
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          last_sync_at?: string | null
-          config?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          provider?: IntegrationProvider
-          is_connected?: boolean
-          access_token?: string | null
-          refresh_token?: string | null
-          token_expires_at?: string | null
-          last_sync_at?: string | null
-          config?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      communication: {
-        Row: {
-          id: string
-          agency_id: string
-          client_id: string
-          platform: CommunicationPlatform
-          thread_id: string | null
-          message_id: string
-          sender_email: string | null
-          sender_name: string | null
-          subject: string | null
-          content: string
-          is_inbound: boolean
-          needs_reply: boolean
-          replied_at: string | null
-          replied_by: string | null
-          received_at: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          client_id: string
-          platform: CommunicationPlatform
-          thread_id?: string | null
-          message_id: string
-          sender_email?: string | null
-          sender_name?: string | null
-          subject?: string | null
-          content: string
-          is_inbound: boolean
-          needs_reply?: boolean
-          replied_at?: string | null
-          replied_by?: string | null
-          received_at: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          client_id?: string
-          platform?: CommunicationPlatform
-          thread_id?: string | null
-          message_id?: string
-          sender_email?: string | null
-          sender_name?: string | null
-          subject?: string | null
-          content?: string
-          is_inbound?: boolean
-          needs_reply?: boolean
-          replied_at?: string | null
-          replied_by?: string | null
-          received_at?: string
-          created_at?: string
         }
         Relationships: []
       }
       alert: {
         Row: {
-          id: string
           agency_id: string
           client_id: string | null
-          type: AlertType
-          severity: AlertSeverity
-          title: string
-          description: string
-          suggested_action: string | null
           confidence: number
-          status: AlertStatus
-          snoozed_until: string | null
-          resolved_by: string | null
-          resolved_at: string | null
+          created_at: string
+          description: string
+          id: string
           metadata: Json | null
-          created_at: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          snoozed_until: string | null
+          status: Database["public"]["Enums"]["alert_status"]
+          suggested_action: string | null
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
           updated_at: string
         }
         Insert: {
-          id?: string
           agency_id: string
           client_id?: string | null
-          type: AlertType
-          severity: AlertSeverity
-          title: string
-          description: string
-          suggested_action?: string | null
           confidence: number
-          status?: AlertStatus
-          snoozed_until?: string | null
-          resolved_by?: string | null
-          resolved_at?: string | null
-          metadata?: Json | null
           created_at?: string
-          updated_at?: string
-        }
-        Update: {
+          description: string
           id?: string
-          agency_id?: string
-          client_id?: string | null
-          type?: AlertType
-          severity?: AlertSeverity
-          title?: string
-          description?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          snoozed_until?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
           suggested_action?: string | null
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          client_id?: string | null
           confidence?: number
-          status?: AlertStatus
-          snoozed_until?: string | null
-          resolved_by?: string | null
-          resolved_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
           metadata?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      document: {
-        Row: {
-          id: string
-          agency_id: string
-          title: string
-          file_name: string
-          file_size: number
-          mime_type: string
-          storage_path: string
-          category: DocumentCategory
-          client_id: string | null
-          page_count: number | null
-          word_count: number | null
-          index_status: IndexStatus
-          gemini_file_id: string | null
-          uploaded_by: string
-          is_active: boolean
-          is_starred: boolean
-          use_for_training: boolean
-          drive_url: string | null
-          drive_file_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          title: string
-          file_name: string
-          file_size: number
-          mime_type: string
-          storage_path: string
-          category: DocumentCategory
-          client_id?: string | null
-          page_count?: number | null
-          word_count?: number | null
-          index_status?: IndexStatus
-          gemini_file_id?: string | null
-          uploaded_by: string
-          is_active?: boolean
-          is_starred?: boolean
-          use_for_training?: boolean
-          drive_url?: string | null
-          drive_file_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          snoozed_until?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          suggested_action?: string | null
           title?: string
-          file_name?: string
-          file_size?: number
-          mime_type?: string
-          storage_path?: string
-          category?: DocumentCategory
-          client_id?: string | null
-          page_count?: number | null
-          word_count?: number | null
-          index_status?: IndexStatus
-          gemini_file_id?: string | null
-          uploaded_by?: string
-          is_active?: boolean
-          is_starred?: boolean
-          use_for_training?: boolean
-          drive_url?: string | null
-          drive_file_id?: string | null
-          created_at?: string
+          type?: Database["public"]["Enums"]["alert_type"]
           updated_at?: string
         }
-        Relationships: []
-      }
-      chat_session: {
-        Row: {
-          id: string
-          agency_id: string
-          user_id: string
-          title: string | null
-          context: Json | null
-          is_active: boolean
-          last_message_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          user_id: string
-          title?: string | null
-          context?: Json | null
-          is_active?: boolean
-          last_message_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          user_id?: string
-          title?: string | null
-          context?: Json | null
-          is_active?: boolean
-          last_message_at?: string | null
-          created_at?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alert_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_message: {
         Row: {
-          id: string
-          session_id: string
           agency_id: string
-          role: ChatRole
-          content: string
-          route_used: ChatRoute | null
           citations: Json | null
-          tokens_used: number | null
+          content: string
           created_at: string
+          id: string
+          role: Database["public"]["Enums"]["chat_role"]
+          route_used: Database["public"]["Enums"]["chat_route"] | null
+          session_id: string
+          tokens_used: number | null
         }
         Insert: {
-          id?: string
-          session_id: string
           agency_id: string
-          role: ChatRole
-          content: string
-          route_used?: ChatRoute | null
           citations?: Json | null
-          tokens_used?: number | null
+          content: string
           created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["chat_role"]
+          route_used?: Database["public"]["Enums"]["chat_route"] | null
+          session_id: string
+          tokens_used?: number | null
         }
         Update: {
-          id?: string
-          session_id?: string
           agency_id?: string
-          role?: ChatRole
-          content?: string
-          route_used?: ChatRoute | null
           citations?: Json | null
-          tokens_used?: number | null
+          content?: string
           created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["chat_role"]
+          route_used?: Database["public"]["Enums"]["chat_route"] | null
+          session_id?: string
+          tokens_used?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_message_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_session"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      ticket: {
+      chat_session: {
         Row: {
-          id: string
           agency_id: string
-          client_id: string
-          number: number
-          title: string
-          description: string
-          category: TicketCategory
-          priority: TicketPriority
-          status: TicketStatus
-          assignee_id: string | null
-          resolution_notes: string | null
-          time_spent_minutes: number | null
-          due_date: string | null
-          created_by: string
-          resolved_by: string | null
-          resolved_at: string | null
+          context: Json | null
           created_at: string
+          id: string
+          is_active: boolean
+          last_message_at: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_message_at?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_message_at?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_session_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_session_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client: {
+        Row: {
+          agency_id: string
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          days_in_stage: number
+          health_status: Database["public"]["Enums"]["health_status"]
+          id: string
+          install_date: string | null
+          is_active: boolean
+          lifetime_value: number | null
+          name: string
+          notes: string | null
+          stage: string
+          tags: string[] | null
+          total_spend: number | null
           updated_at: string
         }
         Insert: {
-          id?: string
           agency_id: string
-          client_id: string
-          number?: number
-          title: string
-          description: string
-          category: TicketCategory
-          priority?: TicketPriority
-          status?: TicketStatus
-          assignee_id?: string | null
-          resolution_notes?: string | null
-          time_spent_minutes?: number | null
-          due_date?: string | null
-          created_by: string
-          resolved_by?: string | null
-          resolved_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
           created_at?: string
+          days_in_stage?: number
+          health_status?: Database["public"]["Enums"]["health_status"]
+          id?: string
+          install_date?: string | null
+          is_active?: boolean
+          lifetime_value?: number | null
+          name: string
+          notes?: string | null
+          stage?: string
+          tags?: string[] | null
+          total_spend?: number | null
           updated_at?: string
         }
         Update: {
+          agency_id?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          days_in_stage?: number
+          health_status?: Database["public"]["Enums"]["health_status"]
           id?: string
+          install_date?: string | null
+          is_active?: boolean
+          lifetime_value?: number | null
+          name?: string
+          notes?: string | null
+          stage?: string
+          tags?: string[] | null
+          total_spend?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_assignment: {
+        Row: {
+          agency_id: string
+          client_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["assignment_role"]
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["assignment_role"]
+          user_id: string
+        }
+        Update: {
           agency_id?: string
           client_id?: string
-          number?: number
-          title?: string
-          description?: string
-          category?: TicketCategory
-          priority?: TicketPriority
-          status?: TicketStatus
-          assignee_id?: string | null
-          resolution_notes?: string | null
-          time_spent_minutes?: number | null
-          due_date?: string | null
-          created_by?: string
-          resolved_by?: string | null
-          resolved_at?: string | null
           created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      ticket_note: {
-        Row: {
-          id: string
-          agency_id: string
-          ticket_id: string
-          content: string
-          is_internal: boolean
-          added_by: string
-          created_at: string
-        }
-        Insert: {
           id?: string
-          agency_id: string
-          ticket_id: string
-          content: string
-          is_internal?: boolean
-          added_by: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          ticket_id?: string
-          content?: string
-          is_internal?: boolean
-          added_by?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      workflow: {
-        Row: {
-          id: string
-          agency_id: string
-          name: string
-          description: string | null
-          triggers: Json
-          actions: Json
-          is_active: boolean
-          created_by: string
-          last_run_at: string | null
-          run_count: number
-          success_count: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          name: string
-          description?: string | null
-          triggers: Json
-          actions: Json
-          is_active?: boolean
-          created_by: string
-          last_run_at?: string | null
-          run_count?: number
-          success_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          name?: string
-          description?: string | null
-          triggers?: Json
-          actions?: Json
-          is_active?: boolean
-          created_by?: string
-          last_run_at?: string | null
-          run_count?: number
-          success_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      workflow_run: {
-        Row: {
-          id: string
-          agency_id: string
-          workflow_id: string
-          trigger_data: Json
-          status: WorkflowStatus
-          executed_actions: Json | null
-          error_message: string | null
-          started_at: string
-          completed_at: string | null
-          created_at: string
-          results: Json | null
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          workflow_id: string
-          trigger_data: Json
-          status?: WorkflowStatus
-          executed_actions?: Json | null
-          error_message?: string | null
-          started_at?: string
-          completed_at?: string | null
-          created_at?: string
-          results?: Json | null
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          workflow_id?: string
-          trigger_data?: Json
-          status?: WorkflowStatus
-          executed_actions?: Json | null
-          error_message?: string | null
-          started_at?: string
-          completed_at?: string | null
-          created_at?: string
-          results?: Json | null
-        }
-        Relationships: []
-      }
-      user_preference: {
-        Row: {
-          id: string
-          user_id: string
-          agency_id: string
-          category: PreferenceCategory
-          key: string
-          value: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          agency_id: string
-          category: PreferenceCategory
-          key: string
-          value: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
+          role?: Database["public"]["Enums"]["assignment_role"]
           user_id?: string
-          agency_id?: string
-          category?: PreferenceCategory
-          key?: string
-          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_assignment_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_assignment_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_assignment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication: {
+        Row: {
+          agency_id: string
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          is_inbound: boolean
+          message_id: string
+          needs_reply: boolean
+          platform: Database["public"]["Enums"]["communication_platform"]
+          received_at: string
+          replied_at: string | null
+          replied_by: string | null
+          sender_email: string | null
+          sender_name: string | null
+          subject: string | null
+          thread_id: string | null
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          content: string
           created_at?: string
+          id?: string
+          is_inbound: boolean
+          message_id: string
+          needs_reply?: boolean
+          platform: Database["public"]["Enums"]["communication_platform"]
+          received_at: string
+          replied_at?: string | null
+          replied_by?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          thread_id?: string | null
+        }
+        Update: {
+          agency_id?: string
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_inbound?: boolean
+          message_id?: string
+          needs_reply?: boolean
+          platform?: Database["public"]["Enums"]["communication_platform"]
+          received_at?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          thread_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_replied_by_fkey"
+            columns: ["replied_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document: {
+        Row: {
+          agency_id: string
+          category: Database["public"]["Enums"]["document_category"]
+          client_id: string | null
+          created_at: string
+          drive_file_id: string | null
+          drive_url: string | null
+          file_name: string
+          file_size: number
+          gemini_file_id: string | null
+          id: string
+          index_status: Database["public"]["Enums"]["index_status"]
+          is_active: boolean
+          is_starred: boolean
+          mime_type: string
+          page_count: number | null
+          storage_path: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+          use_for_training: boolean
+          word_count: number | null
+        }
+        Insert: {
+          agency_id: string
+          category: Database["public"]["Enums"]["document_category"]
+          client_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          file_name: string
+          file_size: number
+          gemini_file_id?: string | null
+          id?: string
+          index_status?: Database["public"]["Enums"]["index_status"]
+          is_active?: boolean
+          is_starred?: boolean
+          mime_type: string
+          page_count?: number | null
+          storage_path: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          use_for_training?: boolean
+          word_count?: number | null
+        }
+        Update: {
+          agency_id?: string
+          category?: Database["public"]["Enums"]["document_category"]
+          client_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          file_name?: string
+          file_size?: number
+          gemini_file_id?: string | null
+          id?: string
+          index_status?: Database["public"]["Enums"]["index_status"]
+          is_active?: boolean
+          is_starred?: boolean
+          mime_type?: string
+          page_count?: number | null
+          storage_path?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          use_for_training?: boolean
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration: {
+        Row: {
+          access_token: string | null
+          agency_id: string
+          config: Json | null
+          created_at: string
+          id: string
+          is_connected: boolean
+          last_sync_at: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          agency_id: string
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          refresh_token?: string | null
+          token_expires_at?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Update: {
+          access_token?: string | null
+          agency_id?: string
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kpi_snapshot: {
         Row: {
-          id: string
           agency_id: string
-          metric_name: string
-          value: number
-          previous_value: number | null
-          metadata: Json | null
-          snapshot_date: string
           created_at: string
+          id: string
+          metadata: Json | null
+          metric_name: string
+          previous_value: number | null
+          snapshot_date: string
+          value: number
         }
         Insert: {
-          id?: string
           agency_id: string
-          metric_name: string
-          value: number
-          previous_value?: number | null
-          metadata?: Json | null
-          snapshot_date: string
           created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          previous_value?: number | null
+          snapshot_date: string
+          value: number
         }
         Update: {
-          id?: string
           agency_id?: string
-          metric_name?: string
-          value?: number
-          previous_value?: number | null
-          metadata?: Json | null
-          snapshot_date?: string
           created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          previous_value?: number | null
+          snapshot_date?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_snapshot_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_client_access: {
+        Row: {
+          agency_id: string
+          assigned_at: string
+          assigned_by: string
+          client_id: string
+          id: string
+          permission: Database["public"]["Enums"]["client_access_permission"]
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          assigned_at?: string
+          assigned_by: string
+          client_id: string
+          id?: string
+          permission: Database["public"]["Enums"]["client_access_permission"]
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          assigned_at?: string
+          assigned_by?: string
+          client_id?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["client_access_permission"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_client_access_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_client_access_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_client_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_client_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission: {
+        Row: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at: string
+          description: string | null
+          id: string
+          resource: Database["public"]["Enums"]["resource_type"]
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          resource: Database["public"]["Enums"]["resource_type"]
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["permission_action"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          resource?: Database["public"]["Enums"]["resource_type"]
         }
         Relationships: []
       }
-      ad_performance: {
+      role: {
         Row: {
-          id: string
           agency_id: string
-          client_id: string
-          platform: AdPlatform
-          account_id: string
-          campaign_id: string | null
-          date: string
-          spend: number
-          impressions: number
-          clicks: number
-          conversions: number
-          revenue: number | null
           created_at: string
+          created_by: string | null
+          description: string | null
+          hierarchy_level: number | null
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
         }
         Insert: {
-          id?: string
           agency_id: string
-          client_id: string
-          platform: AdPlatform
-          account_id: string
-          campaign_id?: string | null
-          date: string
-          spend: number
-          impressions?: number
-          clicks?: number
-          conversions?: number
-          revenue?: number | null
           created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hierarchy_level?: number | null
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
         }
         Update: {
+          agency_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hierarchy_level?: number | null
           id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permission: {
+        Row: {
+          agency_id: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          agency_id: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          agency_id?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permission_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permission_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permission_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permission"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permission_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_event: {
+        Row: {
+          agency_id: string
+          client_id: string
+          from_stage: string | null
+          id: string
+          moved_at: string
+          moved_by: string
+          notes: string | null
+          to_stage: string
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          from_stage?: string | null
+          id?: string
+          moved_at?: string
+          moved_by: string
+          notes?: string | null
+          to_stage: string
+        }
+        Update: {
           agency_id?: string
           client_id?: string
-          platform?: AdPlatform
-          account_id?: string
-          campaign_id?: string | null
-          date?: string
-          spend?: number
-          impressions?: number
-          clicks?: number
-          conversions?: number
-          revenue?: number | null
-          created_at?: string
+          from_stage?: string | null
+          id?: string
+          moved_at?: string
+          moved_by?: string
+          notes?: string | null
+          to_stage?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stage_event_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_event_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_event_moved_by_fkey"
+            columns: ["moved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task: {
+        Row: {
+          agency_id: string
+          assigned_to: string | null
+          client_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_completed: boolean
+          name: string
+          sort_order: number
+          stage: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          assigned_to?: string | null
+          client_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          name: string
+          sort_order?: number
+          stage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          assigned_to?: string | null
+          client_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          name?: string
+          sort_order?: number
+          stage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket: {
+        Row: {
+          agency_id: string
+          assignee_id: string | null
+          category: Database["public"]["Enums"]["ticket_category"]
+          client_id: string
+          created_at: string
+          created_by: string
+          description: string
+          due_date: string | null
+          id: string
+          number: number
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          time_spent_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          assignee_id?: string | null
+          category: Database["public"]["Enums"]["ticket_category"]
+          client_id: string
+          created_at?: string
+          created_by: string
+          description: string
+          due_date?: string | null
+          id?: string
+          number: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          time_spent_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          assignee_id?: string | null
+          category?: Database["public"]["Enums"]["ticket_category"]
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          number?: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          time_spent_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_note: {
+        Row: {
+          added_by: string
+          agency_id: string
+          content: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          ticket_id: string
+        }
+        Insert: {
+          added_by: string
+          agency_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id: string
+        }
+        Update: {
+          added_by?: string
+          agency_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_note_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_note_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_note_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ticket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user: {
+        Row: {
+          agency_id: string
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          is_owner: boolean
+          last_active_at: string | null
+          last_name: string
+          preferences: Json | null
+          role: Database["public"]["Enums"]["user_role"]
+          role_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id: string
+          is_active?: boolean
+          is_owner?: boolean
+          last_active_at?: string | null
+          last_name: string
+          preferences?: Json | null
+          role?: Database["public"]["Enums"]["user_role"]
+          role_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          is_owner?: boolean
+          last_active_at?: string | null
+          last_name?: string
+          preferences?: Json | null
+          role?: Database["public"]["Enums"]["user_role"]
+          role_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          agency_id: string
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          agency_id: string
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          agency_id?: string
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preference: {
+        Row: {
+          agency_id: string
+          category: Database["public"]["Enums"]["preference_category"]
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          agency_id: string
+          category: Database["public"]["Enums"]["preference_category"]
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          user_id: string
+          value: Json
+        }
+        Update: {
+          agency_id?: string
+          category?: Database["public"]["Enums"]["preference_category"]
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          user_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preference_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preference_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow: {
+        Row: {
+          actions: Json
+          agency_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          run_count: number
+          success_count: number
+          triggers: Json
+          updated_at: string
+        }
+        Insert: {
+          actions: Json
+          agency_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name: string
+          run_count?: number
+          success_count?: number
+          triggers: Json
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          agency_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          run_count?: number
+          success_count?: number
+          triggers?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_run: {
+        Row: {
+          agency_id: string
+          completed_at: string | null
+          error_message: string | null
+          executed_actions: Json | null
+          id: string
+          started_at: string
+          status: Database["public"]["Enums"]["workflow_status"]
+          trigger_data: Json
+          workflow_id: string
+        }
+        Insert: {
+          agency_id: string
+          completed_at?: string | null
+          error_message?: string | null
+          executed_actions?: Json | null
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["workflow_status"]
+          trigger_data: Json
+          workflow_id: string
+        }
+        Update: {
+          agency_id?: string
+          completed_at?: string | null
+          error_message?: string | null
+          executed_actions?: Json | null
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["workflow_status"]
+          trigger_data?: Json
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_run_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_run_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      increment_workflow_stats: {
+      cleanup_expired_invitations: { Args: never; Returns: undefined }
+      get_user_permissions: {
+        Args: { p_user_id: string }
+        Returns: {
+          action: Database["public"]["Enums"]["permission_action"]
+          resource: Database["public"]["Enums"]["resource_type"]
+          source: string
+        }[]
+      }
+      has_permission: {
         Args: {
-          workflow_id: string
-          increment_run: number
-          increment_success: number
+          p_action: Database["public"]["Enums"]["permission_action"]
+          p_resource: Database["public"]["Enums"]["resource_type"]
+          p_user_id: string
         }
-        Returns: void
+        Returns: boolean
       }
     }
     Enums: {
-      user_role: UserRole
-      health_status: HealthStatus
-      assignment_role: AssignmentRole
-      integration_provider: IntegrationProvider
-      communication_platform: CommunicationPlatform
-      alert_type: AlertType
-      alert_severity: AlertSeverity
-      alert_status: AlertStatus
-      document_category: DocumentCategory
-      index_status: IndexStatus
-      chat_role: ChatRole
-      chat_route: ChatRoute
-      ticket_category: TicketCategory
-      ticket_priority: TicketPriority
-      ticket_status: TicketStatus
-      workflow_status: WorkflowStatus
-      preference_category: PreferenceCategory
-      ad_platform: AdPlatform
+      ad_platform: "google_ads" | "meta_ads"
+      alert_severity: "low" | "medium" | "high" | "critical"
+      alert_status: "active" | "snoozed" | "dismissed" | "resolved"
+      alert_type: "risk_detected" | "kpi_drop" | "inactivity" | "disconnect"
+      assignment_role: "owner" | "collaborator"
+      chat_role: "user" | "assistant"
+      chat_route: "rag" | "web" | "memory" | "casual" | "dashboard"
+      client_access_permission: "read" | "write"
+      communication_platform: "slack" | "gmail"
+      document_category:
+        | "installation"
+        | "tech"
+        | "support"
+        | "process"
+        | "client_specific"
+      health_status: "green" | "yellow" | "red"
+      index_status: "pending" | "indexing" | "indexed" | "failed"
+      integration_provider: "slack" | "gmail" | "google_ads" | "meta_ads"
+      permission_action: "read" | "write" | "delete" | "manage"
+      preference_category: "notifications" | "ai" | "display"
+      resource_type:
+        | "clients"
+        | "communications"
+        | "tickets"
+        | "knowledge-base"
+        | "automations"
+        | "settings"
+        | "users"
+        | "billing"
+        | "roles"
+        | "integrations"
+        | "analytics"
+        | "ai-features"
+      ticket_category:
+        | "technical"
+        | "billing"
+        | "campaign"
+        | "general"
+        | "escalation"
+      ticket_priority: "low" | "medium" | "high" | "critical"
+      ticket_status: "new" | "in_progress" | "waiting_client" | "resolved"
+      user_role: "admin" | "user"
+      workflow_status: "running" | "completed" | "failed"
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      ad_platform: ["google_ads", "meta_ads"],
+      alert_severity: ["low", "medium", "high", "critical"],
+      alert_status: ["active", "snoozed", "dismissed", "resolved"],
+      alert_type: ["risk_detected", "kpi_drop", "inactivity", "disconnect"],
+      assignment_role: ["owner", "collaborator"],
+      chat_role: ["user", "assistant"],
+      chat_route: ["rag", "web", "memory", "casual", "dashboard"],
+      client_access_permission: ["read", "write"],
+      communication_platform: ["slack", "gmail"],
+      document_category: [
+        "installation",
+        "tech",
+        "support",
+        "process",
+        "client_specific",
+      ],
+      health_status: ["green", "yellow", "red"],
+      index_status: ["pending", "indexing", "indexed", "failed"],
+      integration_provider: ["slack", "gmail", "google_ads", "meta_ads"],
+      permission_action: ["read", "write", "delete", "manage"],
+      preference_category: ["notifications", "ai", "display"],
+      resource_type: [
+        "clients",
+        "communications",
+        "tickets",
+        "knowledge-base",
+        "automations",
+        "settings",
+        "users",
+        "billing",
+        "roles",
+        "integrations",
+        "analytics",
+        "ai-features",
+      ],
+      ticket_category: [
+        "technical",
+        "billing",
+        "campaign",
+        "general",
+        "escalation",
+      ],
+      ticket_priority: ["low", "medium", "high", "critical"],
+      ticket_status: ["new", "in_progress", "waiting_client", "resolved"],
+      user_role: ["admin", "user"],
+      workflow_status: ["running", "completed", "failed"],
+    },
+  },
+} as const

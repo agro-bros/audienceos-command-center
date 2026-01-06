@@ -21,7 +21,6 @@ import type {
   UserWithRole,
 } from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
 
 /**
  * PermissionService - Core RBAC logic
@@ -54,7 +53,7 @@ class PermissionService {
   async getUserPermissions(
     userId: string,
     agencyId: string,
-    supabase?: SupabaseClient<Database>
+    supabase?: SupabaseClient<any>
   ): Promise<EffectivePermission[]> {
     // Validate inputs
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
