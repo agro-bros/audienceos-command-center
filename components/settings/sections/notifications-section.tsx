@@ -190,7 +190,10 @@ export function NotificationsSection() {
     setIsLoadingClients(true)
     setClientsLoadError(null)
     try {
-      const response = await fetch('/api/v1/clients?limit=1000', { signal })
+      const response = await fetch('/api/v1/clients?limit=1000', {
+        signal,
+        credentials: 'include',
+      })
 
       if (!response.ok) {
         const errorMsg = response.status === 401

@@ -79,7 +79,9 @@ export function AIConfigurationSection() {
         setIsLoading(true)
         setError(null)
 
-        const response = await fetch('/api/v1/settings/agency')
+        const response = await fetch('/api/v1/settings/agency', {
+          credentials: 'include',
+        })
         if (!response.ok) {
           throw new Error('Failed to load settings')
         }

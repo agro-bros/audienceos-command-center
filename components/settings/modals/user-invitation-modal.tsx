@@ -73,6 +73,7 @@ export function UserInvitationModal({
     try {
       const response = await fetch("/api/v1/settings/invitations", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

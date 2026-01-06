@@ -328,7 +328,9 @@ export function TeamMembersSection() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('/api/v1/settings/users')
+      const response = await fetch('/api/v1/settings/users', {
+        credentials: 'include',
+      })
       if (!response.ok) {
         const err = await response.json()
         throw new Error(err.error || 'Failed to fetch team members')

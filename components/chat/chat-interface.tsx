@@ -348,6 +348,7 @@ export function ChatInterface({
               height: `${panelHeight}vh`,
               maxHeight: "85vh",
               bottom: "88px", // Above the chat bar
+              left: "50%",
               transform: "translateX(-50%)",
               background: "rgba(255, 255, 255, 0.85)",
               backdropFilter: "blur(40px) saturate(180%)",
@@ -508,6 +509,7 @@ export function ChatInterface({
           width: PANEL_WIDTH,
           maxWidth: MAX_PANEL_WIDTH,
           bottom: "16px", // 16px from bottom of viewport
+          left: "50%",
           transform: "translateX(-50%)",
           background: "rgba(255, 255, 255, 0.72)",
           backdropFilter: "blur(40px) saturate(180%)",
