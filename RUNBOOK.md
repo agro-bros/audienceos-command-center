@@ -19,6 +19,31 @@
 
 ---
 
+## 👥 Current Work Assignments (Updated 2026-01-06)
+
+| Developer | Working On | Branch | Status |
+|-----------|------------|--------|--------|
+| **Roderic** | Main features, chat alignment, core functionality | `main` | Active |
+| **Trevor** | OAuth + Signup implementation | `trevor/oauth-signup` | In Progress |
+
+### Trevor's Current Task
+**Task:** Implement user authentication (signup + Google OAuth)
+**Brief:** `working/TREVOR_OAUTH_BRIEF.md`
+**Estimated:** 10-12 hours
+**Deliverables:**
+- Signup page at `/signup`
+- "Sign in with Google" button on login page
+- OAuth callback handler at `/auth/callback`
+- Fix non-functional Google SSO toggle in settings
+
+### Coordination
+- **Trevor:** Creates PR from `trevor/oauth-signup` → `main` when ready
+- **Roderic:** Reviews and merges Trevor's PR
+- **Communication:** Slack/Discord for questions and blockers
+- **Testing:** Always test on Vercel preview URLs (not localhost)
+
+---
+
 ## Quick Start
 
 ```bash
@@ -362,19 +387,32 @@ npx tsc --noEmit
 - [x] Git repository created and pushed
 - [x] Environment configuration template
 - [x] Build process verified working
+- [x] Vercel deployment (production)
+- [x] Supabase configuration
+- [x] Email/password login
+- [x] Logout button in settings (2026-01-06)
 
-### ⏳ In Progress
-- [ ] Database setup (Supabase)
-- [ ] API integration setup
-- [ ] Environment variables configuration
+### ⏳ In Progress (Trevor)
+- [ ] Signup page implementation
+- [ ] Google OAuth login integration
+- [ ] OAuth callback handler
+- [ ] Google SSO toggle functionality
+
+### 🎯 In Progress (Roderic)
+- [ ] Chat interface refinements
+- [ ] Core feature development
+- [ ] Integration with Holy Grail Chat (HGC)
 
 ### 📋 Pending
-- [ ] Hosting deployment (Vercel recommended)
-- [ ] CI/CD pipeline setup
-- [ ] Production environment configuration
+- [ ] Email verification flow (Phase 2)
+- [ ] Password reset functionality
+- [ ] Two-factor authentication
+- [ ] Session management improvements
+- [ ] CI/CD pipeline enhancements
 - [ ] Monitoring and alerting setup
 
 ---
 
-*Last updated: 2026-01-04*
-*Project Phase: Deployed to Vercel (staging + production)*
+*Last updated: 2026-01-06*
+*Project Phase: Production (Vercel) | Active Development*
+*Current Focus: Authentication (Trevor) + Core Features (Roderic)*
