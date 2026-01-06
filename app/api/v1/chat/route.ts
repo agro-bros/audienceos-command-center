@@ -298,11 +298,17 @@ Be concise and helpful. This query was classified as: ${route}`;
   // Insert inline citation markers based on groundingSupports
   // This is what HGC does - Gemini doesn't add [1][2] markers automatically
   if (candidate?.groundingMetadata?.groundingSupports && citations.length > 0) {
+    console.log('[Citation Debug] Before insertion:', {
+      citationsCount: citations.length,
+      citations: citations.map(c => ({index: c.index, title: c.title, url: c.url})),
+      supportsCount: candidate.groundingMetadata.groundingSupports.length
+    });
     responseText = insertInlineCitations(
       responseText,
       candidate.groundingMetadata.groundingSupports,
       citations
     );
+    console.log('[Citation Debug] After insertion - text contains markers:', responseText.match(/\[\d+\]/g));
   }
 
   return responseText;

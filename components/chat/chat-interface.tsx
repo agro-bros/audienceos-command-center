@@ -1062,6 +1062,15 @@ function CitationBadge({
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, showBelow: false })
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  // Debug: Log when citation is missing
+  useEffect(() => {
+    if (!citation) {
+      console.warn(`[CitationBadge] No citation data for index ${index}`)
+    } else {
+      console.log(`[CitationBadge] Rendering index ${index}:`, {title: citation.title, url: citation.url})
+    }
+  }, [index, citation])
+
   // Calculate tooltip position dynamically
   useEffect(() => {
     if (!showTooltip || !buttonRef.current) return
@@ -1216,20 +1225,28 @@ function MessageContent({
   citations?: Citation[]
 }) {
   const getCitation = useCallback((displayIndex: number): Citation | undefined => {
+    console.log(`[getCitation] Looking for index ${displayIndex} in`, citations.map(c => ({index: c.index, title: c.title})))
+
     let citation = citations.find((c) => c.index === displayIndex)
-    if (citation?.url) return citation
+    if (citation?.url) {
+      console.log(`[getCitation] Found by index match:`, citation.title)
+      return citation
+    }
 
     if (citations[displayIndex - 1]?.url) {
+      console.log(`[getCitation] Found by array index:`, citations[displayIndex - 1].title)
       return citations[displayIndex - 1]
     }
 
     if (citations.length > 0) {
       const wrappedIndex = (displayIndex - 1) % citations.length
       if (citations[wrappedIndex]?.url) {
+        console.log(`[getCitation] Found by wrap-around:`, citations[wrappedIndex].title)
         return citations[wrappedIndex]
       }
     }
 
+    console.warn(`[getCitation] No citation found for index ${displayIndex}`)
     return undefined
   }, [citations])
 
