@@ -35,6 +35,9 @@ import type { Database } from '@/types/database';
 class PermissionService {
   private cache = new Map<string, PermissionCacheEntry>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly MAX_CACHE_SIZE = 1000; // Maximum cache entries
+  private lastCleanupTime = 0;
+  private readonly CLEANUP_INTERVAL = 60 * 1000; // Cleanup every 1 minute
 
   /**
    * TASK-007: Get user's effective permissions
@@ -62,6 +65,9 @@ class PermissionService {
       console.error('[PermissionService] Invalid agencyId:', agencyId);
       return [];
     }
+
+    // Run cleanup periodically
+    this.cleanupCacheIfNeeded();
 
     // Check cache first
     const cacheKey = `${userId}:${agencyId}`;
@@ -415,14 +421,25 @@ class PermissionService {
   }
 
   /**
-   * Clean up expired cache entries
+   * Clean up cache if needed (expired entries + size limit)
    *
-   * Called automatically on cache operations, but can be called manually
+   * Called periodically from getUserPermissions to prevent memory leaks
+   * - Runs at most once per CLEANUP_INTERVAL (1 minute)
+   * - Removes expired entries
+   * - Enforces MAX_CACHE_SIZE by removing oldest entries (LRU)
    */
-  private cleanExpiredEntries(): void {
+  private cleanupCacheIfNeeded(): void {
     const now = Date.now();
+
+    // Only cleanup if interval has passed
+    if (now - this.lastCleanupTime < this.CLEANUP_INTERVAL) {
+      return;
+    }
+
+    this.lastCleanupTime = now;
     let cleaned = 0;
 
+    // Remove expired entries
     for (const [key, value] of this.cache.entries()) {
       if (value.expires < now) {
         this.cache.delete(key);
@@ -430,9 +447,34 @@ class PermissionService {
       }
     }
 
-    if (cleaned > 0) {
-      console.log(`[PermissionService] Cleaned ${cleaned} expired cache entries`);
+    // Enforce max size (remove oldest entries if over limit)
+    if (this.cache.size > this.MAX_CACHE_SIZE) {
+      const entriesToRemove = this.cache.size - this.MAX_CACHE_SIZE;
+      const entries = Array.from(this.cache.entries())
+        .sort(([, a], [, b]) => a.expires - b.expires); // Sort by expiry (oldest first)
+
+      for (let i = 0; i < entriesToRemove; i++) {
+        this.cache.delete(entries[i][0]);
+        cleaned++;
+      }
+
+      console.log(
+        `[PermissionService] Cache size limit reached (${this.cache.size}/${this.MAX_CACHE_SIZE}), removed ${entriesToRemove} oldest entries`
+      );
     }
+
+    if (cleaned > 0) {
+      console.log(`[PermissionService] Cleaned ${cleaned} cache entries`);
+    }
+  }
+
+  /**
+   * Clean up expired cache entries (legacy method, now calls cleanupCacheIfNeeded)
+   *
+   * @deprecated Use cleanupCacheIfNeeded instead
+   */
+  private cleanExpiredEntries(): void {
+    this.cleanupCacheIfNeeded();
   }
 }
 
