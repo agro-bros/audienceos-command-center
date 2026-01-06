@@ -368,9 +368,9 @@ export function ChatInterface({
                 // DEBUG: Log what server returned to diagnose citation format issue
                 console.log('[Citation Debug - Client] Server returned:', {
                   contentSample: messageData.content?.substring(0, 300),
-                  hasDecimalMarkers: /\[\d+\.\d+\]/.test(messageData.content || ''),
+                  hasDecimalMarkers: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(messageData.content || ''),
                   hasIntegerMarkers: /\[\d+\]/.test(messageData.content || ''),
-                  decimalMarkers: (messageData.content || '').match(/\[\d+\.\d+\]/g),
+                  decimalMarkers: (messageData.content || '').match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g),
                   integerMarkers: (messageData.content || '').match(/\[\d+\](?!\d)/g),
                   citationsCount: (messageData.citations || []).length,
                   citations: messageData.citations,

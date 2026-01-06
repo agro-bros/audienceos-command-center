@@ -302,15 +302,18 @@ Be concise and helpful. This query was classified as: ${route}`;
     supportsLength: candidate?.groundingMetadata?.groundingSupports?.length || 0,
     citationsLength: citations.length,
     textSample: responseText.substring(0, 200),
-    textHasDecimalMarkers: /\[\d+\.\d+\]/.test(responseText),
+    textHasDecimalMarkers: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText),
+    decimalMarkersSample: responseText.match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g)?.slice(0, 3),
   });
 
-  // Strip Gemini's decimal notation markers (e.g., [1.1], [1.7]) if present
+  // Strip Gemini's decimal notation markers if present
+  // Gemini uses formats like [1.1], [1.7] or comma-separated [1.1, 1.7]
   // These interfere with our clean [1][2][3] format
-  const hasDecimalMarkers = /\[\d+\.\d+\]/.test(responseText);
+  const hasDecimalMarkers = /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText);
   if (hasDecimalMarkers) {
-    console.log('[Citation Debug] Stripping Gemini decimal markers');
-    responseText = responseText.replace(/\[\d+\.\d+\]/g, '');
+    console.log('[Citation Debug] Stripping Gemini decimal markers (formats: [1.1] and [1.1, 1.7])');
+    // Strip both single [1.1] and comma-separated [1.1, 1.7] formats
+    responseText = responseText.replace(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g, '');
   }
 
   // Insert inline citation markers based on groundingSupports
