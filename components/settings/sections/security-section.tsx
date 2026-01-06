@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createBrowserClient } from "@supabase/ssr"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -33,6 +35,7 @@ import {
   Cloud,
   ChevronRight,
   Sparkles,
+  LogOut,
 } from "lucide-react"
 
 interface AllowedDomain {
@@ -62,6 +65,7 @@ const initialSessions: Session[] = [
 ]
 
 export function SecuritySection() {
+  const router = useRouter()
   const [domains, setDomains] = useState<AllowedDomain[]>(initialDomains)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [allowInvites, setAllowInvites] = useState(false)
@@ -69,6 +73,7 @@ export function SecuritySection() {
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [addDomainOpen, setAddDomainOpen] = useState(false)
   const [newDomain, setNewDomain] = useState("")
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleAddDomain = () => {
     if (newDomain.trim()) {
@@ -92,6 +97,35 @@ export function SecuritySection() {
 
   const handleRevokeSession = (id: string) => {
     setSessions(sessions.filter((s) => s.id !== id))
+  }
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+
+      // Create Supabase client
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      // Sign out
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error('[Logout] Error:', error)
+        // Still redirect even on error
+      }
+
+      // Redirect to login
+      router.push('/login')
+    } catch (error) {
+      console.error('[Logout] Failed:', error)
+      // Redirect anyway
+      router.push('/login')
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -309,6 +343,30 @@ export function SecuritySection() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sign Out */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </CardTitle>
+          <CardDescription>
+            Sign out of your account on this device
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full sm:w-auto"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            {isLoggingOut ? "Signing out..." : "Sign out"}
+          </Button>
         </CardContent>
       </Card>
 
