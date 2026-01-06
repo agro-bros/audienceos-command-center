@@ -329,3 +329,123 @@ lib/rbac/index.ts              - Module exports
 
 *Session ended: 2026-01-06*
 *Next session: Continue with API Middleware (Sprint 3) or wait for Trevor's PR*
+
+---
+
+## Session 2026-01-06 (RBAC Red Team → Remediation)
+
+### Completed This Session
+
+**9. RBAC Blocker Remediation (Critical Quality Fix) ✅**
+- **Context:** Continued from CC3 session, ran RED TEAM analysis on Permission Service Layer
+- **Found 6 critical issues** during stress test (build failures, logic bugs, security gaps)
+- **Fixed 3 of 4 blockers** with runtime verification:
+  - BLOCKER 1: Database schema mismatch ⏳ (documented, requires manual Supabase step)
+  - BLOCKER 2: Client-scoped permission logic bug ✅ (fixed, 8 tests passing)
+  - BLOCKER 3: Input validation ✅ (fixed, 20 tests passing)
+  - BLOCKER 4: Cache cleanup / memory leak ✅ (fixed, 9 tests passing)
+
+**What Was Fixed:**
+
+**BLOCKER 2 - Client-Scoped Permission Logic:**
+- **Bug:** Members with multiple client assignments could only access first client
+- **Root Cause:** Logic returned false on first non-match instead of continuing
+- **Fix:** Changed to continue checking all permissions before returning false
+- **Verification:** 8 tests passing in `permission-logic.test.ts`
+- **Commit:** 9af5164 (already pushed in previous session)
+
+**BLOCKER 3 - Input Validation:**
+- **Risk:** No validation on userId, agencyId, resource, action → injection attacks possible
+- **Fix:** Added comprehensive validation to all public methods
+  - getUserPermissions: validates userId and agencyId (non-empty strings)
+  - checkPermission: validates resource, action, permissions array
+  - invalidateCache/invalidateAgencyCache: validates all inputs
+- **Result:** Returns safely (empty array/false) instead of crashing
+- **Verification:** 20 tests passing in `input-validation.test.ts`
+- **Commit:** 8ec8261 (pushed)
+
+**BLOCKER 4 - Cache Cleanup:**
+- **Risk:** No max cache size → unbounded memory growth, no expired entry cleanup
+- **Fix:** Implemented cleanupCacheIfNeeded() with:
+  - MAX_CACHE_SIZE = 1000 limit
+  - CLEANUP_INTERVAL = 60s throttling
+  - LRU eviction (removes oldest entries when over limit)
+  - Automatic trigger from getUserPermissions()
+- **Verification:** 9 tests passing in `cache-cleanup.test.ts`
+- **Commit:** 6a62ab3 (pushed)
+
+**BLOCKER 1 - Database Schema Mismatch (PENDING):**
+- **Status:** Documented, requires manual step
+- **Issue:** Migrations created (20260106_*.sql) but NOT applied to Supabase
+- **Evidence:** Ran `scripts/check-rbac-tables.ts` - all tables missing
+- **Solution Created:**
+  - Combined 4 migrations into single 938-line SQL file
+  - Copied to clipboard for manual paste
+  - Created instructions: `APPLY-RBAC-MIGRATIONS.md`
+  - Created verification script: `scripts/check-rbac-tables.ts`
+- **Next Step:** Apply via Supabase Dashboard SQL Editor
+
+### Files Created This Session
+
+```
+RBAC-BLOCKER-FIXES.md                         - Comprehensive fix summary with evidence
+APPLY-RBAC-MIGRATIONS.md                      - Migration instructions
+lib/rbac/__tests__/permission-logic.test.ts   - Client-scoped permission tests (8 tests)
+lib/rbac/__tests__/input-validation.test.ts   - Input validation tests (20 tests)
+lib/rbac/__tests__/cache-cleanup.test.ts      - Cache cleanup tests (9 tests)
+scripts/check-rbac-tables.ts                  - Migration verification script
+scripts/apply-migrations.ts                   - Migration helper (not viable, needs psql)
+```
+
+### Files Modified This Session
+
+```
+lib/rbac/permission-service.ts                - Fixed logic bug, added validation, cache cleanup
+```
+
+### Test Results (Final Verification)
+
+```bash
+$ npm test -- lib/rbac/__tests__/
+✓ permission-logic.test.ts (8 tests)
+✓ input-validation.test.ts (20 tests)
+✓ cache-cleanup.test.ts (9 tests)
+
+Test Files  3 passed (3)
+Tests  37 passed (37)
+Duration: 861ms
+```
+
+### Key Learning: Runtime-First Rule
+
+**User imposed strict standard after red team analysis:**
+1. **Runtime-First Rule:** Must EXECUTE tests and show stdout/stderr (not just "I updated X")
+2. **Isolate Variables:** Fix blockers one by one with verification between each
+3. **Future Prevention:** "Verification requires Execution. File existence does not imply functionality."
+
+**Applied successfully:** All fixes verified with actual test execution and evidence shown.
+
+### Next Sprint (After BLOCKER 1 Resolved)
+
+**IMMEDIATE (Unblocks Build):**
+1. Apply migrations via Supabase Dashboard (manual, ~30 seconds)
+2. Regenerate types: `npx supabase gen types typescript --project-id ebxshdqfaqupnvpghodi > types/database.ts`
+3. Verify build: `npm run build` (should pass after types regenerated)
+
+**THEN Continue Multi-Org Roles:**
+- TASK-011 to TASK-015: API Middleware (Sprint 3)
+- TASK-016 to TASK-020: RLS Policy Updates (Sprint 4)
+
+### Commits This Session
+
+| Commit | Description | Lines | Status |
+|--------|-------------|-------|--------|
+| 9af5164 | BLOCKER 2: Client-scoped permission logic fix | +150 | ✅ Pushed (previous session) |
+| 8ec8261 | BLOCKER 3: Input validation | +150 | ✅ Pushed |
+| 6a62ab3 | BLOCKER 4: Cache cleanup | +60 | ✅ Pushed |
+
+---
+
+*Session ended: 2026-01-06 16:59*
+*Next session: Apply BLOCKER 1 migrations, then continue with API Middleware (Sprint 3)*
+

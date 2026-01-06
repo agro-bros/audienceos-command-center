@@ -295,20 +295,50 @@ Be concise and helpful. This query was classified as: ${route}`;
   let responseText = candidate?.content?.parts?.[0]?.text ||
     "I'm here to help! You can ask me about clients, performance metrics, or app features.";
 
+  // Debug: Log what we received from Gemini
+  console.log('[Citation Debug] Raw response:', {
+    hasGroundingMetadata: !!candidate?.groundingMetadata,
+    hasGroundingSupports: !!candidate?.groundingMetadata?.groundingSupports,
+    supportsLength: candidate?.groundingMetadata?.groundingSupports?.length || 0,
+    citationsLength: citations.length,
+    textSample: responseText.substring(0, 200),
+    textHasDecimalMarkers: /\[\d+\.\d+\]/.test(responseText),
+  });
+
+  // Strip Gemini's decimal notation markers (e.g., [1.1], [1.7]) if present
+  // These interfere with our clean [1][2][3] format
+  const hasDecimalMarkers = /\[\d+\.\d+\]/.test(responseText);
+  if (hasDecimalMarkers) {
+    console.log('[Citation Debug] Stripping Gemini decimal markers');
+    responseText = responseText.replace(/\[\d+\.\d+\]/g, '');
+  }
+
   // Insert inline citation markers based on groundingSupports
   // This is what HGC does - Gemini doesn't add [1][2] markers automatically
   if (candidate?.groundingMetadata?.groundingSupports && citations.length > 0) {
+    const supports = candidate.groundingMetadata.groundingSupports;
     console.log('[Citation Debug] Before insertion:', {
       citationsCount: citations.length,
       citations: citations.map(c => ({index: c.index, title: c.title, url: c.url})),
-      supportsCount: candidate.groundingMetadata.groundingSupports.length
+      supportsCount: supports.length,
+      sampleSupport: supports[0]
     });
     responseText = insertInlineCitations(
       responseText,
-      candidate.groundingMetadata.groundingSupports,
+      supports,
       citations
     );
-    console.log('[Citation Debug] After insertion - text contains markers:', responseText.match(/\[\d+\]/g));
+    console.log('[Citation Debug] After insertion:', {
+      hasIntegerMarkers: /\[\d+\]/.test(responseText),
+      markersFound: responseText.match(/\[\d+\]/g),
+      textSample: responseText.substring(0, 200)
+    });
+  } else {
+    console.log('[Citation Debug] Skipping insertion:', {
+      reason: !candidate?.groundingMetadata?.groundingSupports
+        ? 'no groundingSupports'
+        : 'no citations'
+    });
   }
 
   return responseText;
