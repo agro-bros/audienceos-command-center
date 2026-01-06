@@ -122,6 +122,33 @@ export function TicketDetailPanel({
   onComment,
   className,
 }: TicketDetailPanelProps) {
+  // Handler functions
+  const handleEdit = () => {
+    // TODO: Open edit modal
+    console.log("Edit ticket:", ticket.id)
+  }
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/tickets/${ticket.id}`
+    navigator.clipboard.writeText(url)
+    // TODO: Show toast notification
+  }
+
+  const handleAssign = (assignee: string) => {
+    // TODO: Update assignee via API
+    console.log("Assign ticket to:", assignee)
+  }
+
+  const handleDelete = () => {
+    // TODO: Open delete confirmation modal
+    console.log("Delete ticket:", ticket.id)
+  }
+
+  const handleOpenExternal = () => {
+    // TODO: Open ticket in new tab or external system
+    window.open(`/tickets/${ticket.id}`, '_blank')
+  }
+
   return (
     <div
       className={cn(
@@ -143,7 +170,10 @@ export function TicketDetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded transition-colors cursor-pointer">
+          <button
+            onClick={handleOpenExternal}
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded transition-colors cursor-pointer"
+          >
             <ExternalLink className="w-4 h-4" />
           </button>
           <DropdownMenu>
@@ -153,11 +183,11 @@ export function TicketDetailPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCopyLink}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy Link
               </DropdownMenuItem>
@@ -193,14 +223,14 @@ export function TicketDetailPanel({
                   Assign to
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem>Brent</DropdownMenuItem>
-                  <DropdownMenuItem>Roderic</DropdownMenuItem>
-                  <DropdownMenuItem>Trevor</DropdownMenuItem>
-                  <DropdownMenuItem>Chase</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAssign("Brent")}>Brent</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAssign("Roderic")}>Roderic</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAssign("Trevor")}>Trevor</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAssign("Chase")}>Chase</DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
