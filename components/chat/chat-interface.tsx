@@ -662,9 +662,9 @@ export function ChatInterface({
                         : "bg-white/40 text-gray-900 border border-white/40 backdrop-blur-sm"
                     )}
                   >
-                    <div className="text-[14px] leading-[1.5]">
+                    <div className="text-[15px] leading-[1.45]">
                       {msg.role === "assistant" ? (
-                        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                        <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_p_strong:first-child]:block [&_p_strong:first-child]:-mb-1 [&_p:has(strong:first-child)]:mt-5 [&_h1]:mt-6 [&_h1]:mb-1.5 [&_h2]:mt-5 [&_h2]:mb-1 [&_h3]:mt-4 [&_h3]:mb-0.5 [&_h4]:mt-3 [&_h4]:mb-0.5">
                           <MessageContent
                             content={msg.content}
                             citations={msg.citations}
