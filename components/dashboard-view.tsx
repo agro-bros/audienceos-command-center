@@ -495,10 +495,12 @@ function LoadByStatusWidget({ clients }: { clients: MinimalClient[] }) {
 // Task Detail Drawer
 function TaskDetailDrawer({
   item,
-  onClose
+  onClose,
+  onMarkComplete
 }: {
   item: FirehoseItemData
   onClose: () => void
+  onMarkComplete?: (itemId: string) => void
 }) {
   const formatTimestamp = (date: Date) => {
     const now = new Date()
@@ -572,7 +574,11 @@ function TaskDetailDrawer({
       </div>
 
       <div className="p-4 border-t border-border">
-        <Button className="w-full" size="sm">
+        <Button
+          className="w-full"
+          size="sm"
+          onClick={() => onMarkComplete?.(item.id)}
+        >
           <CheckCircle2 className="w-4 h-4 mr-2" />
           Mark Complete
         </Button>
@@ -584,10 +590,12 @@ function TaskDetailDrawer({
 // Client Detail Drawer (Simplified for Dashboard)
 function ClientDetailDrawer({
   client,
-  onClose
+  onClose,
+  onClientClick
 }: {
   client: MinimalClient
   onClose: () => void
+  onClientClick?: (client: MinimalClient) => void
 }) {
   const ownerData = getOwnerData(client.owner)
 
@@ -682,7 +690,15 @@ function ClientDetailDrawer({
       </div>
 
       <div className="p-4 border-t border-border">
-        <Button variant="outline" className="w-full" size="sm">
+        <Button
+          variant="outline"
+          className="w-full"
+          size="sm"
+          onClick={() => {
+            onClientClick?.(client)
+            onClose()
+          }}
+        >
           <ExternalLink className="w-4 h-4 mr-2" />
           View Full Details
         </Button>
@@ -694,10 +710,12 @@ function ClientDetailDrawer({
 // Alert Detail Drawer
 function AlertDetailDrawer({
   item,
-  onClose
+  onClose,
+  onMarkComplete
 }: {
   item: FirehoseItemData
   onClose: () => void
+  onMarkComplete?: (itemId: string) => void
 }) {
   const formatTimestamp = (date: Date) => {
     const now = new Date()
@@ -751,11 +769,21 @@ function AlertDetailDrawer({
       </div>
 
       <div className="p-4 border-t border-border space-y-2">
-        <Button className="w-full" size="sm" variant="destructive">
+        <Button
+          className="w-full"
+          size="sm"
+          variant="destructive"
+          onClick={() => onMarkComplete?.(item.id)}
+        >
           <AlertCircle className="w-4 h-4 mr-2" />
           Take Action
         </Button>
-        <Button variant="outline" className="w-full" size="sm">
+        <Button
+          variant="outline"
+          className="w-full"
+          size="sm"
+          onClick={() => onMarkComplete?.(item.id)}
+        >
           Dismiss Alert
         </Button>
       </div>
@@ -766,10 +794,12 @@ function AlertDetailDrawer({
 // Performance Detail Drawer
 function PerformanceDetailDrawer({
   item,
-  onClose
+  onClose,
+  onMarkComplete
 }: {
   item: FirehoseItemData
   onClose: () => void
+  onMarkComplete?: (itemId: string) => void
 }) {
   const formatTimestamp = (date: Date) => {
     const now = new Date()
@@ -831,7 +861,16 @@ function PerformanceDetailDrawer({
       </div>
 
       <div className="p-4 border-t border-border">
-        <Button variant="outline" className="w-full" size="sm">
+        <Button
+          variant="outline"
+          className="w-full"
+          size="sm"
+          onClick={() => {
+            // Open Google Ads (placeholder - needs actual client ad account URL)
+            window.open(`https://ads.google.com/`, '_blank')
+            onClose()
+          }}
+        >
           <ExternalLink className="w-4 h-4 mr-2" />
           View in Google Ads
         </Button>
@@ -846,9 +885,18 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null)
   const [selectedPerfId, setSelectedPerfId] = useState<string | null>(null)
+  const [completedItems, setCompletedItems] = useState<Set<string>>(new Set())
 
   // Track previous tab to clear stale selections on tab switch
   const prevTabRef = useRef<DashboardTab>(activeTab)
+
+  // Handler for marking items complete
+  const handleMarkComplete = (itemId: string) => {
+    setCompletedItems(prev => new Set(prev).add(itemId))
+    setSelectedTaskId(null)
+    setSelectedAlertId(null)
+    setSelectedPerfId(null)
+  }
 
   // Dashboard store - fetches KPIs from API
   const { kpis: storeKpis, kpisLoading, fetchKPIs } = useDashboardStore()
@@ -864,7 +912,10 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
     ? { duration: 0 }
     : { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }
 
-  const firehoseItems = useMemo(() => generateMockFirehoseItems(clients), [clients])
+  const firehoseItems = useMemo(
+    () => generateMockFirehoseItems(clients).filter(item => !completedItems.has(item.id)),
+    [clients, completedItems]
+  )
 
   // Transform store KPIs to LinearKPIData format
   const kpis: LinearKPIData[] = useMemo(() => {
@@ -1096,7 +1147,11 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
                   transition={slideTransition}
                   className="shrink-0 overflow-hidden"
                 >
-                  <TaskDetailDrawer item={selectedTask} onClose={() => setSelectedTaskId(null)} />
+                  <TaskDetailDrawer
+                    item={selectedTask}
+                    onClose={() => setSelectedTaskId(null)}
+                    onMarkComplete={handleMarkComplete}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1154,7 +1209,11 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
                   transition={slideTransition}
                   className="shrink-0 overflow-hidden"
                 >
-                  <ClientDetailDrawer client={selectedClient} onClose={() => setSelectedClientId(null)} />
+                  <ClientDetailDrawer
+                    client={selectedClient}
+                    onClose={() => setSelectedClientId(null)}
+                    onClientClick={onClientClick}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1203,7 +1262,11 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
                   transition={slideTransition}
                   className="shrink-0 overflow-hidden"
                 >
-                  <AlertDetailDrawer item={selectedAlert} onClose={() => setSelectedAlertId(null)} />
+                  <AlertDetailDrawer
+                    item={selectedAlert}
+                    onClose={() => setSelectedAlertId(null)}
+                    onMarkComplete={handleMarkComplete}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1256,7 +1319,11 @@ export function DashboardView({ clients, onClientClick }: DashboardViewProps) {
                   transition={slideTransition}
                   className="shrink-0 overflow-hidden"
                 >
-                  <PerformanceDetailDrawer item={selectedPerf} onClose={() => setSelectedPerfId(null)} />
+                  <PerformanceDetailDrawer
+                    item={selectedPerf}
+                    onClose={() => setSelectedPerfId(null)}
+                    onMarkComplete={handleMarkComplete}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

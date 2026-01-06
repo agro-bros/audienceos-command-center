@@ -107,11 +107,10 @@
 
 #### High Priority (Blockers)
 1. ~~**Settings/General error**~~ - ✅ FIXED (d0d70f5: comprehensive auth sweep)
-2. **Settings/Brand** - ⚠️ DESIGN DECISION NEEDED
-   - Current: Routes to Intelligence Center → Training Cartridges → Brand tab
-   - Code shows this is INTENTIONAL (app/page.tsx:429-433)
-   - Brand tab exists: components/cartridges/tabs/brand-tab.tsx
-   - Question: Should Brand have its own Settings page instead?
+2. ~~**Settings/Brand**~~ - ✅ WORKING AS DESIGNED
+   - Routes to Intelligence Center → Training Cartridges → Brand tab
+   - This is intentional: Brand is a feature (marketing setup), not just settings
+   - Code: app/page.tsx:429-433
 3. ~~**Settings/Team invites**~~ - ✅ FIXED (d0d70f5: comprehensive auth sweep)
 
 #### Medium Priority (Core Features)
