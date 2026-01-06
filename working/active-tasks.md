@@ -1,5 +1,86 @@
 # Active Tasks
 
+## 📊 Session Summary (2026-01-06)
+
+### Send to AI Integration + OAuth Coordination
+**Approach:** Ship chat improvements, coordinate Trevor's work, document everything
+
+### Feature 1: Send to AI Integration - SHIPPED ✅
+- **What:** Contextual "Send to AI" buttons in dashboard drawers
+- **Components Modified:**
+  1. `chat-interface.tsx` - Added global `openChatWithMessage()` method
+  2. `dashboard-view.tsx` - Added Send to AI buttons in TaskDetailDrawer and ClientDetailDrawer
+  3. `app/page.tsx` - Added onSendToAI callback with retry logic
+  4. `global.d.ts` - TypeScript declarations for window method
+- **User Flow:**
+  1. Click task/client in dashboard
+  2. Open detail drawer
+  3. Click "Send to AI" (amber button with Sparkles icon)
+  4. Chat opens with pre-filled contextual prompt
+  5. User can edit and send to AI assistant
+- **Verified:** Build passes, UI styled consistently
+- **Commit:** `3131525`
+- **Documentation:** `features/send-to-ai-integration.md` (complete spec)
+
+### Feature 2: Logout Button - SHIPPED ✅
+- **What:** Added logout functionality in Security settings
+- **File:** `components/settings/sections/security-section.tsx`
+- **Implementation:**
+  - Sign out card with destructive red button
+  - Calls `supabase.auth.signOut()`
+  - Redirects to `/login` after logout
+  - Loading state during operation
+- **Location:** Settings → Security → Sign Out (last card)
+- **Commit:** `43e6b48`
+
+### Feature 3: OAuth Coordination - IN PROGRESS 🔄
+- **What:** Coordinated Trevor's OAuth/signup implementation
+- **Trevor's Branch:** `trevor/oauth-signup`
+- **Deliverables:**
+  - Signup page at `/signup`
+  - Google OAuth login integration
+  - OAuth callback handler at `/auth/callback`
+  - Fix non-functional Google SSO toggle
+- **Documentation Created:**
+  - `working/TREVOR_OAUTH_BRIEF.md` - Complete task guide
+  - `working/AUTH_FINDINGS.md` - Gap analysis
+  - `working/COORDINATION_RECOMMENDATIONS.md` - Best practices
+  - RUNBOOK updated with work assignments
+  - Email sent to trevor@diiiploy.io with all details
+- **Estimated:** 10-12 hours (Trevor's work)
+- **Status:** Trevor has everything he needs, working independently
+- **Commits:** `35f9e72` (RUNBOOK + brief)
+
+### Operations: CPU Management - FIXED ✅
+- **Problem:** next-server process at 132.9% CPU (PID 4821)
+- **Load:** 7.55 (high) → 6.79 after fix
+- **Action:** Killed runaway process with `kill -9 4821`
+- **Result:** System load decreased, no more runaway processes
+
+### Documentation Updates - COMPLETE ✅
+- **Features:**
+  - Created `features/send-to-ai-integration.md` (full spec, 300+ lines)
+  - Updated `features/INDEX.md` (added Send to AI, validation history)
+  - Overall completion: 90% → 91%
+- **RUNBOOK:**
+  - Added work assignments section (Trevor + Roderic)
+  - Updated status checklist
+  - Coordination protocol documented
+- **Commits:** `3131525` (feature docs + RUNBOOK updates)
+
+### Results This Session
+- ✅ Send to AI feature shipped and documented
+- ✅ Logout button shipped
+- ✅ Trevor's OAuth work coordinated and documented
+- ✅ CPU hog killed (system load reduced)
+- ✅ All documentation updated (features/, RUNBOOK, active-tasks)
+- ✅ 3 commits pushed to main
+- 🔄 Trevor working on OAuth (parallel, no conflicts)
+
+**Commits This Session:** `43e6b48`, `35f9e72`, `3131525`
+
+---
+
 ## 📊 Session Summary (2026-01-05 - Continued)
 
 ### Runtime-First Verification Session

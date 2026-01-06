@@ -391,6 +391,10 @@ npx tsc --noEmit
 - [x] Supabase configuration
 - [x] Email/password login
 - [x] Logout button in settings (2026-01-06)
+- [x] Send to AI integration (2026-01-06)
+  - Global chat opener method
+  - Contextual prompts from dashboard
+  - Task and client integration
 
 ### ⏳ In Progress (Trevor)
 - [ ] Signup page implementation

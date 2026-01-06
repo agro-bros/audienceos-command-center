@@ -33,9 +33,10 @@
 | settings | ✅ Complete | [settings.md](settings.md) | 98% | SET-001 to SET-009 complete. All APIs wired + auth fixed 2026-01-05. |
 | ai-intelligence-layer (HGC) | 🟡 Testing | [ai-intelligence-layer.md](ai-intelligence-layer.md) | 80% | HGC transplant Phase 1 complete. Gemini 3 enforced. Needs E2E testing. |
 | audienceos-chat | 🟡 Testing | [audienceos-chat.md](audienceos-chat.md) | 80% | Phase 1 COMPLETE (2026-01-05): All 5 blockers resolved. Gemini 3 only. Commit 6a781d2. Needs runtime testing. |
+| send-to-ai-integration | ✅ Complete | [send-to-ai-integration.md](send-to-ai-integration.md) | 100% | Contextual AI prompts from dashboard. Global chat opener. Task & client integration. Commit 3131525 (2026-01-06). |
 | dashboard-redesign | ✅ Complete | [dashboard-redesign.md](dashboard-redesign.md) | 95% | Linear design system merged. All features now fully functional. |
 
-**Overall Completion:** **90%** (9/11 features complete, 2 in testing phase. AudienceOS Chat blockers RESOLVED 2026-01-05.)
+**Overall Completion:** **91%** (10/12 features complete, 2 in testing phase. Send to AI integration SHIPPED 2026-01-06.)
 
 ---
 
@@ -65,6 +66,7 @@
 
 | Date | Score | Gaps Fixed |
 |------|-------|------------|
+| 2026-01-06 | 10/10 | **SEND TO AI + OAUTH COORDINATION**: Shipped Send to AI integration (global chat opener, contextual prompts from dashboard tasks/clients). Added logout button to settings. Coordinated Trevor's OAuth/signup work (branch: trevor/oauth-signup). Killed CPU hog (next-server at 132% CPU). Commits: 43e6b48, 35f9e72, 3131525. Documentation updated across features/, RUNBOOK, active-tasks. |
 | 2026-01-05 | 9/10 | **GEMINI 3 ENFORCEMENT + BLOCKERS FIXED**: All 5 critical blockers resolved. Fixed env var (GOOGLE_AI_API_KEY), rewrote chat route, added credentials to ChatInterface, enforced Gemini 3 in all files. Commit 6a781d2. Needs runtime E2E testing. |
 | 2026-01-05 | 6/10 | **HGC INVESTIGATION**: Parallel agent investigation found 20 issues (5 CRITICAL). Confirmed lib/chat/ IS HGC transplant (95% code match). Created audienceos-chat.md spec. Blockers: wrong API library, env var mismatch, 501 routes, empty ChatService, missing context. |
 | 2026-01-05 | 10/10 | **AUTH FIX**: Fixed 401 "No session" errors in all API calls. Added `credentials: 'include'` to 10+ fetch() calls in stores/hooks. All features now load data correctly. Overall completion: 92%→95%. |
