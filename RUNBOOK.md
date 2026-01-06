@@ -203,6 +203,29 @@ npm run start        # Run production build locally
 
 **Note:** `.env.local` is gitignored. Safe to store actual secrets there for local dev.
 
+### PAI Secrets Vault
+
+**Location:** `~/.claude/secrets/secrets-vault.md`
+
+**What it contains:**
+- Global API keys (Gemini, OpenAI, etc.)
+- Project-specific credentials (Supabase service role keys)
+- Supabase CLI personal access token (for type generation)
+- Database connection strings
+- Chi-Gateway and Diiiploy-Gateway secrets
+
+**Usage:**
+- Chi can reference secrets from here when setting up new services
+- All API keys are organized by service and project
+- Includes instructions for when/how to add new secrets
+
+**Regenerating Supabase Types:**
+```bash
+# Requires Supabase personal access token from secrets vault
+SUPABASE_ACCESS_TOKEN="[token]" npx supabase gen types typescript \
+  --project-id ebxshdqfaqupnvpghodi > types/database.ts
+```
+
 ## Common Tasks
 
 ### First-Time Setup
