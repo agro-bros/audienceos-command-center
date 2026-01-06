@@ -80,13 +80,20 @@
 
 **Setup Completed:**
 - ✅ Updated Claude Code to 2.0.76
+- ✅ Using Claude.ai OAuth (rodericandrews@gmail.com)
+- ✅ Extra usage enabled on Claude.ai account
 - ⚠️ Chrome extension installation pending (link opened)
 - ⚠️ `/chrome` enable by default pending (requires new session)
+
+**CRITICAL Discovery:** Claude in Chrome requires:
+1. **OAuth authentication** (NOT Anthropic API keys) ✅ Already using OAuth
+2. **Extra usage enabled** on Claude.ai account ✅ Just enabled
 
 **Action Required:**
 1. Install Chrome extension from opened link
 2. In next session: Run `/chrome` and enable by default
 3. Verify with `/mcp` to see `claude-in-chrome` tools
+4. Restart Claude Code session for extra usage to take effect
 
 **Reference:** https://code.claude.com/docs/en/chrome
 
