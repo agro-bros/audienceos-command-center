@@ -306,43 +306,96 @@ Be concise and helpful. This query was classified as: ${route}`;
     decimalMarkersSample: responseText.match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g)?.slice(0, 3),
   });
 
+  // DEPLOYMENT VERIFICATION: Log at start of processing
+  console.log('[=== CITATION PROCESSING START ===]', {
+    timestamp: new Date().toISOString(),
+    route: route,
+    textLengthBefore: responseText.length,
+  });
+
   // Strip Gemini's decimal notation markers if present
   // Gemini uses formats like [1.1], [1.7] or comma-separated [1.1, 1.7]
   // These interfere with our clean [1][2][3] format
   const hasDecimalMarkers = /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText);
+  console.log('[DEPLOY CHECK] Regex test for decimal markers:', {
+    pattern: '/[\\d+\\.\\d+(?:,\\s*\\d+\\.\\d+)*]/',
+    hasMatch: hasDecimalMarkers,
+    decimalMarkersFound: responseText.match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g) || [],
+    textSample: responseText.substring(0, 150),
+  });
+
   if (hasDecimalMarkers) {
-    console.log('[Citation Debug] Stripping Gemini decimal markers (formats: [1.1] and [1.1, 1.7])');
+    const textBefore = responseText;
+    console.log('[CITATION STRIPPING] BEFORE - Contains decimal markers:', {
+      count: (textBefore.match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g) || []).length,
+      examples: textBefore.match(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g)?.slice(0, 5),
+    });
     // Strip both single [1.1] and comma-separated [1.1, 1.7] formats
     responseText = responseText.replace(/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/g, '');
+    console.log('[CITATION STRIPPING] AFTER - Decimal markers removed:', {
+      textLengthDifference: textBefore.length - responseText.length,
+      hasDecimalMarkersAfter: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText),
+      textSample: responseText.substring(0, 150),
+    });
+  } else {
+    console.log('[CITATION STRIPPING] SKIPPED - No decimal markers found in response');
   }
 
   // Insert inline citation markers based on groundingSupports
   // This is what HGC does - Gemini doesn't add [1][2] markers automatically
+  console.log('[CITATION INSERTION] Condition check:', {
+    hasGroundingSupports: !!candidate?.groundingMetadata?.groundingSupports,
+    groundingSupportsCount: candidate?.groundingMetadata?.groundingSupports?.length || 0,
+    citationsCount: citations.length,
+    willInsert: !!(candidate?.groundingMetadata?.groundingSupports && citations.length > 0),
+  });
+
   if (candidate?.groundingMetadata?.groundingSupports && citations.length > 0) {
     const supports = candidate.groundingMetadata.groundingSupports;
-    console.log('[Citation Debug] Before insertion:', {
+    const textBeforeInsertion = responseText;
+
+    console.log('[CITATION INSERTION] BEFORE:', {
       citationsCount: citations.length,
       citations: citations.map(c => ({index: c.index, title: c.title, url: c.url})),
       supportsCount: supports.length,
-      sampleSupport: supports[0]
+      textLength: textBeforeInsertion.length,
+      hasDecimalMarkers: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(textBeforeInsertion),
+      hasIntegerMarkers: /\[\d+\]/.test(textBeforeInsertion),
+      textSample: textBeforeInsertion.substring(0, 200),
     });
+
     responseText = insertInlineCitations(
       responseText,
       supports,
       citations
     );
-    console.log('[Citation Debug] After insertion:', {
+
+    console.log('[CITATION INSERTION] AFTER:', {
+      textLengthAfter: responseText.length,
+      insertionsDone: responseText.length !== textBeforeInsertion.length,
       hasIntegerMarkers: /\[\d+\]/.test(responseText),
-      markersFound: responseText.match(/\[\d+\]/g),
-      textSample: responseText.substring(0, 200)
+      integerMarkersCount: (responseText.match(/\[\d+\]/g) || []).length,
+      hasDecimalMarkers: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText),
+      textSample: responseText.substring(0, 200),
     });
   } else {
-    console.log('[Citation Debug] Skipping insertion:', {
+    console.log('[CITATION INSERTION] SKIPPED:', {
       reason: !candidate?.groundingMetadata?.groundingSupports
-        ? 'no groundingSupports'
-        : 'no citations'
+        ? 'no groundingSupports in metadata'
+        : 'no citations array',
+      groundingSupportsPresent: !!candidate?.groundingMetadata?.groundingSupports,
+      citationsPresent: citations.length > 0,
     });
   }
+
+  // DEPLOYMENT VERIFICATION: Final check before returning
+  console.log('[=== CITATION PROCESSING COMPLETE ===]', {
+    textLengthAfter: responseText.length,
+    hasIntegerMarkers: /\[\d+\]/.test(responseText),
+    hasDecimalMarkers: /\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/.test(responseText),
+    citationsInResponse: citations.length,
+    textSample: responseText.substring(0, 150),
+  });
 
   return responseText;
 }
