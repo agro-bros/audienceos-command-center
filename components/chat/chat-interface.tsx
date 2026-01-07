@@ -1214,8 +1214,8 @@ function CitationBadge({
         className={cn(
           "inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-sm mx-0.5 align-middle transition-colors",
           hasValidUrl
-            ? "bg-green-500/30 text-green-400 border border-green-500/30 hover:bg-green-500/50 cursor-pointer"
-            : "bg-gray-500/30 text-gray-400 border border-gray-500/30 cursor-default"
+            ? "text-green-400 hover:text-green-300 cursor-pointer"
+            : "text-gray-400 cursor-default"
         )}
         style={{ position: "relative", top: "-1px" }}
       >

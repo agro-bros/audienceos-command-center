@@ -402,6 +402,7 @@ Be concise and helpful. This query was classified as: ${route}`;
 
 /**
  * Insert [1][2][3] citation markers into text based on groundingSupports
+ * FIXED: Insert after word boundaries to avoid breaking words mid-sentence
  * Ported from HGC citation-extractor.ts
  */
 function insertInlineCitations(
@@ -422,7 +423,7 @@ function insertInlineCitations(
   let result = text;
 
   for (const support of sortedSupports) {
-    const endIndex = support.segment?.endIndex;
+    let endIndex = support.segment?.endIndex;
     const chunkIndices = support.groundingChunkIndices || [];
 
     if (endIndex !== undefined && chunkIndices.length > 0) {
@@ -432,9 +433,27 @@ function insertInlineCitations(
         .filter(Boolean)
         .join('');
 
-      if (markers) {
-        // Insert markers at the end of the grounded segment
-        result = result.substring(0, endIndex) + markers + result.substring(endIndex);
+      if (markers && endIndex <= result.length) {
+        // Adjust insertion point to after the next word boundary
+        // This prevents breaking words mid-word (e.g., "Ads[1] not" instead of "Ads [1]not")
+        let adjustedIndex = endIndex;
+
+        // If we're in the middle of a word, move to the next space or punctuation
+        while (adjustedIndex < result.length && /[a-zA-Z0-9]/.test(result[adjustedIndex])) {
+          adjustedIndex++;
+        }
+
+        // If we couldn't find a word boundary (e.g., at end of text), add a space before marker
+        if (adjustedIndex !== endIndex && adjustedIndex < result.length) {
+          // Found next word boundary, insert after it
+          result = result.substring(0, adjustedIndex) + markers + result.substring(adjustedIndex);
+        } else if (adjustedIndex === result.length) {
+          // At end of text, just append
+          result = result + ' ' + markers;
+        } else {
+          // In middle of word, use original index
+          result = result.substring(0, endIndex) + markers + result.substring(endIndex);
+        }
       }
     }
   }
