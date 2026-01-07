@@ -1030,3 +1030,80 @@ User validation test (19:03) showed:
 
 **Handoff:** Provided comprehensive 300-line handover document to new Claude.ai session with full context, code snippets, test instructions, and success criteria.
 
+---
+
+## Session 2026-01-07 (Citation Formatting Debug - CC2)
+
+### Situation
+Took over from CC1's SITREP on citation formatting bug. User reported [1.1, 1.7] showing instead of [1][2][3].
+
+### Analysis Completed
+1. ✅ **Code verification:** All citation fixing code exists in git:
+   - Stripping logic (lines 309-317 in route.ts)
+   - Insertion logic (lines 319-333 in route.ts)
+   - Client logging (line 369 in chat-interface.tsx)
+   - Regex pattern is correct: `/\[\d+\.\d+(?:,\s*\d+\.\d+)*\]/`
+
+2. ✅ **Commits verified:**
+   - 8f28058: Citation marker fix
+   - 58aab1f: Client-side logging
+   - All in git history and pushed to origin/main
+
+3. ⚠️ **Root cause:** Code EXISTS but uncertain if deployed to Vercel (likely cache issue)
+
+### Solution Deployed
+**Commit 9c179aa:** Added comprehensive deployment verification logging
+
+**Changes made to `/app/api/v1/chat/route.ts`:**
+- Added 6 strategic console.log blocks that make deployment visible
+- `[=== CITATION PROCESSING START ===]` - Proves code is executing
+- `[DEPLOY CHECK] Regex test for decimal markers:` - Shows if decimals detected
+- `[CITATION STRIPPING] BEFORE/AFTER` - Shows removal success
+- `[CITATION INSERTION] Condition check` - Shows if conditions for insertion met
+- `[CITATION INSERTION] BEFORE/AFTER` - Shows integer markers added
+- `[=== CITATION PROCESSING COMPLETE ===]` - Final verification
+
+**Why this matters:**
+- If ANY of these logs appear → code IS deployed ✅
+- If NO logs appear → code NOT deployed ❌ (needs Vercel redeploy)
+- Logs show exact point of failure if something breaks
+
+### Documents Created
+- `working/CITATION_DEBUG_GUIDE.md` - 150-line comprehensive testing guide
+  - 5-minute quick test procedure
+  - Expected log output for working vs broken scenarios
+  - Debugging checklist
+  - Links to console/network debugging approaches
+
+### Testing Plan
+**For next session/user:**
+1. Send "What is Google Ads in January 2026?" query to chat
+2. Open browser Console tab
+3. Look for `[=== CITATION PROCESSING START ===]` log
+4. **If found:** Code is deployed, check log details for what's happening
+5. **If NOT found:** Code not deployed, need Vercel manual redeploy
+
+**Expected outcome if working:**
+- Console shows `[CITATION INSERTION] AFTER: { integerMarkersCount: > 0, hasDecimalMarkers: false }`
+- UI shows [1] [2] [3] format (NOT [1.1, 1.7])
+
+### Status
+- ✅ Root cause identified (likely deployment issue)
+- ✅ Diagnostic logging added
+- ✅ Changes committed and pushed
+- ✅ Test guide created
+- ⏳ **Awaiting deployment (2-5 min) and test execution**
+
+### Critical Files
+- Server: `app/api/v1/chat/route.ts` (lines 309-400)
+- Client: `components/chat/chat-interface.tsx` (line 369)
+- Debug guide: `working/CITATION_DEBUG_GUIDE.md`
+
+### Next Steps
+1. Wait for Vercel deployment (auto-deploys on push)
+2. Run test: Send chat query, check console logs
+3. Share logs in conversation if issue persists
+4. Based on logs, identify and fix specific failure point
+
+**Confidence:** 9/10 - Deployment logging will definitively show what's happening
+
