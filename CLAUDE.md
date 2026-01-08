@@ -355,7 +355,7 @@ gemini-3-flash-preview
    - Commit: 467828a
 
 ### 🚧 In Progress
-- Multi-Org Roles (vision approved 2026-01-08, moving to B-2 scope phase)
+- Multi-Org Roles (**B-2 Scope approved 2026-01-08**, next: B-3 Risks → D-1 SpecKit)
 - UI Polish Pass (completion verification)
 
 ### 📋 Pending
@@ -368,9 +368,11 @@ gemini-3-flash-preview
 
 ## Multi-Org Roles & Permissions System (New Feature)
 
-**Status:** Vision approved (2026-01-08) | Phase: B-1 → B-2
-**Drive Link:** [VISION Document](https://docs.google.com/document/d/1Ty7MvP1f_GFIoejJOhYsysI5qq6GkFopysIXUqSldwo/edit?usp=sharing)
-**Local Docs:** `docs/01-product/VISION.md`
+**Status:** B-2 Scope approved (2026-01-08) | Phase: B-2 → B-3 Risks
+**Drive Links:**
+- [VISION Document](https://docs.google.com/document/d/1Ty7MvP1f_GFIoejJOhYsysI5qq6GkFopysIXUqSldwo/edit?usp=sharing)
+- [SCOPE Document](https://docs.google.com/document/d/1K4R5AkjvnIwlrXxB3UnViRK5VlP7G-Nw1bcHCUl26fM/edit)
+**Local Docs:** `docs/01-product/VISION.md`, `docs/01-product/SCOPE.md`
 
 ### Overview
 Fine-grained role-based access control system for marketing agencies managing multiple clients and team members.
@@ -389,8 +391,8 @@ Fine-grained role-based access control system for marketing agencies managing mu
 
 ### Next Steps
 1. ✅ **B-1 Vision** - Approved (2026-01-08)
-2. 🔄 **B-2 Scope** - Define IN/OUT scope and constraints
-3. **C-1 Design** - Design specification (design phase)
+2. ✅ **B-2 Scope** - Approved (2026-01-08) - 28 DUs MVP, 8 resources × 3 actions
+3. 🔄 **B-3 Risks** - Identify blockers, dependencies, mitigations
 4. **D-1 SpecKit** - Technical specifications and API contracts
 
 ---
