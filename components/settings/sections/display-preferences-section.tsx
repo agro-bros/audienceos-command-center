@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
 import { Sun, Moon, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -17,7 +16,7 @@ export function DisplayPreferencesSection() {
     setMounted(true)
   }, [])
 
-  const handleThemeChange = async (newTheme: string) => {
+  const handleThemeChange = async (newTheme: "light" | "dark") => {
     try {
       setIsSaving(true)
 
