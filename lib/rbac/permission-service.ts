@@ -476,6 +476,181 @@ class PermissionService {
   private cleanExpiredEntries(): void {
     this.cleanupCacheIfNeeded();
   }
+
+  /**
+   * TASK-013 Part 2: Check user role hierarchy
+   *
+   * Short-circuits permission checks by verifying role hierarchy level
+   * - hierarchy_level <= 3: Owner, Admin, Manager (see all data)
+   * - hierarchy_level = 4: Member (see only assigned data)
+   *
+   * @param userId - User ID
+   * @param agencyId - Agency ID
+   * @param supabase - Supabase client (optional)
+   * @returns Hierarchy level or null if not found
+   */
+  async getUserHierarchyLevel(
+    userId: string,
+    agencyId: string,
+    supabase?: SupabaseClient<any>
+  ): Promise<number | null> {
+    if (!userId || !agencyId) {
+      return null;
+    }
+
+    const client = supabase || createBrowserClient();
+
+    try {
+      const { data: user, error } = await client
+        .from('user')
+        .select(
+          `
+          id,
+          role:role_id (
+            hierarchy_level
+          )
+        `
+        )
+        .eq('id', userId)
+        .eq('agency_id', agencyId)
+        .single();
+
+      if (error || !user?.role) {
+        return null;
+      }
+
+      return user.role.hierarchy_level;
+    } catch (error) {
+      console.error('[PermissionService] Error fetching hierarchy level:', error);
+      return null;
+    }
+  }
+
+  /**
+   * TASK-013 Part 2: Check if user has management privileges
+   *
+   * Managers and above (hierarchy_level <= 3) can manage data agency-wide
+   * Members (hierarchy_level = 4) can only manage assigned clients
+   *
+   * @param hierarchyLevel - User's role hierarchy level
+   * @returns True if user has management privileges (Owner, Admin, Manager)
+   */
+  hasManagementPrivileges(hierarchyLevel: number | null): boolean {
+    if (hierarchyLevel === null || hierarchyLevel === undefined) {
+      return false;
+    }
+    return hierarchyLevel <= 3;
+  }
+
+  /**
+   * TASK-013 Part 2: Get list of client IDs user has access to
+   *
+   * For Members, returns only assigned clients
+   * For Managers and above, returns empty array (they have agency-wide access)
+   *
+   * @param userId - User ID
+   * @param agencyId - Agency ID
+   * @param supabase - Supabase client (optional)
+   * @returns Array of client IDs user can access, or empty array for non-Members
+   */
+  async getMemberAccessibleClientIds(
+    userId: string,
+    agencyId: string,
+    supabase?: SupabaseClient<any>
+  ): Promise<string[]> {
+    if (!userId || !agencyId) {
+      return [];
+    }
+
+    const client = supabase || createBrowserClient();
+
+    try {
+      // Check if user is a Member
+      const hierarchyLevel = await this.getUserHierarchyLevel(
+        userId,
+        agencyId,
+        client
+      );
+
+      // Only Members have client-scoped access
+      if (hierarchyLevel !== 4) {
+        return [];
+      }
+
+      // Fetch member_client_access records
+      const { data: access, error } = await client
+        .from('member_client_access')
+        .select('client_id')
+        .eq('user_id', userId)
+        .eq('agency_id', agencyId);
+
+      if (error || !access) {
+        return [];
+      }
+
+      return access.map((a) => a.client_id);
+    } catch (error) {
+      console.error('[PermissionService] Error fetching member client IDs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * TASK-013 Part 2: Verify member has access to specific client
+   *
+   * Returns true if:
+   * - User is Owner/Admin/Manager (hierarchy_level <= 3), OR
+   * - User is Member (hierarchy_level = 4) AND has entry in member_client_access
+   *
+   * @param userId - User ID
+   * @param agencyId - Agency ID
+   * @param clientId - Client ID to check access for
+   * @param supabase - Supabase client (optional)
+   * @returns True if user has access to this client
+   */
+  async hasMemberClientAccess(
+    userId: string,
+    agencyId: string,
+    clientId: string,
+    supabase?: SupabaseClient<any>
+  ): Promise<boolean> {
+    if (!userId || !agencyId || !clientId) {
+      return false;
+    }
+
+    const client = supabase || createBrowserClient();
+
+    try {
+      const hierarchyLevel = await this.getUserHierarchyLevel(
+        userId,
+        agencyId,
+        client
+      );
+
+      // Managers and above have agency-wide access
+      if (hierarchyLevel !== null && hierarchyLevel <= 3) {
+        return true;
+      }
+
+      // For Members, check member_client_access
+      if (hierarchyLevel === 4) {
+        const { data, error } = await client
+          .from('member_client_access')
+          .select('client_id')
+          .eq('user_id', userId)
+          .eq('agency_id', agencyId)
+          .eq('client_id', clientId)
+          .single();
+
+        return !error && !!data;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[PermissionService] Error checking member client access:', error);
+      return false;
+    }
+  }
 }
 
 // Export singleton instance

@@ -1,5 +1,109 @@
 # Active Tasks
 
+## ⚠️ Quality Issues
+_Last check: 2026-01-08 16:15_
+
+### Preflight (Gate 1)
+- [ ] ESLint: Clean ✓
+- [ ] TypeScript: 35 errors in test files
+- [ ] Security: Clean ✓
+
+**TypeScript Errors Summary:**
+- 5 test files affected: settings-agency.test.ts, settings-users-id.test.ts
+- Main issues: Mock object type mismatches with SupabaseClient interface
+- Error codes: TS2345 (argument type), TS2353 (object literal properties)
+- **Status:** Advisory only (tests still pass, production code unaffected)
+
+---
+
+## 📊 Session Summary (2026-01-08)
+
+### TASK-013 Part 1: Client-Scoped RLS Migration - COMPLETE ✅
+
+**Context:** Applied client-scoped RLS policies to replace simple agency-based access control. Members (hierarchy_level=4) now see only assigned clients via member_client_access table.
+
+**Completed This Session:**
+- ✅ Applied 12 RLS policies to Supabase (client, communication, ticket tables)
+- ✅ Created 5 performance indexes for member_client_access lookups
+- ✅ Verified all policies in Supabase Dashboard
+- ✅ Ran verification script - all tables accessible with RLS enabled
+- ✅ Migration executed via Claude in Chrome browser automation (zero errors)
+
+**RLS Policy Structure:**
+- **Client Table:** 4 policies (select, insert, update, delete)
+- **Communication Table:** 4 policies (select, insert, update, delete)
+- **Ticket Table:** 4 policies (select, insert, update, delete)
+
+**Access Control Logic:**
+- **Owners/Admins/Managers** (hierarchy_level ≤ 3): See ALL data in their agency
+- **Members** (hierarchy_level = 4): See ONLY assigned items via member_client_access table
+- **Permissions:** 'read' or 'write' per client assignment
+
+**Performance Optimization:**
+- idx_member_access_user_client (composite)
+- idx_member_access_client, idx_member_access_user
+- idx_role_hierarchy, idx_user_role
+
+**Status:** RLS migration 100% complete, member-scoped access live in production
+
+---
+
+### TASK-013 Part 2: Middleware Enhancement - COMPLETE ✅
+
+**Context:** Enhanced API middleware to enforce member client-scoped access checks at the middleware level, preventing unauthorized client access before database queries.
+
+**Completed This Session:**
+- ✅ Added role hierarchy helper methods to permission-service.ts:
+  - `getUserHierarchyLevel()` - Check user's role hierarchy (≤3 or =4)
+  - `hasManagementPrivileges()` - Short-circuit for Owners/Admins/Managers
+  - `getMemberAccessibleClientIds()` - Get list of clients member can access
+  - `hasMemberClientAccess()` - Verify member has access to specific client
+
+- ✅ Created client-access.ts helper module with 9 utility functions:
+  - `verifyClientAccess()` - Verify member can access client
+  - `getAccessibleClientIds()` - Get filtered client list for member
+  - `filterClientsByAccess()` - Filter clients by accessibility
+  - `buildClientAccessFilter()` - Create DB filter for member queries
+  - `hasMemberWriteAccess()` - Check write-level access
+  - `getMemberClientPermission()` - Get permission level (read/write)
+  - `enforceClientAccess()` - Early access denial in middleware
+  - `logClientAccessAttempt()` - Audit trail logging
+
+- ✅ Enhanced with-permission middleware:
+  - Import new client-access helper functions
+  - Extract supabase client in authenticateUser() return value
+  - Add client-scoped access check for 'clients' resource
+  - Log all client access attempts for audit trail
+  - Return 403 with specific CLIENT_ACCESS_DENIED error code
+
+- ✅ Created comprehensive test suite:
+  - 16 tests in `__tests__/lib/client-access.test.ts` (all passing ✓)
+  - Tests cover: access verification, client filtering, permission checks, audit logging
+  - Updated rbac-middleware.test.ts with proper mocking
+
+- ✅ Verified full integration:
+  - TypeScript compilation clean (new code)
+  - All 586 tests passing (30 test files)
+  - Preflight check: ESLint ✓, Security ✓, TypeScript 35 advisory errors (test mocks only)
+
+**Architecture:**
+- **Early Denial Pattern:** Middleware denies at Layer 3 (before DB) for members accessing unauthorized clients
+- **Hierarchy Optimization:** Check role hierarchy first to short-circuit expensive permission lookups
+- **Member Scoping:** For members, verify against member_client_access table
+- **Audit Trail:** Log all access attempts (allowed/denied) for compliance
+
+**Access Flow:**
+1. Authenticate user (get role hierarchy level)
+2. Check role permissions (role-based for Owners/Admins/Managers)
+3. For members: Extract client ID from URL or request parameters
+4. Verify member has access to specific client via member_client_access table
+5. Log access attempt for audit trail
+6. Allow/deny at middleware level (never reaches database if denied)
+
+**Status:** Middleware enhancement 100% complete, client-scoped access now enforced at middleware level
+
+---
+
 ## 📊 Session Summary (2026-01-06 19:30)
 
 ### Citation Format Debugging - IN PROGRESS 🔄

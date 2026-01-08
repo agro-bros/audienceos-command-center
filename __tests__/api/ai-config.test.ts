@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect as _expect, vi as _vi, beforeEach as _beforeEach } from 'vitest'
 
 describe('PATCH /api/v1/settings/agency (AI Config)', () => {
   it('should update ai_config successfully', async () => {

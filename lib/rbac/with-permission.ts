@@ -3,11 +3,17 @@
  *
  * Wraps API route handlers with permission checking logic.
  * Automatically denies access if user lacks required permissions.
+ *
+ * TASK-013 Part 2: Enhanced with member client-scoped access checks
+ * - Verifies Members have access to specific clients
+ * - Uses role hierarchy for early permission denials
+ * - Logs client-scoped access attempts for audit trail
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase';
 import { permissionService } from './permission-service';
+import { enforceClientAccess, logClientAccessAttempt } from './client-access';
 import type { ResourceType, PermissionAction } from './types';
 
 export interface PermissionRequirement {
@@ -32,6 +38,7 @@ export interface AuthenticatedRequest extends NextRequest {
 /**
  * Shared helper: Authenticate and fetch app user
  * Used by all middleware wrappers to avoid duplication
+ * Returns supabase client for use in downstream permission checks (TASK-013 Part 2)
  */
 async function authenticateUser(): Promise<
   | {
@@ -44,6 +51,7 @@ async function authenticateUser(): Promise<
         role_id: string | null;
         is_owner: boolean;
       };
+      supabase: any; // Supabase client for downstream permission checks
     }
   | { success: false; response: NextResponse }
 > {
@@ -85,7 +93,7 @@ async function authenticateUser(): Promise<
     };
   }
 
-  return { success: true, user, agencyId, appUser };
+  return { success: true, user, agencyId, appUser, supabase };
 }
 
 /**
@@ -122,7 +130,7 @@ export function withPermission(requirement: PermissionRequirement) {
           return authResult.response;
         }
 
-        const { user, agencyId, appUser } = authResult;
+        const { user, agencyId, appUser, supabase } = authResult;
 
         // 2. Fetch user permissions
         const permissions = await permissionService.getUserPermissions(
@@ -172,6 +180,46 @@ export function withPermission(requirement: PermissionRequirement) {
             },
             { status: 403 }
           );
+        }
+
+        // 4b. TASK-013 Part 2: For client-scoped resources, verify member has access to specific client
+        if (clientId && requirement.resource === 'clients') {
+          const hasClientAccess = await enforceClientAccess(
+            user.id,
+            agencyId,
+            clientId,
+            requirement.action as 'read' | 'write',
+            supabase
+          );
+
+          if (!hasClientAccess) {
+            // Log client access denial for audit
+            logClientAccessAttempt(user.id, clientId, requirement.action, false, {
+              path: req.nextUrl.pathname,
+              method: req.method,
+              roleId: appUser.role_id,
+            });
+
+            console.warn('[withPermission] Client access denied for member:', {
+              userId: user.id,
+              clientId,
+              action: requirement.action,
+              path: req.nextUrl.pathname,
+              method: req.method,
+            });
+
+            return NextResponse.json(
+              {
+                error: 'Forbidden',
+                code: 'CLIENT_ACCESS_DENIED',
+                message: `You do not have permission to access this client. Contact your administrator if you believe you should have access.`,
+              },
+              { status: 403 }
+            );
+          }
+
+          // Log successful access for audit
+          logClientAccessAttempt(user.id, clientId, requirement.action, true);
         }
 
         // 5. Permission granted - attach user to request and call handler
@@ -330,7 +378,7 @@ export function withOwnerOnly() {
           return authResult.response;
         }
 
-        const { user, agencyId, appUser } = authResult;
+        const { user, agencyId, appUser, supabase } = authResult;
 
         if (!appUser.is_owner) {
           console.warn('[withOwnerOnly] Access denied - not owner:', {

@@ -19,12 +19,18 @@ vi.mock('@/lib/rbac/permission-service', () => ({
   },
 }));
 
+vi.mock('@/lib/rbac/client-access', () => ({
+  enforceClientAccess: vi.fn().mockResolvedValue(true),
+  logClientAccessAttempt: vi.fn(),
+}));
+
 vi.mock('next/headers', () => ({
   cookies: vi.fn(),
 }));
 
 import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase';
 import { permissionService } from '@/lib/rbac/permission-service';
+import * as clientAccessModule from '@/lib/rbac/client-access';
 
 describe('RBAC Middleware Edge Cases', () => {
   beforeEach(() => {
@@ -163,6 +169,9 @@ describe('RBAC Middleware Edge Cases', () => {
         capturedClientId = clientId;
         return true;
       });
+
+      // Mock enforceClientAccess to return true for this test
+      vi.spyOn(clientAccessModule, 'enforceClientAccess').mockResolvedValue(true);
 
       const handler = vi.fn().mockResolvedValue(new Response('OK'));
       const middleware = withPermission({ resource: 'clients', action: 'read' })(handler);
