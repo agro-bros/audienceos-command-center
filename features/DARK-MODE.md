@@ -128,13 +128,28 @@ Add light/dark mode toggle in Settings with:
 
 ### Session 1 (2026-01-08)
 
-**Started:** Created feature branch `feature/dark-mode-toggle`
+**Completed:**
+- ✅ Created feature branch `feature/dark-mode-toggle`
+- ✅ Created comprehensive feature spec with ICE-T + 80/20 breakdown
+- ✅ Updated features/INDEX.md registry
+- ✅ Created 8-task todo list
+- ✅ Researched Linear's official dark theme colors (Midnight: #0F0F10, #EEEFF1, #D25E65)
+- ✅ Added Top Rule #10 to global PAI system: Feature Request Protocol
+- ✅ Updated project template with Feature Request Protocol reference
+- ✅ Stored meta-learnings in mem0
 
-**Next Steps:**
-1. Use Claude in Chrome to extract Linear dark colors from Mobbin
-2. Create DB migration for `theme` column
-3. Update TypeScript types
-4. Begin implementing toggle in Settings
+**Blocked:**
+- Claude in Chrome MCP not available in this session
+- Need new session with Chrome MCP to access Mobbin Linear folder
+
+**Next Session:**
+1. Use Claude in Chrome to extract Linear dark colors from Mobbin (user's curated folder)
+2. Document color system in docs/03-design/LINEAR-DARK-MODE-COLORS.md
+3. Create DB migration for `theme` column
+4. Update TypeScript types
+5. Begin implementing toggle in Settings
+
+**Meta-Work:** 1 DU spent on PAI system improvement (Feature Request Protocol)
 
 ---
 
