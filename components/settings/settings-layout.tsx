@@ -28,6 +28,7 @@ const accountItems: Array<{
 }> = [
   { id: "notifications", label: "Notifications" },
   { id: "display_preferences", label: "Display" },
+  { id: "security", label: "Security" },
 ]
 
 interface SettingsLayoutProps {

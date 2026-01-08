@@ -149,7 +149,7 @@ export const SETTINGS_PERMISSIONS: SettingsPermission[] = [
   { section: 'pipeline', action: 'write', roles: ['admin'] },
   { section: 'integrations', action: 'read', roles: ['admin', 'user'] },
   { section: 'integrations', action: 'write', roles: ['admin'] },
-  { section: 'security', action: 'read', roles: ['admin'] },
+  { section: 'security', action: 'read', roles: ['admin', 'user'] },  // All users need logout access
   { section: 'security', action: 'write', roles: ['admin'] },
   { section: 'audit_log', action: 'read', roles: ['admin'] },
 ]

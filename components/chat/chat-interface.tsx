@@ -723,12 +723,12 @@ export function ChatInterface({
               style={{ minHeight: 0 }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="text-gray-500 text-center py-8">
+                <div className="text-gray-500 dark:text-gray-400 text-center py-8">
                   <div className="flex flex-col items-center">
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-black/5 mb-4">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-black/5 dark:border-white/10 mb-4">
                       <Sparkles className="h-8 w-8 text-blue-500" />
                     </div>
-                    <p className="text-sm text-gray-500 max-w-[400px]">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[400px]">
                       Ask me anything about your clients, alerts, or agency data.
                       I can search your knowledge base and help with insights.
                     </p>
@@ -760,12 +760,12 @@ export function ChatInterface({
                       "relative p-3 rounded-lg max-w-[85%]",
                       msg.role === "user"
                         ? "bg-blue-500 text-white"
-                        : "bg-white/40 text-gray-900 border border-white/40 backdrop-blur-sm"
+                        : "bg-white/60 dark:bg-slate-800/80 text-gray-900 dark:text-gray-100 border border-white/40 dark:border-slate-700 backdrop-blur-sm"
                     )}
                   >
                     <div className="text-[15px] leading-[1.45]">
                       {msg.role === "assistant" ? (
-                        <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_p_strong:first-child]:block [&_p_strong:first-child]:-mb-1 [&_p:has(strong:first-child)]:mt-5 [&_h1]:mt-6 [&_h1]:mb-1.5 [&_h2]:mt-5 [&_h2]:mb-1 [&_h3]:mt-4 [&_h3]:mb-0.5 [&_h4]:mt-3 [&_h4]:mb-0.5">
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_p_strong:first-child]:block [&_p_strong:first-child]:-mb-1 [&_p:has(strong:first-child)]:mt-5 [&_h1]:mt-6 [&_h1]:mb-1.5 [&_h2]:mt-5 [&_h2]:mb-1 [&_h3]:mt-4 [&_h3]:mb-0.5 [&_h4]:mt-3 [&_h4]:mb-0.5">
                           <MessageContent
                             content={msg.content}
                             citations={msg.citations}
@@ -779,7 +779,7 @@ export function ChatInterface({
 
                   {/* Citations Footer */}
                   {msg.role === "assistant" && msg.citations && msg.citations.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-black/10 text-xs text-gray-600 space-y-1 max-w-[85%]">
+                    <div className="mt-2 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-gray-600 dark:text-gray-400 space-y-1 max-w-[85%]">
                       {msg.citations.map((citation, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <span className="text-blue-600 font-medium">[{citation.index || idx + 1}]</span>
@@ -819,7 +819,7 @@ export function ChatInterface({
               {/* Streaming message */}
               {isLoading && streaming.displayedText && (
                 <div className="flex flex-col items-start">
-                  <div className="max-w-[80%] p-3 rounded-lg bg-white/40 text-gray-900 border border-white/40 backdrop-blur-sm">
+                  <div className="max-w-[80%] p-3 rounded-lg bg-white/60 dark:bg-slate-800/80 text-gray-900 dark:text-gray-100 border border-white/40 dark:border-slate-700 backdrop-blur-sm">
                     <p className="text-[14px] leading-[1.5]">
                       {streaming.displayedText}
                       {streaming.isAnimating && <TypingCursor visible />}
@@ -830,8 +830,8 @@ export function ChatInterface({
 
               {/* Loading indicator */}
               {isLoading && !streaming.displayedText && (
-                <div className="flex items-center gap-3 text-gray-600">
-                  <div className="p-2 rounded-lg bg-white/40 backdrop-blur-sm border border-white/40">
+                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm border border-white/40 dark:border-slate-700">
                     <Loader2 className="h-4 w-4 animate-spin" />
                   </div>
                   <span className="text-sm">Thinking...</span>
