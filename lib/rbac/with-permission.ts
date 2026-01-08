@@ -132,10 +132,11 @@ export function withPermission(requirement: PermissionRequirement) {
 
         const { user, agencyId, appUser, supabase } = authResult;
 
-        // 2. Fetch user permissions
+        // 2. Fetch user permissions (pass supabase client for server context)
         const permissions = await permissionService.getUserPermissions(
           user.id,
-          agencyId
+          agencyId,
+          supabase
         );
 
         // 3. Extract client ID from request if needed
@@ -307,11 +308,12 @@ export function withAnyPermission(requirements: PermissionRequirement[]) {
         return authResult.response;
       }
 
-      const { user, agencyId, appUser } = authResult;
+      const { user, agencyId, appUser, supabase } = authResult;
 
       const permissions = await permissionService.getUserPermissions(
         user.id,
-        agencyId
+        agencyId,
+        supabase
       );
 
       // Check if user has ANY of the required permissions
