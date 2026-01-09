@@ -336,7 +336,7 @@ export function TeamMembersSection() {
         throw new Error(err.error || 'Failed to fetch team members')
       }
       const data = await response.json()
-      setTeamMembers(data.users || [])
+      setTeamMembers(data.data || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load team members')
     } finally {
