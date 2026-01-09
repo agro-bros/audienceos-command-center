@@ -24,7 +24,35 @@ _Last check: 2026-01-09 08:30 (Post RBAC Unification)_
 
 ## 📊 Session Summary (2026-01-09)
 
-### CRITICAL BUG FIX: RBAC Auth Store Unification - COMPLETE ✅
+### CRITICAL BUG FIX: Team Members Display - COMPLETE ✅
+
+**Context:** Team Members section showing "No members found" despite API returning 13 users correctly. Investigation revealed API response shape mismatch.
+
+**Root Cause Analysis:**
+- **API Response:** `/api/v1/settings/users` returns `{ data: [...], pagination: {...} }`
+- **Frontend Code:** `setTeamMembers(data.users || [])` expected `data.users`
+- **Bug Impact:** Frontend looking for wrong property, so `data.users` was undefined → empty array
+
+**Fix Applied (Commit e5a712b):**
+- File: `components/settings/sections/team-members-section.tsx` line 339
+- Change: `setTeamMembers(data.users || [])` → `setTeamMembers(data.data || [])`
+- **Single line fix** - frontend now matches API response shape
+
+**Verification:**
+- ✅ Browser JS test: `{ dataLength: 13, hasDataKey: true, hasUsersKey: false }`
+- ✅ Live UI test: All 13 team members display correctly
+- ✅ No console errors
+- ✅ 586 tests pass, build succeeds
+- ✅ Deployed to production
+
+**RBAC Testing Also Complete:**
+- ✅ Admin role (Roderic Andrews): Full access to Settings → Default Team
+- ✅ User role (RBAC Test User): Gets "Forbidden" on team management (correct!)
+- ✅ Auth store unification working - no more `userRole: null` bugs
+
+**Key Learning:** API response shape contracts matter - always verify actual vs expected data structure when debugging empty lists.
+
+### PREVIOUS: RBAC Auth Store Unification - COMPLETE ✅
 
 **Context:** Deep first-principles audit discovered RBAC components were silently failing because they imported from a stub auth store that always returned `userRole: null`.
 
