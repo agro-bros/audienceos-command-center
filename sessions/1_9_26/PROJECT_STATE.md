@@ -2,9 +2,10 @@
 
 ## Current Status
 - Database: MIGRATED to new `command_center` project
-- Google OAuth Backend: CONFIGURED (provider enabled, callback route created)
+- Google OAuth Backend: ✅ TESTED & WORKING (provider enabled, callback route created, credentials fixed)
 - Google OAuth Frontend: NOT STARTED (Roderick's task)
 - Feature Branch: `trevor/oauth-backend` pushed to origin
+- OAuth Test Page: Created at `/test-oauth` (temporary)
 
 ## What Is Canonical
 1. Supabase Project: `command_center` (ID: `qzkirjjrcblkqvhvalue`)

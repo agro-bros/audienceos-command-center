@@ -14,7 +14,7 @@
 - User enabled Google provider in Supabase Dashboard
 - User verified redirect URIs in Google Cloud Console
 - Credentials configured:
-  - Client ID: `956161516382-vgo6cbv9ldp6nnh88n1tb3g5gog17kb.apps.googleusercontent.com`
+  - Client ID: `[CONFIGURED IN SUPABASE DASHBOARD - see Google Cloud Console]`
   - Callback URL: `https://qzkirjjrcblkqvhvalue.supabase.co/auth/v1/callback`
 
 ### Git Work
@@ -90,7 +90,7 @@
 |------|-------|
 | Supabase Project ID | `qzkirjjrcblkqvhvalue` |
 | Supabase URL | `https://qzkirjjrcblkqvhvalue.supabase.co` |
-| Google Client ID | `956161516382-vgo6cbv9ldp6nnh88n1tb3g5gog17kb.apps.googleusercontent.com` |
-| Google Client Secret | `G0CSPX-13Zc9w9ULj6rtlD5qPdd6xaYmsw` |
+| Google Client ID | `[See Google Cloud Console]` |
+| Google Client Secret | `[See Google Cloud Console]` |
 | OAuth Callback (Supabase) | `https://qzkirjjrcblkqvhvalue.supabase.co/auth/v1/callback` |
 | Production URL | `https://audienceos-agro-bros.vercel.app` |

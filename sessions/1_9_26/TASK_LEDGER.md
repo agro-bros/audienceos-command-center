@@ -11,12 +11,23 @@
 - 2026-01-09: User verified Google Cloud Console redirect URIs
 
 ## In Progress
-- OAuth test page (`app/test-oauth/page.tsx`) - planned but not yet implemented
 - Handoff documentation (this file)
+
+## Completed (Continued Session)
+- 2026-01-09: Created `.env.local` with new Supabase credentials
+- 2026-01-09: Created OAuth test page (`app/test-oauth/page.tsx`)
+- 2026-01-09: Added `/test-oauth` to middleware PUBLIC_ROUTES
+- 2026-01-09: Fixed Google OAuth credentials in Supabase Dashboard
+  - Old (wrong): `956161516382-vgo6cbv9ldp6nnh88n1tb3g5gog17kb.apps.googleusercontent.com`
+  - New (correct): `513096303070-nqi2b2n8e6i9l0uaj51ndqbbmhqms2fa.apps.googleusercontent.com`
+- 2026-01-09: **OAuth flow tested successfully** - User signed in with Google
 
 ## Blocked
 - Frontend OAuth UI - waiting for Roderick
-- Full end-to-end OAuth testing - needs test page or frontend implementation
+
+## Future Tasks (Reminders)
+- [ ] Remove `/test-oauth` page and middleware entry after OAuth is integrated into login page
+  - Files: `app/test-oauth/page.tsx`, `middleware.ts` (line 65)
 
 ## Next Actions
 1. Create OAuth test page to verify configuration works

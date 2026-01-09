@@ -62,6 +62,7 @@ const PUBLIC_ROUTES = [
   '/api/v1/oauth/callback', // OAuth callback needs to work without auth
   '/api/v1/settings/invitations/', // Invitation validation/accept API (public for invite flow)
   '/invite', // Invitation acceptance pages
+  '/test-oauth', // OAuth test page (temporary - remove after testing)
 ]
 
 // Page routes that allow demo mode (show demo data without auth)
