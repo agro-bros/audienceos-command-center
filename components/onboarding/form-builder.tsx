@@ -43,7 +43,7 @@ export function FormBuilder() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-28">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-[150px]">
       {/* Left: Field List (2/3 width) */}
       <Card className="lg:col-span-2">
         <CardHeader className="pb-3">
