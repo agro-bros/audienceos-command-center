@@ -21,7 +21,12 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
   try {
     // 1. Parse request body
     const body = await request.json();
-    const { message, sessionId, agencyId, userId, stream = false } = body;
+    const { message, sessionId, stream = false } = body;
+
+    // SECURITY FIX: Use authenticated user context, NOT request body
+    // This prevents cross-agency data access via spoofed agencyId/userId
+    const agencyId = request.user.agencyId;
+    const userId = request.user.id;
 
     if (!message) {
       return NextResponse.json(

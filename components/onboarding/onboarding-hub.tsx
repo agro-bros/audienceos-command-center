@@ -19,10 +19,19 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
   const { activeTab, setActiveTab, selectedInstance } = useOnboardingStore()
   const [showTriggerModal, setShowTriggerModal] = useState(false)
 
-  const handleCopyPortalLink = () => {
+  const handleCopyPortalLink = async () => {
     if (selectedInstance?.portal_url) {
-      navigator.clipboard.writeText(selectedInstance.portal_url)
-      toast.success("Portal link copied to clipboard")
+      // Guard: Check if clipboard API is available (HTTPS, supported browser)
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        try {
+          await navigator.clipboard.writeText(selectedInstance.portal_url)
+          toast.success("Portal link copied to clipboard")
+        } catch {
+          toast.error("Failed to copy to clipboard")
+        }
+      } else {
+        toast.error("Clipboard not available (requires HTTPS)")
+      }
     } else {
       toast.error("Select an onboarding first")
     }
@@ -30,7 +39,13 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
 
   const handleViewAsClient = () => {
     if (selectedInstance?.portal_url) {
-      window.open(selectedInstance.portal_url, "_blank")
+      // Security: Validate URL starts with https:// to prevent javascript: injection
+      const url = selectedInstance.portal_url
+      if (url.startsWith("https://") || url.startsWith("http://")) {
+        window.open(url, "_blank", "noopener,noreferrer")
+      } else {
+        toast.error("Invalid portal URL")
+      }
     } else {
       toast.error("Select an onboarding first")
     }
@@ -84,7 +99,7 @@ export function OnboardingHub({ onClientClick }: OnboardingHubProps) {
         </TabsList>
 
         <TabsContent value="active" className="flex-1 min-h-0 mt-6 overflow-y-auto pb-[150px]">
-          <ActiveOnboardings />
+          <ActiveOnboardings onClientClick={onClientClick} />
         </TabsContent>
 
         <TabsContent value="journey" className="flex-1 min-h-0 mt-6 overflow-y-auto pb-[150px]">

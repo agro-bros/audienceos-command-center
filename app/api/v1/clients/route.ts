@@ -9,11 +9,11 @@ import type { HealthStatus } from '@/types/database'
 const VALID_STAGES = ['Lead', 'Onboarding', 'Installation', 'Audit', 'Live', 'Needs Support', 'Off-Boarding']
 const VALID_HEALTH_STATUSES: HealthStatus[] = ['green', 'yellow', 'red']
 
-// Mock mode detection
+// Mock mode detection - EXPLICIT FLAG ONLY (fixed 2026-01-10)
+// Previously used URL inspection which could accidentally enable mock mode
+// if URL contained 'placeholder' or was missing. Now requires explicit flag.
 const isMockMode = () => {
-  if (process.env.NEXT_PUBLIC_MOCK_MODE === 'true') return true
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  return url.includes('placeholder') || url === ''
+  return process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 }
 
 // Mock client data for demo

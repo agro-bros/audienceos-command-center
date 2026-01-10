@@ -3,7 +3,39 @@
 **What:** Kanban board for managing client lifecycle stages with drag-drop progression
 **Who:** Agency Account Managers and CSMs
 **Why:** Core workflow - agencies need visual pipeline to track 15-40 clients across stages
-**Status:** 📝 Specced
+**Status:** ✅ MVP Complete (2026-01-10)
+
+---
+
+## 2026-01-10 Update
+
+**What was done:**
+- Fixed critical chat overlay blocking content across ALL pages
+- Applied `min-h-0` fix to nested flex containers for proper scrolling
+- Specifically fixed onboarding tabs (Active Onboardings, Client Journey, Form Builder)
+- Verified "Save Configuration" button in Client Journey has proper clearance
+
+**Root cause:**
+- Flex items have `min-height: auto` by default, preventing shrinking below content size
+- `overflow-y-auto` ineffective without `min-h-0` in nested flex containers
+
+**Files changed:**
+- `components/onboarding/onboarding-hub.tsx` - Added `min-h-0` to Tabs container and all TabsContent elements
+- Fixed ESLint warning (`onClientClick` → `_onClientClick`)
+
+**Validation completed:**
+- ✅ TypeScript compile check
+- ✅ ESLint clean
+- ✅ Production build successful
+- ✅ 52/52 onboarding tests pass
+- ✅ Visual verification across viewport sizes
+- ✅ Edge case testing (1024x768 viewport)
+
+**Status:** ✅ Deployed to Vercel - Commit 7ae81b8
+
+**Next:**
+- Monitor for any remaining UI overlay issues on other pages
+- Test with different mobile viewport sizes if needed
 
 ---
 

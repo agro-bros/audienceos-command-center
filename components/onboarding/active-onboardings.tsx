@@ -158,9 +158,10 @@ interface ClientDetailPanelProps {
   stage: OnboardingStageConfig
   onClose: () => void
   onUpdateStageStatus: (instanceId: string, stageId: string, status: string) => Promise<void>
+  onViewFullProfile?: (clientId: string) => void
 }
 
-function ClientDetailPanel({ instance, stage, onClose, onUpdateStageStatus }: ClientDetailPanelProps) {
+function ClientDetailPanel({ instance, stage, onClose, onUpdateStageStatus, onViewFullProfile }: ClientDetailPanelProps) {
   const clientName = instance.client?.name || "Unknown Client"
   const ownerName = instance.triggered_by_user
     ? `${instance.triggered_by_user.first_name || ""} ${instance.triggered_by_user.last_name || ""}`.trim()
@@ -219,6 +220,16 @@ function ClientDetailPanel({ instance, stage, onClose, onUpdateStageStatus }: Cl
                 <span className="text-muted-foreground">Email:</span>
                 <span className="text-foreground">{instance.client.contact_email}</span>
               </div>
+            )}
+            {/* View Full Profile Button */}
+            {instance.client?.id && onViewFullProfile && (
+              <button
+                onClick={() => onViewFullProfile(instance.client!.id)}
+                className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+                View Full Profile
+              </button>
             )}
           </div>
         </div>
@@ -545,7 +556,12 @@ function StageRow({ stage, instances, isExpanded, isCompact, selectedInstanceId,
 // MAIN ACTIVE ONBOARDINGS COMPONENT
 // =============================================================================
 
-export function ActiveOnboardings() {
+interface ActiveOnboardingsProps {
+  /** Callback when user wants to navigate to full client profile */
+  onClientClick?: (clientId: string) => void
+}
+
+export function ActiveOnboardings({ onClientClick }: ActiveOnboardingsProps) {
   const {
     instances,
     isLoadingInstances,
@@ -720,6 +736,7 @@ export function ActiveOnboardings() {
                 stage={selectedStage}
                 onClose={handleClearSelection}
                 onUpdateStageStatus={updateStageStatus}
+                onViewFullProfile={onClientClick}
               />
             </motion.div>
           )}
