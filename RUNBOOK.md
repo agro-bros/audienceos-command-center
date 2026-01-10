@@ -442,7 +442,29 @@ After ANY UI changes, verify:
 □ Interactive elements (checkboxes, toggles) actually respond to clicks
 □ Scroll containers have overflow-y-auto AND max-height set
 □ Flex layouts with button anchoring use flex-col + mt-auto pattern
+□ CHAT PADDING: All page containers have pb-28 (112px bottom padding) for chat overlay
 ```
+
+### ⚠️ Chat Overlay Padding (UI-002)
+
+**CRITICAL:** Every page MUST have ~100-112px bottom padding (`pb-28`) to accommodate the chat overlay.
+
+**Problem:** The chat interface sits at the bottom of the screen. Without bottom padding, content (buttons, form fields like "Add Field") gets hidden behind the chat.
+
+**Solution:** Add `pb-28` class to main content containers:
+```tsx
+// ✅ CORRECT - has bottom padding for chat
+<div className="h-full flex flex-col p-6 pb-28">
+
+// ❌ WRONG - content will be covered by chat
+<div className="h-full flex flex-col p-6">
+```
+
+**Affected pages to check:**
+- All settings pages
+- Onboarding Hub (Form Builder tab especially)
+- Client detail pages
+- Any page with scrollable content
 
 ### Related Error Patterns
 See `~/.claude/troubleshooting/error-patterns.md`:

@@ -146,9 +146,10 @@ interface ClientDetailPanelProps {
   instance: OnboardingInstanceWithRelations
   stage: OnboardingStageConfig
   onClose: () => void
+  onUpdateStageStatus: (instanceId: string, stageId: string, status: string) => Promise<void>
 }
 
-function ClientDetailPanel({ instance, stage, onClose }: ClientDetailPanelProps) {
+function ClientDetailPanel({ instance, stage, onClose, onUpdateStageStatus }: ClientDetailPanelProps) {
   const clientName = instance.client?.name || "Unknown Client"
   const ownerName = instance.triggered_by_user
     ? `${instance.triggered_by_user.first_name || ""} ${instance.triggered_by_user.last_name || ""}`.trim()
@@ -216,6 +217,7 @@ function ClientDetailPanel({ instance, stage, onClose }: ClientDetailPanelProps)
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Journey Progress
           </h3>
+          <p className="text-xs text-muted-foreground">Click to toggle completion status</p>
           <div className="space-y-1">
             {stages.map((s) => {
               const status = stageStatusMap.get(s.id) || "pending"
@@ -223,11 +225,19 @@ function ClientDetailPanel({ instance, stage, onClose }: ClientDetailPanelProps)
               const isInProgress = status === "in_progress"
               const isBlocked = status === "blocked"
 
+              // Toggle handler - completed ↔ pending
+              const handleToggle = async () => {
+                const newStatus = isCompleted ? "pending" : "completed"
+                await onUpdateStageStatus(instance.id, s.id, newStatus)
+              }
+
               return (
-                <div
+                <button
                   key={s.id}
+                  onClick={handleToggle}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg",
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer",
+                    "hover:ring-2 hover:ring-primary/30",
                     isCompleted && "bg-emerald-500/5",
                     isInProgress && "bg-blue-500/5",
                     isBlocked && "bg-red-500/5",
@@ -244,12 +254,12 @@ function ClientDetailPanel({ instance, stage, onClose }: ClientDetailPanelProps)
                     <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
                   <span className={cn(
-                    "text-sm",
-                    isCompleted ? "text-muted-foreground" : "text-foreground"
+                    "text-sm text-left flex-1",
+                    isCompleted && "line-through text-muted-foreground"
                   )}>
                     {s.name}
                   </span>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -444,12 +454,24 @@ export function ActiveOnboardings() {
     instances,
     isLoadingInstances,
     fetchInstances,
+    selectedInstance,
+    setSelectedInstanceId,
+    updateStageStatus,
   } = useOnboardingStore()
 
   const [expandedStages, setExpandedStages] = useState<Set<OnboardingStageId>>(
     new Set(["intake", "access", "installation"])
   )
-  const [selectedInstance, setSelectedInstance] = useState<OnboardingInstanceWithRelations | null>(null)
+
+  // Handler to select instance - updates store so buttons work
+  const handleSelectInstance = (instance: OnboardingInstanceWithRelations) => {
+    setSelectedInstanceId(instance.id)
+  }
+
+  // Handler to clear selection
+  const handleClearSelection = () => {
+    setSelectedInstanceId(null)
+  }
 
   const slideTransition = useSlideTransition()
 
@@ -536,7 +558,7 @@ export function ActiveOnboardings() {
                 isCompact={isCompact}
                 selectedInstanceId={selectedInstance?.id || null}
                 onToggle={() => toggleStage(stage.id)}
-                onInstanceSelect={setSelectedInstance}
+                onInstanceSelect={handleSelectInstance}
               />
             )
           })}
@@ -557,7 +579,8 @@ export function ActiveOnboardings() {
             <ClientDetailPanel
               instance={selectedInstance}
               stage={selectedStage}
-              onClose={() => setSelectedInstance(null)}
+              onClose={handleClearSelection}
+              onUpdateStageStatus={updateStageStatus}
             />
           </motion.div>
         )}
