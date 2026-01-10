@@ -6,6 +6,39 @@
 
 ---
 
+## 2026-01-10 19:40 Update - UI Bug Fixes
+
+**What was done:**
+- Fixed Journey Progress checkboxes not clickable - added onClick handlers
+- Fixed Copy Portal Link and View as Client buttons - resolved state sync issue
+- Implemented optimistic updates for super slow clicking performance
+- Updated Form Builder layout from 50/50 to 2/3-1/3 split as requested
+- Made all input text 1pt smaller and more compact throughout
+- Added proper bottom padding to prevent chat overlay blocking content
+
+**Root causes identified:**
+- Missing onClick handlers in journey progress items
+- State sync mismatch between local component state and global store
+- Sequential API calls causing performance bottleneck
+- CSS grid layout not matching UX requirements
+
+**Files changed:**
+- stores/onboarding-store.ts - Optimistic updates implementation
+- components/onboarding/active-onboardings.tsx - Clickable checkboxes + button sync
+- components/onboarding/form-builder.tsx - 2/3-1/3 layout + chat padding
+- components/onboarding/field-row.tsx - Compact field sizing
+- components/onboarding/form-preview.tsx - Smaller preview inputs
+- components/onboarding/onboarding-hub.tsx - Chat overlay padding
+- RUNBOOK.md - Added UI-002 Chat Overlay requirement
+
+**Status:** ✅ All UI Issues Resolved - Deployed to Production
+
+**Performance Impact:** Click feedback now instant (optimistic updates), Form Builder properly sized
+
+**Next:** Continue onboarding flow enhancements and user experience improvements
+
+---
+
 ## Executive Summary
 
 Enhance the Onboarding Hub to match the v0 prototype, adding 3-tab navigation, Trigger Onboarding modal, Form Builder, Client Journey configuration, and DataForSEO integration for automatic SEO enrichment during client onboarding.
