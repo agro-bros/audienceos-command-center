@@ -15,7 +15,8 @@ interface OnboardingCardProps {
 
 export function OnboardingCard({ instance, isSelected, onClick }: OnboardingCardProps) {
   const clientName = instance.client?.name || "Unknown Client"
-  const clientTier = instance.client?.tier || "Core"
+  // Note: tier is not stored in database - using client stage or default
+  const clientTier = instance.client?.stage === "Enterprise" ? "Enterprise" : "Core"
   const ownerName = instance.triggered_by_user
     ? `${instance.triggered_by_user.first_name || ""} ${instance.triggered_by_user.last_name || ""}`.trim()
     : "Unknown"
