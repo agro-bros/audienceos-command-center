@@ -1,5 +1,32 @@
 "use client"
 
+/**
+ * @fileoverview Active Onboardings - Accordion UI with Animated Detail Panel
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🛡️  PROTECTED COMPONENT - DO NOT REMOVE OR REPLACE                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  This component displays the beautiful accordion-style onboarding         ║
+ * ║  pipeline that Chase specifically requested. It features:                 ║
+ * ║                                                                           ║
+ * ║  • 6 expandable stage cards with Framer Motion animations                 ║
+ * ║  • Sliding detail panel when selecting a client                           ║
+ * ║  • Real-time connection to onboarding store data                          ║
+ * ║  • Compact mode for side-by-side viewing                                  ║
+ * ║                                                                           ║
+ * ║  History:                                                                 ║
+ * ║  - Original: Created with accordion stages (pre-2026-01-08)               ║
+ * ║  - Removed: Accidentally replaced with simple grid (2026-01-08)           ║
+ * ║  - Restored: By user request (2026-01-10, commit 363e09f)                 ║
+ * ║                                                                           ║
+ * ║  User quote: "It was really beautiful and it had an animation and         ║
+ * ║  everything. Things you clicked on it and it dropped down."               ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ *
+ * @author Chi (restored by request)
+ * @since 2026-01-10
+ */
+
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSlideTransition } from "@/hooks/use-slide-transition"

@@ -295,6 +295,29 @@ gemini-3-flash-preview
 
 ---
 
+## 🛡️ Protected Components (DO NOT REMOVE)
+
+Some components have been specifically requested by Chase and must be preserved:
+
+| Component | File | Why Protected |
+|-----------|------|---------------|
+| **Active Onboardings Accordion** | `components/onboarding/active-onboardings.tsx` | Beautiful accordion UI with Framer Motion animations. Restored 2026-01-10 after accidental replacement. |
+
+**Protection Rules:**
+- **Never replace** these with simpler alternatives
+- **Never remove** the animations (they're the point!)
+- If modifying, **preserve the accordion structure** and slide-in detail panel
+- When in doubt, **ask before changing**
+
+**Active Onboardings Features to Preserve:**
+- 6 expandable stage cards (Intake, Access, Installation, Audit, Live, Needs Support)
+- Click-to-expand accordion behavior
+- Slide-in client detail panel from the right
+- Compact mode (panel shrinks to 320px when detail open)
+- Framer Motion AnimatePresence transitions
+
+---
+
 ## Known Issues & Fixes
 
 ### Authentication in API Calls (Fixed 2026-01-05)
