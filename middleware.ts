@@ -58,6 +58,9 @@ function ensureCsrfCookie(request: NextRequest, response: NextResponse): NextRes
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/login',
+  '/signup', // Account creation page
+  '/forgot-password', // Password reset request page
+  '/reset-password', // Password reset completion page (from email link)
   '/auth/callback',
   '/api/v1/oauth/callback', // OAuth callback needs to work without auth
   '/api/v1/settings/invitations/', // Invitation validation/accept API (public for invite flow)
