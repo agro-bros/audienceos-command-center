@@ -7,6 +7,21 @@ import { FormPreview } from "./form-preview"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Loader2, FileText } from "lucide-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
 
 export function FormBuilder() {
   const {
@@ -17,21 +32,55 @@ export function FormBuilder() {
     createField,
     updateField,
     deleteField,
+    reorderFields,
   } = useOnboardingStore()
+
+  // Set up drag sensors with minimal distance to start
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     fetchFields()
   }, [fetchFields])
 
-  const handleAddField = async () => {
+  const handleAddField = () => {
     const maxSortOrder = Math.max(...fields.map((f) => f.sort_order), 0)
-    await createField({
+    // Optimistic - store handles instant UI update
+    createField({
       field_label: "New Field",
       field_type: "text",
       placeholder: "",
       is_required: false,
       sort_order: maxSortOrder + 1,
     })
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const sortedFields = [...fields].sort((a, b) => a.sort_order - b.sort_order)
+      const oldIndex = sortedFields.findIndex((f) => f.id === active.id)
+      const newIndex = sortedFields.findIndex((f) => f.id === over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedFields = arrayMove(sortedFields, oldIndex, newIndex)
+        // Update sort_order for each field
+        const updates = reorderedFields.map((field, index) => ({
+          id: field.id,
+          sort_order: index + 1,
+        }))
+        reorderFields(updates)
+      }
+    }
   }
 
   if (isLoadingFields && fields.length === 0) {
@@ -41,6 +90,8 @@ export function FormBuilder() {
       </div>
     )
   }
+
+  const sortedFields = [...fields].sort((a, b) => a.sort_order - b.sort_order)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-[150px]">
@@ -62,17 +113,26 @@ export function FormBuilder() {
               <p className="text-sm">Add your first field to get started</p>
             </div>
           ) : (
-            fields
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((field) => (
-                <FieldRow
-                  key={field.id}
-                  field={field}
-                  onUpdate={updateField}
-                  onDelete={deleteField}
-                  isUpdating={isSavingField}
-                />
-              ))
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedFields.map((f) => f.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {sortedFields.map((field) => (
+                  <FieldRow
+                    key={field.id}
+                    field={field}
+                    onUpdate={updateField}
+                    onDelete={deleteField}
+                    isUpdating={isSavingField}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           )}
 
           <Button

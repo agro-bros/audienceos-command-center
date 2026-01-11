@@ -93,6 +93,7 @@ interface OnboardingState {
   createField: (data: Partial<IntakeFormField>) => Promise<void>
   updateField: (id: string, data: Partial<IntakeFormField>) => Promise<void>
   deleteField: (id: string) => Promise<void>
+  reorderFields: (updates: Array<{ id: string; sort_order: number }>) => Promise<void>
 
   // Actions - Instances
   fetchInstances: (status?: string) => Promise<void>
@@ -216,7 +217,29 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
 
       createField: async (data) => {
-        set({ isSavingField: true })
+        // Optimistic update - add field to UI immediately with temp ID
+        const tempId = `temp-${Date.now()}`
+        const tempField: IntakeFormField = {
+          id: tempId,
+          agency_id: '',
+          journey_id: null,
+          field_label: data.field_label || 'New Field',
+          field_type: (data.field_type as IntakeFormField['field_type']) || 'text',
+          placeholder: data.placeholder || null,
+          is_required: data.is_required ?? false,
+          is_active: true,
+          options: null,
+          sort_order: data.sort_order ?? 0,
+          validation_regex: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        set({
+          fields: [...get().fields, tempField],
+          isSavingField: true
+        })
+
         try {
           const response = await fetchWithCsrf('/api/v1/onboarding/fields', {
             method: 'POST',
@@ -226,11 +249,20 @@ export const useOnboardingStore = create<OnboardingState>()(
 
           if (!response.ok) throw new Error('Failed to create field')
 
-          await get().fetchFields()
-          set({ isSavingField: false })
+          const { data: newField } = await response.json()
+
+          // Replace temp field with real field from server
+          set({
+            fields: get().fields.map(f => f.id === tempId ? newField : f),
+            isSavingField: false
+          })
         } catch (error) {
           console.error('Failed to create field:', error)
-          set({ isSavingField: false })
+          // Remove temp field on error
+          set({
+            fields: get().fields.filter(f => f.id !== tempId),
+            isSavingField: false
+          })
         }
       },
 
@@ -267,6 +299,35 @@ export const useOnboardingStore = create<OnboardingState>()(
         } catch (error) {
           console.error('Failed to delete field:', error)
           set({ isSavingField: false })
+        }
+      },
+
+      reorderFields: async (updates) => {
+        // Optimistic update - reorder immediately in UI
+        const currentFields = get().fields
+        const updatedFields = currentFields.map(field => {
+          const update = updates.find(u => u.id === field.id)
+          return update ? { ...field, sort_order: update.sort_order } : field
+        })
+
+        set({ fields: updatedFields, isSavingField: true })
+
+        try {
+          // Batch update all sort orders
+          await Promise.all(
+            updates.map(update =>
+              fetchWithCsrf(`/api/v1/onboarding/fields/${update.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sort_order: update.sort_order }),
+              })
+            )
+          )
+          set({ isSavingField: false })
+        } catch (error) {
+          console.error('Failed to reorder fields:', error)
+          // Revert on error
+          set({ fields: currentFields, isSavingField: false })
         }
       },
 

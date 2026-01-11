@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { GripVertical, Trash2, Loader2 } from "lucide-react"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import type { Database } from "@/types/database"
 
 type IntakeFormField = Database['public']['Tables']['intake_form_field']['Row']
@@ -27,6 +29,20 @@ interface FieldRowProps {
 export function FieldRow({ field, onUpdate, onDelete, isUpdating }: FieldRowProps) {
   const [isDeleting, setIsDeleting] = useState(false)
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: field.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
   const handleDelete = async () => {
     setIsDeleting(true)
     await onDelete(field.id)
@@ -34,9 +50,19 @@ export function FieldRow({ field, onUpdate, onDelete, isUpdating }: FieldRowProp
   }
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg border bg-card group">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 p-2 rounded-lg border bg-card group ${
+        isDragging ? "opacity-50 shadow-lg z-50" : ""
+      }`}
+    >
       {/* Drag Handle */}
-      <div className="cursor-grab text-muted-foreground hover:text-foreground">
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+      >
         <GripVertical className="h-3.5 w-3.5" />
       </div>
 
