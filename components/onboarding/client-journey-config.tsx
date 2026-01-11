@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Video, Sparkles, Loader2, Save } from "lucide-react"
+import { Video, Sparkles, Loader2, Save, FileText } from "lucide-react"
 import { toast } from "sonner"
 
 export function ClientJourneyConfig() {
@@ -16,6 +16,7 @@ export function ClientJourneyConfig() {
   const selectedJourney = journeys.find((j) => j.id === selectedJourneyId)
 
   const [welcomeVideoUrl, setWelcomeVideoUrl] = useState("")
+  const [formIntroText, setFormIntroText] = useState("")
   const [aiAnalysisPrompt, setAiAnalysisPrompt] = useState("")
 
   // Load selected journey data
@@ -26,6 +27,7 @@ export function ClientJourneyConfig() {
   useEffect(() => {
     if (selectedJourney) {
       setWelcomeVideoUrl(selectedJourney.welcome_video_url || "")
+      setFormIntroText(selectedJourney.description || "")
       setAiAnalysisPrompt(selectedJourney.ai_analysis_prompt || "")
     }
   }, [selectedJourney])
@@ -38,6 +40,7 @@ export function ClientJourneyConfig() {
 
     await saveJourney({
       welcome_video_url: welcomeVideoUrl || null,
+      description: formIntroText || null,
       ai_analysis_prompt: aiAnalysisPrompt || null,
     })
 
@@ -78,6 +81,34 @@ export function ClientJourneyConfig() {
             />
             <p className="text-xs text-muted-foreground">
               Supports Vimeo and YouTube URLs
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Form Introduction Text */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg">Form Introduction</CardTitle>
+          </div>
+          <CardDescription>
+            Optional intro text displayed above the intake form fields
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="formIntro">Introduction Text</Label>
+            <Textarea
+              id="formIntro"
+              placeholder="Welcome! Please fill out this short form to help us get started with your account setup..."
+              value={formIntroText}
+              onChange={(e) => setFormIntroText(e.target.value)}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to show no introduction. Supports up to 500 characters.
             </p>
           </div>
         </CardContent>

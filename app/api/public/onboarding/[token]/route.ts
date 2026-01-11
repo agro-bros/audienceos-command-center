@@ -47,6 +47,7 @@ export async function GET(
         journey:journey_id (
           id,
           name,
+          description,
           welcome_video_url,
           stages
         )

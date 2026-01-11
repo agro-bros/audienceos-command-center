@@ -33,6 +33,7 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
         .from('onboarding_instance')
         .select(`
           *,
+          link_token,
           client:client_id (
             id,
             name,
@@ -78,7 +79,14 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
         return createErrorResponse(500, `Failed to fetch onboarding instances: ${error.message}`)
       }
 
-      return NextResponse.json({ data: instances })
+      // Construct portal_url for each instance from link_token
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audienceos-agro-bros.vercel.app'
+      const instancesWithPortalUrl = instances?.map(instance => ({
+        ...instance,
+        portal_url: instance.link_token ? `${baseUrl}/onboarding/start?token=${instance.link_token}` : null,
+      })) || []
+
+      return NextResponse.json({ data: instancesWithPortalUrl })
     } catch {
       return createErrorResponse(500, 'Internal server error')
     }

@@ -10,8 +10,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Check, Play, Sparkles, Loader2, Copy, ExternalLink, AlertCircle } from "lucide-react"
 import confetti from "canvas-confetti"
 import { useToast } from "@/hooks/use-toast"
+import { DynamicFormFields, useDynamicFormState } from "@/components/onboarding/dynamic-form-fields"
 
 type Step = 1 | 2 | 3 | 4
+
+interface FormField {
+  id: string
+  field_label: string
+  field_type: string
+  placeholder: string | null
+  is_required: boolean
+  options?: unknown
+  sort_order?: number
+}
 
 interface OnboardingData {
   instance: {
@@ -22,16 +33,11 @@ interface OnboardingData {
   journey: {
     id: string
     name: string
+    description?: string | null
     welcome_video_url?: string | null
     stages: unknown
   } | null
-  fields: Array<{
-    id: string
-    field_label: string
-    field_type: string
-    placeholder: string | null
-    is_required: boolean
-  }>
+  fields: FormField[]
 }
 
 function OnboardingPageContent() {
@@ -54,7 +60,10 @@ function OnboardingPageContent() {
   })
   const isInitializingRef = useRef(false)
 
-  // Step 2: Tech Stack Form
+  // Step 2: Dynamic Form State (uses Form Builder fields)
+  const dynamicForm = useDynamicFormState(onboardingData?.fields || [])
+
+  // Legacy hardcoded fields (fallback if no Form Builder fields configured)
   const [platform, setPlatform] = useState("shopify")
   const [storeUrl, setStoreUrl] = useState("")
   const [gtmId, setGtmId] = useState("")
@@ -68,6 +77,9 @@ function OnboardingPageContent() {
     klaviyo: false,
   })
   const [testing, setTesting] = useState<string | null>(null)
+
+  // Check if we have Form Builder fields to use
+  const hasFormBuilderFields = (onboardingData?.fields?.length || 0) > 0
 
   // Step 3: Access Delegation
   const [accessChecks, setAccessChecks] = useState({
@@ -86,7 +98,10 @@ function OnboardingPageContent() {
   const isMetaPixelValid = metaPixelId.length >= 10
   const isKlaviyoValid = klaviyoKey.length >= 6 || klaviyoKey === ""
 
-  const allFieldsValid = isStoreUrlValid && isGtmIdValid && isMetaPixelValid && isKlaviyoValid
+  // Use dynamic form validation if Form Builder fields exist, otherwise legacy validation
+  const allFieldsValid = hasFormBuilderFields
+    ? dynamicForm.isValid()
+    : (isStoreUrlValid && isGtmIdValid && isMetaPixelValid && isKlaviyoValid)
   const allAccessGranted =
     accessChecks.meta && accessChecks.google && accessChecks.shopify && (platformType === "shopify" || accessChecks.dns)
   const allTestsPassed = testResults.store && testResults.gtm && testResults.meta && testResults.klaviyo
@@ -163,37 +178,26 @@ function OnboardingPageContent() {
     setIsSubmitting(true)
 
     try {
-      // Build responses array - mapping form fields to their values
-      // In a full dynamic implementation, this would iterate over onboardingData.fields
-      const responses = [
-        { field_id: "platform", value: platform },
-        { field_id: "store_url", value: storeUrl },
-        { field_id: "gtm_id", value: gtmId },
-        { field_id: "meta_pixel_id", value: metaPixelId },
-        { field_id: "klaviyo_key", value: klaviyoKey },
-        { field_id: "platform_type", value: platformType },
-        { field_id: "access_checks", value: JSON.stringify(accessChecks) },
-      ]
+      // Build responses array
+      let responses: Array<{ field_id: string; value: string }>
 
-      // If we have dynamic fields from the database, use those IDs
-      if (onboardingData?.fields && onboardingData.fields.length > 0) {
-        // Map the fixed form values to the database field IDs
-        const fieldMapping: Record<string, string> = {
-          "Shopify Store URL": storeUrl,
-          "GTM Container ID": gtmId,
-          "Meta Pixel ID": metaPixelId,
-          "Klaviyo API Key": klaviyoKey,
-        }
-
-        const dynamicResponses = onboardingData.fields.map((field) => ({
-          field_id: field.id,
-          value: fieldMapping[field.field_label] || "",
-        })).filter(r => r.value)
-
-        if (dynamicResponses.length > 0) {
-          responses.push(...dynamicResponses)
-        }
+      if (hasFormBuilderFields) {
+        // Use dynamic form responses from Form Builder fields
+        responses = dynamicForm.getResponses()
+      } else {
+        // Fallback to legacy hardcoded field responses
+        responses = [
+          { field_id: "platform", value: platform },
+          { field_id: "store_url", value: storeUrl },
+          { field_id: "gtm_id", value: gtmId },
+          { field_id: "meta_pixel_id", value: metaPixelId },
+          { field_id: "klaviyo_key", value: klaviyoKey },
+          { field_id: "platform_type", value: platformType },
+        ]
       }
+
+      // Always add access checks (Step 3)
+      responses.push({ field_id: "access_checks", value: JSON.stringify(accessChecks) })
 
       const response = await fetch(`/api/public/onboarding/${token}/submit`, {
         method: "POST",
@@ -385,134 +389,154 @@ function OnboardingPageContent() {
           </div>
         )}
 
-        {/* Step 2: The Keys (Tech Stack Intake) */}
+        {/* Step 2: Intake Form (Dynamic Form Builder fields or legacy fallback) */}
         {currentStep === 2 && (
           <Card className="bg-slate-900/50 border-slate-800 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-2xl text-slate-100">The Keys</CardTitle>
+              <CardTitle className="text-2xl text-slate-100">
+                {hasFormBuilderFields ? "Client Information" : "The Keys"}
+              </CardTitle>
               <CardDescription className="text-slate-400">
-                A technical configuration form - we need these credentials to set up server-side tracking
+                {onboardingData?.journey?.description ||
+                  (hasFormBuilderFields
+                    ? "Please fill out the information below to help us get started"
+                    : "A technical configuration form - we need these credentials to set up server-side tracking"
+                  )
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Platform */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">Platform</Label>
-                <select
-                  value={platform}
-                  onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-slate-950 border border-slate-700 text-slate-100"
-                >
-                  <option value="shopify">Shopify</option>
-                  <option value="woocommerce">WooCommerce</option>
-                  <option value="custom">Custom</option>
-                  <option value="bigcommerce">BigCommerce</option>
-                </select>
-              </div>
-
-              {/* Store URL */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">Store URL</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="https://yourstore.myshopify.com"
-                      value={storeUrl}
-                      onChange={(e) => setStoreUrl(e.target.value)}
-                      className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
-                    />
-                    {testResults.store && (
-                      <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
-                    )}
+              {/* Dynamic Form Builder Fields */}
+              {hasFormBuilderFields ? (
+                <DynamicFormFields
+                  fields={onboardingData?.fields || []}
+                  values={dynamicForm.values}
+                  onChange={dynamicForm.handleChange}
+                  darkMode={true}
+                />
+              ) : (
+                <>
+                  {/* Legacy Hardcoded Fields */}
+                  {/* Platform */}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Platform</Label>
+                    <select
+                      value={platform}
+                      onChange={(e) => setPlatform(e.target.value)}
+                      className="w-full p-3 rounded-lg bg-slate-950 border border-slate-700 text-slate-100"
+                    >
+                      <option value="shopify">Shopify</option>
+                      <option value="woocommerce">WooCommerce</option>
+                      <option value="custom">Custom</option>
+                      <option value="bigcommerce">BigCommerce</option>
+                    </select>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTestConnection("store")}
-                    disabled={!isStoreUrlValid || testing !== null}
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
-                  >
-                    {testing === "store" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                  </Button>
-                </div>
-              </div>
 
-              {/* GTM Container ID */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">GTM Container ID</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="GTM-XXXXX"
-                      value={gtmId}
-                      onChange={(e) => setGtmId(e.target.value.toUpperCase())}
-                      className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
-                    />
-                    {testResults.gtm && (
-                      <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
-                    )}
+                  {/* Store URL */}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Store URL</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="https://yourstore.myshopify.com"
+                          value={storeUrl}
+                          onChange={(e) => setStoreUrl(e.target.value)}
+                          className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
+                        />
+                        {testResults.store && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleTestConnection("store")}
+                        disabled={!isStoreUrlValid || testing !== null}
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
+                      >
+                        {testing === "store" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTestConnection("gtm")}
-                    disabled={!isGtmIdValid || testing !== null}
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
-                  >
-                    {testing === "gtm" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                  </Button>
-                </div>
-              </div>
 
-              {/* Meta Pixel ID */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">Meta Pixel ID</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="1234567890123456"
-                      value={metaPixelId}
-                      onChange={(e) => setMetaPixelId(e.target.value)}
-                      className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
-                    />
-                    {testResults.meta && (
-                      <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
-                    )}
+                  {/* GTM Container ID */}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">GTM Container ID</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="GTM-XXXXX"
+                          value={gtmId}
+                          onChange={(e) => setGtmId(e.target.value.toUpperCase())}
+                          className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
+                        />
+                        {testResults.gtm && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleTestConnection("gtm")}
+                        disabled={!isGtmIdValid || testing !== null}
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
+                      >
+                        {testing === "gtm" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTestConnection("meta")}
-                    disabled={!isMetaPixelValid || testing !== null}
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
-                  >
-                    {testing === "meta" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                  </Button>
-                </div>
-              </div>
 
-              {/* Klaviyo Public Key */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">Klaviyo Public Key (Optional)</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="pk_xxxxxxxxxxxx"
-                      value={klaviyoKey}
-                      onChange={(e) => setKlaviyoKey(e.target.value)}
-                      className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
-                    />
-                    {testResults.klaviyo && (
-                      <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
-                    )}
+                  {/* Meta Pixel ID */}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Meta Pixel ID</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="1234567890123456"
+                          value={metaPixelId}
+                          onChange={(e) => setMetaPixelId(e.target.value)}
+                          className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
+                        />
+                        {testResults.meta && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleTestConnection("meta")}
+                        disabled={!isMetaPixelValid || testing !== null}
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
+                      >
+                        {testing === "meta" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTestConnection("klaviyo")}
-                    disabled={!isKlaviyoValid || testing !== null || !klaviyoKey}
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
-                  >
-                    {testing === "klaviyo" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                  </Button>
-                </div>
-              </div>
+
+                  {/* Klaviyo Public Key */}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Klaviyo Public Key (Optional)</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="pk_xxxxxxxxxxxx"
+                          value={klaviyoKey}
+                          onChange={(e) => setKlaviyoKey(e.target.value)}
+                          className="font-mono bg-slate-950 border-slate-700 text-slate-100 pr-10"
+                        />
+                        {testResults.klaviyo && (
+                          <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleTestConnection("klaviyo")}
+                        disabled={!isKlaviyoValid || testing !== null || !klaviyoKey}
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
+                      >
+                        {testing === "klaviyo" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button
@@ -524,7 +548,7 @@ function OnboardingPageContent() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!allFieldsValid || !allTestsPassed}
+                  disabled={hasFormBuilderFields ? !allFieldsValid : (!allFieldsValid || !allTestsPassed)}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
                 >
                   Continue

@@ -25,6 +25,7 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
         .from('onboarding_instance')
         .select(`
           *,
+          link_token,
           client:client_id (
             id,
             name,
