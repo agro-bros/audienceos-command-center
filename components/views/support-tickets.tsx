@@ -317,8 +317,8 @@ export function SupportTickets() {
           </div>
         )}
 
-        {/* Ticket list */}
-        <div className="flex-1 overflow-y-auto pb-[150px]">
+        {/* Ticket list - natural flow */}
+        <div className="flex-1">
           {filteredTickets.length > 0 ? (
             filteredTickets.map((ticket) => (
               <InboxItem

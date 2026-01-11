@@ -734,8 +734,8 @@ export function KnowledgeBase() {
           </div>
         )}
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto pb-[150px]">
+        {/* Content Area - natural flow */}
+        <div className="flex-1">
           {!selectedDocument ? (
             // Tab content when no document is selected
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
