@@ -1,4 +1,3 @@
-// @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
 /**
  * Automations Store
  * Zustand state management for workflow automations feature
@@ -113,10 +112,10 @@ export const useAutomationsStore = create<AutomationsState>((set, get) => ({
           }))
       )
 
-      // Sort by created_at desc
+      // Sort by started_at desc
       allRuns.sort(
         (a: WorkflowRun, b: WorkflowRun) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
       )
 
       set({ runs: allRuns.slice(0, 20), runsLoading: false })

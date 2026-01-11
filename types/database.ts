@@ -1,7 +1,7 @@
-// Exported enum types for convenience
+// Exported enum types for convenience (must match Database["public"]["Enums"])
 export type HealthStatus = 'green' | 'yellow' | 'red'
-export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
-export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TicketStatus = 'new' | 'in_progress' | 'waiting_client' | 'resolved'
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical'
 export type TicketCategory = string
 export type DocumentCategory = string
 export type IndexStatus = 'pending' | 'processing' | 'indexing' | 'indexed' | 'completed' | 'failed'

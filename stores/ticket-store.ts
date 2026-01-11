@@ -1,4 +1,3 @@
-// @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
 import { create } from 'zustand'
 import { fetchWithCsrf } from '@/lib/csrf'
 import type { TicketStatus, TicketPriority, TicketCategory } from '@/types/database'
