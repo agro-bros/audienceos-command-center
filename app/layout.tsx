@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   const pathname = usePathname()
-  const { profile, agencyId, isLoading, isAuthenticated } = useAuth()
+  const { profile, agencyId, isLoading, isAuthenticated: _isAuthenticated } = useAuth()
   const [chatPortalHost, setChatPortalHost] = useState<HTMLElement | null>(null)
   const [chatContext, setChatContext] = useState<any>(null)
 
@@ -68,6 +68,7 @@ export default function RootLayout({
     !EXCLUDED_PATHS.some((path) => pathname.startsWith(path))
 
   // DIAGNOSTIC: Log chat visibility decision
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- isLoading intentionally excluded to prevent re-render loop
   useEffect(() => {
     console.log('[CHAT-VIS] Visibility decision:', {
       chatPortalHost: !!chatPortalHost,
@@ -76,7 +77,7 @@ export default function RootLayout({
       shouldShowChat,
       pathname,
     })
-  }, [chatPortalHost, shouldShowChat, pathname]) // Removed isLoading from dependencies
+  }, [chatPortalHost, shouldShowChat, pathname])
 
   return (
     <html lang="en" suppressHydrationWarning>

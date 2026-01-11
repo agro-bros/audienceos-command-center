@@ -421,7 +421,7 @@ export function KnowledgeBase() {
         description: doc.name,
       })
       console.log("Download document:", docId)
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Download failed",
         description: "Please try again.",
@@ -444,7 +444,7 @@ export function KnowledgeBase() {
         title: "Link copied",
         description: "Share link copied to clipboard",
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Share failed",
         description: "Please try again.",
@@ -476,7 +476,7 @@ export function KnowledgeBase() {
         title: "Document deleted",
         description: doc.name,
       })
-    } catch (error) {
+    } catch (_error) {
       // Rollback on error
       setDocuments(prev => [doc, ...prev])
       toast({

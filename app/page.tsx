@@ -175,7 +175,7 @@ function CommandCenterContent() {
   const { clients: storeClients, fetchClients, isLoading, error: apiError, updateClientStage } = usePipelineStore()
 
   // Auth hook - provides real user data
-  const { profile, displayName, isAuthenticated } = useAuth()
+  const { profile, displayName, isAuthenticated: _isAuthenticated } = useAuth()
 
   // Build sidebar user from auth profile
   const sidebarUser = useMemo(() => {

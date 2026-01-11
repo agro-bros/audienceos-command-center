@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { SettingsSidebar } from '@/components/linear/settings-sidebar'
-import { ChevronRight, Settings, Users, Lock, Bell, Zap, Sun, Moon } from 'lucide-react'
+import { ChevronRight, Settings, Users, Lock, Bell, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 interface SettingsGroup {

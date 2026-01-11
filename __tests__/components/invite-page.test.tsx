@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+// vitest globals (describe, it, expect, vi, beforeEach) available via vitest.config.ts globals: true
 
 describe('InvitePage Component', () => {
   it('should show loading state on mount', () => {

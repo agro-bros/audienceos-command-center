@@ -34,8 +34,8 @@ export const GET = withPermission({ resource: 'automations', action: 'read' })(
 
       // Parse query params
       const { searchParams } = new URL(request.url)
-      const includeRuns = searchParams.get('include_runs') === 'true'
-      const runsLimit = Math.min(Math.max(1, parseInt(searchParams.get('runs_limit') || '5', 10) || 5), 20)
+      const _includeRuns = searchParams.get('include_runs') === 'true' // TODO: implement
+      const _runsLimit = Math.min(Math.max(1, parseInt(searchParams.get('runs_limit') || '5', 10) || 5), 20) // TODO: implement
 
       // User already authenticated and authorized by middleware
       const agencyId = request.user.agencyId

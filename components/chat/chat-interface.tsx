@@ -402,6 +402,7 @@ export function ChatInterface({
   ]
   const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- SUPPORTED_TYPES and MAX_FILE_SIZE are stable constants
   const handleFileSelect = useCallback(
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files)

@@ -72,7 +72,7 @@ export function SupportTickets() {
   const slideTransition = useSlideTransition()
 
   // Get tickets from store
-  const { tickets: storeTickets, fetchTickets, isLoading } = useTicketStore()
+  const { tickets: storeTickets, fetchTickets, isLoading: _isLoading } = useTicketStore()
 
   // Fetch tickets on mount
   useEffect(() => {

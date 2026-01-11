@@ -10,7 +10,7 @@ import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permi
 import { getActionTypes, AVAILABLE_VARIABLES, DELAY_PRESETS } from '@/lib/workflows'
 
 export const GET = withPermission({ resource: 'automations', action: 'read' })(
-  async (request: AuthenticatedRequest) => {
+  async (_request: AuthenticatedRequest) => {
     const actionTypes = getActionTypes()
 
     return NextResponse.json({

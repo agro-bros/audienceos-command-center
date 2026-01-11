@@ -30,7 +30,7 @@ export const GET = withPermission({ resource: 'users', action: 'manage' })(
       const { searchParams } = new URL(request.url)
       const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50), 100)
       const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0)
-      const search = searchParams.get('search')
+      const _search = searchParams.get('search') // TODO: implement search
       const isActive = searchParams.get('is_active')
 
       // Build query

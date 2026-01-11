@@ -4,7 +4,7 @@
  *
  * Verifies the tier→stage fix (PGRST204 resolution)
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+// vitest globals (describe, it, expect, vi, beforeEach) available via vitest.config.ts globals: true
 
 // Mock Next.js request/response
 const mockRequest = (options: {

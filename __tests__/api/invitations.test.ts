@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest, NextResponse } from 'next/server'
+// vitest globals (describe, it, expect, vi, beforeEach) available via vitest.config.ts globals: true
 
 describe('POST /api/v1/settings/invitations', () => {
   it('should create invitation and send email', async () => {

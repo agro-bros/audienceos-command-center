@@ -1,7 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { usePipelineStore } from '@/stores/pipeline-store'
+// vitest globals (describe, it, expect, vi, etc.) available via vitest.config.ts globals: true
+// Note: These tests use pure logic validation, not component rendering
 
 /**
  * ERROR DISPLAY INTEGRATION TESTS
@@ -47,8 +45,8 @@ describe('Pipeline Error Display Integration', () => {
   it('should display error message when API fails', async () => {
     const mockFetchClients = vi.fn()
 
-    // Mock store with error state
-    const mockStore = {
+    // Mock store with error state (defined for documentation)
+    const _mockStore = {
       clients: [],
       storeClients: [],
       isLoading: false,
@@ -77,7 +75,7 @@ describe('Pipeline Error Display Integration', () => {
    * Expected: Loading spinner visible, no error message
    */
   it('should show loading spinner during fetch', async () => {
-    const loadingText = 'Loading...' // Or animated spinner
+    const _loadingText = 'Loading...' // Or animated spinner (for documentation)
 
     // When isLoading=true and error=null:
     // {isLoading && (

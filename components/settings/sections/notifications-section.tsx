@@ -376,7 +376,7 @@ export function NotificationsSection() {
       let responseData: any
       try {
         responseData = await response.json()
-      } catch (parseError) {
+      } catch (_parseError) {
         throw new Error('Invalid response format from server')
       }
 

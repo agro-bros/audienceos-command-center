@@ -39,7 +39,7 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const _router = useRouter() // TODO: use for redirect
   const supabase = createClient()
 
   // Handle Google OAuth sign-up

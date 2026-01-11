@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+// vitest globals (describe, it, expect, vi, etc.) available via vitest.config.ts globals: true
 import { usePipelineStore } from '@/stores/pipeline-store'
 
 // Mock fetch globally

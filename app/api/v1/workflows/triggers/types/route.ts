@@ -10,7 +10,7 @@ import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permi
 import { getTriggerTypes, COMMON_SCHEDULES, AVAILABLE_TIMEZONES } from '@/lib/workflows'
 
 export const GET = withPermission({ resource: 'automations', action: 'read' })(
-  async (request: AuthenticatedRequest) => {
+  async (_request: AuthenticatedRequest) => {
     const triggerTypes = getTriggerTypes()
 
     return NextResponse.json({

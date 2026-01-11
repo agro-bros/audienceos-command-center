@@ -46,7 +46,7 @@ export function OnboardingManagementView({ onClientClick }: OnboardingManagement
   const { toast } = useToast()
 
   // Get clients from store
-  const { clients: storeClients, fetchClients, isLoading } = usePipelineStore()
+  const { clients: storeClients, fetchClients, isLoading: _isLoading } = usePipelineStore()
 
   // Fetch clients on mount
   useEffect(() => {

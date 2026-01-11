@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+// vitest globals (describe, it, expect, vi, etc.) available via vitest.config.ts globals: true
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { IntegrationSettingsModal } from '@/components/linear/integration-settings-modal'
 import React from 'react'
 

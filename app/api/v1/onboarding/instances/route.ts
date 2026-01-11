@@ -114,7 +114,7 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
         return createErrorResponse(400, 'Invalid JSON body')
       }
 
-      const { client_name, client_email, client_tier, journey_id, website_url, seo_data } = body
+      const { client_name, client_email, client_tier: _client_tier, journey_id, website_url, seo_data } = body
 
       // Validate required fields
       if (!client_name || typeof client_name !== 'string') {
