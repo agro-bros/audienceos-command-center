@@ -167,11 +167,13 @@ export async function getAlerts(
 
       return alerts;
     } catch (error) {
-      console.warn(`[Fallback] get_alerts: Supabase unavailable, using mock data`);
-      // Fall through to mock data
+      console.error(`[ERROR] get_alerts failed:`, error);
+      throw new Error(`Failed to fetch alerts: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  // Only use mock data when Supabase client is NOT provided (true standalone/dev mode)
+  console.warn('[DEV MODE] get_alerts: No Supabase client, using mock data - NOT FOR PRODUCTION');
   // Fallback: Use mock data for standalone mode
   let alerts = [...MOCK_ALERTS];
 

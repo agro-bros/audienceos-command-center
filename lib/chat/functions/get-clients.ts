@@ -111,11 +111,15 @@ export async function getClients(
         lastActivity: row.updated_at,
       }));
     } catch (error) {
-      console.warn(`[Fallback] get_clients: Supabase unavailable, using mock data`);
-      // Fall through to mock data
+      console.error(`[ERROR] get_clients failed:`, error);
+      // Re-throw error - do NOT return fake data that users might trust
+      throw new Error(`Failed to fetch clients: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  // Only use mock data when Supabase client is NOT provided (true standalone/dev mode)
+  // This path is only reached when context.supabase is null/undefined
+  console.warn('[DEV MODE] get_clients: No Supabase client, using mock data - NOT FOR PRODUCTION');
   // Fallback: Use mock data for standalone mode
   let clients = [...MOCK_CLIENTS];
 
@@ -199,10 +203,13 @@ export async function getClientDetails(
 
       return clientDetails;
     } catch (error) {
-      console.warn(`[Fallback] get_client_details: Supabase unavailable, using mock data`);
-      // Fall through to mock data
+      console.error(`[ERROR] get_client_details failed:`, error);
+      throw new Error(`Failed to fetch client details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  // Only use mock data when Supabase client is NOT provided (true standalone/dev mode)
+  console.warn('[DEV MODE] get_client_details: No Supabase client, using mock data - NOT FOR PRODUCTION');
 
   // Fallback: Use mock data for standalone mode
   let client: ClientDetails | undefined;

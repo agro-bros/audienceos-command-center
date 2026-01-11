@@ -85,11 +85,13 @@ export async function getAgencyStats(
         avgHealthScore: healthScore,
       };
     } catch (error) {
-      console.warn(`[Fallback] get_agency_stats: Supabase unavailable, using mock data`);
-      // Fall through to mock data
+      console.error(`[ERROR] get_agency_stats failed:`, error);
+      throw new Error(`Failed to fetch agency stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  // Only use mock data when Supabase client is NOT provided (true standalone/dev mode)
+  console.warn('[DEV MODE] get_agency_stats: No Supabase client, using mock data - NOT FOR PRODUCTION');
   // Fallback: Mock stats for standalone mode
   const stats: AgencyStats = {
     period,

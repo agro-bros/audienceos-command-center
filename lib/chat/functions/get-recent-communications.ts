@@ -162,11 +162,13 @@ export async function getRecentCommunications(
         date: row.received_at,
       }));
     } catch (error) {
-      console.warn(`[Fallback] get_recent_communications: Supabase unavailable, using mock data`);
-      // Fall through to mock data
+      console.error(`[ERROR] get_recent_communications failed:`, error);
+      throw new Error(`Failed to fetch communications: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  // Only use mock data when Supabase client is NOT provided (true standalone/dev mode)
+  console.warn('[DEV MODE] get_recent_communications: No Supabase client, using mock data - NOT FOR PRODUCTION');
   // Fallback: Use mock data for standalone mode
   let communications = MOCK_COMMUNICATIONS[args.client_id] || [];
 

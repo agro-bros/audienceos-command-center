@@ -20,6 +20,23 @@ export async function POST(
       )
     }
 
+    // Password validation (SEC-011)
+    const trimmedPassword = typeof password === 'string' ? password.trim() : ''
+    if (trimmedPassword.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters' },
+        { status: 400 }
+      )
+    }
+    if (trimmedPassword.length > 72) {
+      return NextResponse.json(
+        { error: 'Password must be 72 characters or less' },
+        { status: 400 }
+      )
+    }
+    // Use trimmed password for account creation
+    const validatedPassword = trimmedPassword
+
     // Use service role client to bypass RLS and for admin operations
     const serviceSupabase = createServiceRoleClient()
 
@@ -62,7 +79,7 @@ export async function POST(
     // 2. Create auth user (using admin API to auto-confirm email)
     const { data: authData, error: authError } = await serviceSupabase.auth.admin.createUser({
       email: invitation.email,
-      password,
+      password: validatedPassword,
       email_confirm: true, // Auto-confirm since this is an invitation flow
       user_metadata: {
         first_name: first_name.trim(),
