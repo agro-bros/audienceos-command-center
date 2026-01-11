@@ -208,11 +208,10 @@ export async function getUserAgencyId(
 
 /**
  * Get the authenticated user using getUser() (server-verified)
- * This is more secure than getSession() which only validates JWT locally
  *
- * Optimized flow:
- * 1. Quick local check with getSession() - fails fast if no session
- * 2. Server verification with getUser() - only if session exists
+ * NOTE: We skip getSession() entirely because it has known issues with
+ * @supabase/ssr where it can hang or return null even when cookies exist.
+ * Using getUser() directly is more reliable as it validates server-side.
  *
  * @returns { user, agencyId } or { user: null, agencyId: null } if not authenticated
  */
@@ -223,23 +222,22 @@ export async function getAuthenticatedUser(
   agencyId: string | null
   error: string | null
 }> {
-  // Fast path: check if session exists locally first
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    return { user: null, agencyId: null, error: 'No session' }
-  }
-
-  // Session exists - verify with server (more secure)
+  // Skip getSession() - it has bugs in @supabase/ssr that cause hangs/nulls
+  // Go directly to getUser() which validates server-side
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { user: null, agencyId: null, error: 'Not authenticated' }
+    // Log the actual error for debugging
+    if (authError) {
+      console.warn('[getAuthenticatedUser] Auth error:', authError.message)
+    }
+    return { user: null, agencyId: null, error: authError?.message || 'Not authenticated' }
   }
 
   const agencyId = await getUserAgencyId(supabase, user.id)
 
   if (!agencyId) {
+    console.warn('[getAuthenticatedUser] User has no agency:', user.id)
     return { user, agencyId: null, error: 'No agency associated with user' }
   }
 
