@@ -3,32 +3,27 @@
  * GET /api/v1/settings/agency - Get agency configuration
  * PATCH /api/v1/settings/agency - Update agency settings
  *
- * NOTE: Temporarily using simple auth instead of RBAC while permission system is being stabilized
+ * RBAC Protection: settings:read for GET, settings:write for PATCH
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser, createServiceRoleClient } from '@/lib/supabase'
+import { createRouteHandlerClient, createServiceRoleClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, sanitizeString, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 
 // ============================================================================
 // GET /api/v1/settings/agency
 // ============================================================================
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission({ resource: 'settings', action: 'read' })(
+  async (request: AuthenticatedRequest) => {
   // Rate limit: 100 requests per minute
   const rateLimitResponse = withRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
 
   try {
-    const supabase = await createRouteHandlerClient(cookies)
-
-    // Simple auth check
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, 'Authentication required')
-    }
+    const { agencyId } = request.user
 
     // Fetch agency settings using service role client to bypass RLS
     // This is safe because we've already verified the user belongs to this agency
@@ -53,13 +48,14 @@ export async function GET(request: NextRequest) {
     console.error('[Settings/Agency] Error:', err)
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})
 
 // ============================================================================
 // PATCH /api/v1/settings/agency
 // ============================================================================
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withPermission({ resource: 'settings', action: 'write' })(
+  async (request: AuthenticatedRequest) => {
   // Rate limit: 30 updates per minute
   const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
@@ -69,14 +65,7 @@ export async function PATCH(request: NextRequest) {
   if (csrfError) return csrfError
 
   try {
-    const supabase = await createRouteHandlerClient(cookies)
-
-    // Simple auth check
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, 'Authentication required')
-    }
+    const { agencyId } = request.user
 
     // Parse request body
     let body: Record<string, unknown>
@@ -309,4 +298,4 @@ export async function PATCH(request: NextRequest) {
     console.error('[Settings/Agency] PATCH error:', err)
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})

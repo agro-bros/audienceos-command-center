@@ -4,10 +4,10 @@
  * POST /api/v1/settings/users/invite - Send user invitation
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
-import { withRateLimit, withCsrfProtection, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
+import { createRouteHandlerClient } from '@/lib/supabase'
+import { withRateLimit, withCsrfProtection, sanitizeEmail, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 
 // ============================================================================

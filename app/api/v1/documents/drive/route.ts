@@ -2,8 +2,9 @@
 // @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import type { DocumentCategory, IndexStatus } from '@/types/database'
 
 interface DriveImportBody {
@@ -67,7 +68,8 @@ function detectDocumentType(url: string): { mime_type: string; file_extension: s
  * POST /api/v1/documents/drive
  * Import a document from Google Drive by URL
  */
-export async function POST(request: NextRequest) {
+export const POST = withPermission({ resource: 'knowledge-base', action: 'write' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 20, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
@@ -76,11 +78,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { id: userId, agencyId } = request.user
 
     // Parse request body
     const body: DriveImportBody = await request.json()
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
         word_count: null,
         index_status: 'pending' as IndexStatus,
         gemini_file_id: null,
-        uploaded_by: user.id,
+        uploaded_by: userId,
         is_active: true,
         is_starred: false,
         use_for_training: false,
@@ -152,4 +150,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return createErrorResponse(500, message)
   }
-}
+})

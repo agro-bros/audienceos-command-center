@@ -7,7 +7,7 @@
  * RBAC: Requires knowledge-base:read (GET) or knowledge-base:write (PATCH) or knowledge-base:manage (DELETE)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'

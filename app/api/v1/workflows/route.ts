@@ -6,9 +6,9 @@
  * RBAC: Requires automations:read (GET) or automations:manage (POST)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, sanitizeString, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import {

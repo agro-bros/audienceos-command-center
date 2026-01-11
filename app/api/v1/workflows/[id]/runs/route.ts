@@ -5,7 +5,7 @@
  * RBAC: Requires automations:read permission
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'

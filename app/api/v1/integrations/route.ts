@@ -6,9 +6,9 @@
  * RBAC: Requires integrations:read (GET) or integrations:manage (POST)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { signOAuthState } from '@/lib/crypto'
@@ -27,7 +27,7 @@ export const GET = withPermission({ resource: 'integrations', action: 'read' })(
       const supabase = await createRouteHandlerClient(cookies)
 
       // User already authenticated and authorized by middleware
-      const agencyId = request.user.agencyId
+      const _agencyId = request.user.agencyId // Used by RLS
 
       // Fetch integrations - RLS will filter by agency_id
       const { data: integrations, error } = await supabase

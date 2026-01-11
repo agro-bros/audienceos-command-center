@@ -4,11 +4,10 @@
  * PATCH /api/v1/settings/users/[id]/preferences - Update user notification preferences
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
-import type { NotificationPreferences } from '@/types/settings'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 
 // ============================================================================

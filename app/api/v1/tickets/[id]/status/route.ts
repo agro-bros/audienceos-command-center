@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, isValidUUID, createErrorResponse } from '@/lib/security'

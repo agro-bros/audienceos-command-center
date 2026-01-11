@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getSmartRouter } from '@/lib/chat/router';
 import { executeFunction, hgcFunctions } from '@/lib/chat/functions';

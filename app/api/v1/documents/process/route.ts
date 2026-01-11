@@ -2,8 +2,9 @@
 // @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { geminiFileService } from '@/lib/gemini/file-service'
 import type { IndexStatus } from '@/types/database'
 
@@ -52,17 +53,14 @@ async function waitForGeminiProcessing(fileId: string, maxAttempts = 10) {
  * POST /api/v1/documents/process
  * Process pending documents by uploading them to Gemini File API for indexing
  */
-export async function POST(request: NextRequest) {
+export const POST = withPermission({ resource: 'knowledge-base', action: 'write' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 10, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { agencyId } = request.user
 
     // Get pending documents for this agency
     const { data: pendingDocs, error: fetchError } = await supabase
@@ -231,23 +229,20 @@ export async function POST(request: NextRequest) {
     console.error('Document processing error:', error)
     return createErrorResponse(500, 'Internal server error during document processing')
   }
-}
+})
 
 /**
  * GET /api/v1/documents/process
  * Get processing status for documents
  */
-export async function GET(request: NextRequest) {
+export const GET = withPermission({ resource: 'knowledge-base', action: 'read' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { agencyId } = request.user
 
     // Get document counts by status
     const { data: statusCounts, error } = await supabase
@@ -279,4 +274,4 @@ export async function GET(request: NextRequest) {
     console.error('Status fetch error:', error)
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})

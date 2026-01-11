@@ -2,8 +2,9 @@
 // @ts-nocheck - Temporary: Generated Database types have Insert type mismatch after RBAC migration
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import type { PreferenceCategory } from '@/types/database'
 import type { NotificationPreferences } from '@/types/settings'
 
@@ -25,17 +26,14 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 }
 
 // GET /api/v1/settings/preferences - Get user preferences
-export async function GET(request: NextRequest) {
+export const GET = withPermission({ resource: 'settings', action: 'read' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { id: userId, agencyId } = request.user
 
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') as PreferenceCategory | null
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('user_preference')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('agency_id', agencyId)
 
     if (category && VALID_CATEGORIES.includes(category)) {
@@ -73,10 +71,11 @@ export async function GET(request: NextRequest) {
   } catch {
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})
 
 // PATCH /api/v1/settings/preferences - Update user preferences
-export async function PATCH(request: NextRequest) {
+export const PATCH = withPermission({ resource: 'settings', action: 'write' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
 
@@ -85,11 +84,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { id: userId, agencyId } = request.user
 
     const body = await request.json()
     const { category, preferences } = body as {
@@ -130,7 +125,7 @@ export async function PATCH(request: NextRequest) {
       const { data: existing } = await supabase
         .from('user_preference')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('agency_id', agencyId)
         .eq('category', category)
         .eq('key', key)
@@ -150,7 +145,7 @@ export async function PATCH(request: NextRequest) {
         return supabase
           .from('user_preference')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             agency_id: agencyId,
             category,
             key,
@@ -173,4 +168,4 @@ export async function PATCH(request: NextRequest) {
   } catch {
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})

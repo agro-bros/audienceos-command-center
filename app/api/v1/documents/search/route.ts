@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { geminiFileService } from '@/lib/gemini/file-service'
-import type { DocumentCategory } from '@/types/database'
 
 interface SearchResult {
   answer: string
@@ -21,17 +21,14 @@ interface SearchResult {
  * POST /api/v1/documents/search
  * Search across indexed documents using Gemini File API
  */
-export async function POST(request: NextRequest) {
+export const POST = withPermission({ resource: 'knowledge-base', action: 'read' })(
+  async (request: AuthenticatedRequest) => {
   const rateLimitResponse = withRateLimit(request, { maxRequests: 20, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { agencyId } = request.user
 
     // Parse request body
     const body = await request.json()
@@ -132,4 +129,4 @@ export async function POST(request: NextRequest) {
     console.error('Document search error:', error)
     return createErrorResponse(500, 'Internal server error during search')
   }
-}
+})

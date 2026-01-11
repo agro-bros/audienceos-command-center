@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import type { DashboardTrends, TrendDataPoint, TimePeriod } from '@/types/dashboard'
 
 /**
  * GET /api/v1/dashboard/trends
  * Get dashboard trend data for charts
  */
-export async function GET(request: NextRequest) {
+export const GET = withPermission({ resource: 'analytics', action: 'read' })(
+  async (request: AuthenticatedRequest) => {
   // Rate limit: 60 requests per minute
   const rateLimitResponse = withRateLimit(request, { maxRequests: 60, windowMs: 60000 })
   if (rateLimitResponse) return rateLimitResponse
@@ -19,13 +21,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createRouteHandlerClient(cookies)
-
-    // Get authenticated user with server verification (SEC-006)
-    const { user, agencyId, error: authError } = await getAuthenticatedUser(supabase)
-
-    if (!user || !agencyId) {
-      return createErrorResponse(401, authError || 'Unauthorized')
-    }
+    const { agencyId } = request.user
 
     // Get date range
     const now = new Date()
@@ -97,4 +93,4 @@ export async function GET(request: NextRequest) {
     }
     return createErrorResponse(500, 'Internal server error')
   }
-}
+})

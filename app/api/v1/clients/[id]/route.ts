@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, isValidUUID, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
@@ -26,7 +26,7 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
       const supabase = await createRouteHandlerClient(cookies)
 
       // User already authenticated and authorized by middleware
-      const agencyId = request.user.agencyId
+      const _agencyId = request.user.agencyId // Used by RLS
 
     // Validate UUID format (only for authenticated requests with real data)
     if (!isValidUUID(id)) {

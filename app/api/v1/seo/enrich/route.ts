@@ -10,20 +10,15 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase'
+import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { enrichDomainSEO, validateDomain } from '@/lib/services/seo-enrichment'
 
 interface SEOEnrichmentRequest {
   domain: string
 }
 
-export async function POST(request: Request) {
-  // Verify authentication
-  const supabase = await createRouteHandlerClient(cookies)
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const POST = withPermission({ resource: 'clients', action: 'write' })(
+  async (request: AuthenticatedRequest) => {
 
   try {
     const body: SEOEnrichmentRequest = await request.json()
@@ -67,4 +62,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-}
+})

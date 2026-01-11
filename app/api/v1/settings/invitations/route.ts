@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
 import { sendInvitationEmail } from '@/lib/email/invitation'
 import type { UserRole } from '@/types/database'
