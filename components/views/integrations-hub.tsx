@@ -175,24 +175,24 @@ function mapDbToUiIntegration(dbIntegration: DbIntegration): Integration {
 
 const statusConfig: Record<IntegrationStatus, { icon: React.ReactNode; label: string; className: string }> = {
   connected: {
-    icon: <Check className="w-3.5 h-3.5" />,
+    icon: <Check className="w-3 h-3" />,
     label: "Connected",
-    className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 backdrop-blur-sm",
   },
   disconnected: {
     icon: null,
     label: "Not connected",
-    className: "bg-muted text-muted-foreground border-border",
+    className: "bg-rose-500/8 text-rose-500/80 dark:text-rose-400/70 backdrop-blur-sm",
   },
   error: {
-    icon: <AlertCircle className="w-3.5 h-3.5" />,
+    icon: <AlertCircle className="w-3 h-3" />,
     label: "Error",
-    className: "bg-red-500/10 text-red-500 border-red-500/20",
+    className: "bg-red-500/15 text-red-600 dark:text-red-400 backdrop-blur-sm",
   },
   syncing: {
-    icon: <Clock className="w-3.5 h-3.5 animate-spin" />,
+    icon: <Clock className="w-3 h-3 animate-spin" />,
     label: "Syncing",
-    className: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 backdrop-blur-sm",
   },
 }
 
@@ -221,13 +221,24 @@ function IntegrationCardComponent({ integration, onClick, onConnect }: Integrati
 
   return (
     <div
-      className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 transition-colors cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+      className="relative bg-card border border-border rounded-lg p-5 hover:border-primary/50 transition-colors cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
       onClick={onClick}
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
       aria-label={`Configure ${integration.name} integration`}
     >
+      {/* Status badge - top right corner with glassmorphic style */}
+      <span
+        className={cn(
+          "absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium",
+          status.className
+        )}
+      >
+        {status.icon}
+        {status.label}
+      </span>
+
       <div className="flex items-start gap-4">
         <div
           className={cn(
@@ -237,12 +248,13 @@ function IntegrationCardComponent({ integration, onClick, onConnect }: Integrati
         >
           {integration.icon}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
+        <div className="flex-1 min-w-0 pr-20">
+          <div className="flex items-center gap-2 mb-1">
             <h3 className="font-medium text-foreground">{integration.name}</h3>
             <button
               className="p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               aria-label={`${integration.name} settings`}
+              onClick={(e) => e.stopPropagation()}
             >
               <Settings2 className="w-4 h-4" />
             </button>
@@ -250,22 +262,11 @@ function IntegrationCardComponent({ integration, onClick, onConnect }: Integrati
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
             {integration.description}
           </p>
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded border font-medium",
-                status.className
-              )}
-            >
-              {status.icon}
-              {status.label}
-            </span>
-            {integration.accounts && integration.status === "connected" && (
-              <span className="text-xs text-muted-foreground">
-                {integration.accounts} account{integration.accounts > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
+          {integration.accounts && integration.status === "connected" && (
+            <p className="text-xs text-muted-foreground mb-3">
+              {integration.accounts} account{integration.accounts > 1 ? "s" : ""} connected
+            </p>
+          )}
           {showConnectButton && (
             <Button
               size="sm"
