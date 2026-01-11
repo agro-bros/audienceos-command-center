@@ -22,8 +22,8 @@ const poppins = Poppins({
   variable: "--font-poppins",
 })
 
-// Pages where chat should NOT render
-const EXCLUDED_PATHS = ["/login", "/invite", "/onboarding"]
+// Pages where chat should NOT render (auth pages, public pages)
+const EXCLUDED_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/invite", "/onboarding"]
 
 export default function RootLayout({
   children,
