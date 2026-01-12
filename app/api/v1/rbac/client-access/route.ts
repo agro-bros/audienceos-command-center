@@ -14,6 +14,15 @@ import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permi
 import { permissionService } from '@/lib/rbac/permission-service'
 import { RoleHierarchyLevel } from '@/types/rbac'
 
+// Type for Supabase query result with role join
+interface UserWithRoleInfo {
+  id: string
+  first_name?: string
+  last_name?: string
+  role_id: string | null
+  role_info: { hierarchy_level: number } | null
+}
+
 // ============================================================================
 // GET /api/v1/rbac/client-access?user_id={id}
 // List all client assignments for a member
@@ -54,7 +63,8 @@ export const GET = withPermission({ resource: 'users', action: 'manage' })(
       }
 
       // Only Members (hierarchy_level=4) can have client assignments
-      const hierarchyLevel = (targetUser as any).role_info?.hierarchy_level
+      const typedUser = targetUser as UserWithRoleInfo
+      const hierarchyLevel = typedUser.role_info?.hierarchy_level
       if (hierarchyLevel !== RoleHierarchyLevel.MEMBER) {
         return createErrorResponse(400, 'Only Member users can have client assignments')
       }
@@ -80,9 +90,9 @@ export const GET = withPermission({ resource: 'users', action: 'manage' })(
       return NextResponse.json({
         data: assignments || [],
         user: {
-          id: targetUser.id,
-          first_name: (targetUser as any).first_name,
-          last_name: (targetUser as any).last_name,
+          id: typedUser.id,
+          first_name: typedUser.first_name,
+          last_name: typedUser.last_name,
         },
       })
     } catch (err) {
@@ -151,8 +161,8 @@ export const POST = withPermission({ resource: 'users', action: 'manage' })(
         return createErrorResponse(404, 'User not found')
       }
 
-      const hierarchyLevel = (targetUser as any).role_info?.hierarchy_level
-      if (hierarchyLevel !== RoleHierarchyLevel.MEMBER) {
+      const typedTargetUser = targetUser as UserWithRoleInfo
+      if (typedTargetUser.role_info?.hierarchy_level !== RoleHierarchyLevel.MEMBER) {
         return createErrorResponse(400, 'Only Member users can be assigned to clients')
       }
 
@@ -168,19 +178,8 @@ export const POST = withPermission({ resource: 'users', action: 'manage' })(
         return createErrorResponse(404, 'Client not found')
       }
 
-      // Check for existing assignment (unique constraint)
-      const { data: existing } = await supabase
-        .from('member_client_access')
-        .select('id')
-        .eq('user_id', user_id)
-        .eq('client_id', client_id)
-        .single()
-
-      if (existing) {
-        return createErrorResponse(409, 'User is already assigned to this client')
-      }
-
-      // Create the assignment
+      // Create the assignment - handle unique constraint violation atomically
+      // (no check-then-insert race condition)
       const { data: assignment, error: insertError } = await supabase
         .from('member_client_access')
         .insert({
@@ -200,6 +199,10 @@ export const POST = withPermission({ resource: 'users', action: 'manage' })(
         .single()
 
       if (insertError) {
+        // PostgreSQL unique violation code is 23505
+        if (insertError.code === '23505') {
+          return createErrorResponse(409, 'User is already assigned to this client')
+        }
         console.error('[ClientAccess] Insert error:', insertError)
         return createErrorResponse(500, 'Failed to create assignment')
       }

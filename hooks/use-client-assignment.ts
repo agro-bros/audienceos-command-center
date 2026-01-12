@@ -37,18 +37,22 @@ interface UseClientAssignmentReturn {
 export function useClientAssignment(memberId: string): UseClientAssignmentReturn {
   const [assignments, setAssignments] = useState<AssignmentWithClient[]>([])
   const [availableClients, setAvailableClients] = useState<AvailableClient[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [loadingCount, setLoadingCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+
+  // Derived loading state - true when any operation is in progress
+  const isLoading = loadingCount > 0
 
   // Fetch current assignments for the member
   const fetchAssignments = useCallback(async () => {
     if (!memberId) return
 
-    setIsLoading(true)
+    setLoadingCount((c) => c + 1)
     setError(null)
 
     try {
-      const res = await fetch(`/api/v1/rbac/client-access?user_id=${memberId}`, {
+      const params = new URLSearchParams({ user_id: memberId })
+      const res = await fetch(`/api/v1/rbac/client-access?${params}`, {
         credentials: 'include',
       })
 
@@ -63,13 +67,13 @@ export function useClientAssignment(memberId: string): UseClientAssignmentReturn
       setError(err instanceof Error ? err.message : 'Failed to fetch assignments')
       console.error('[useClientAssignment] fetchAssignments error:', err)
     } finally {
-      setIsLoading(false)
+      setLoadingCount((c) => c - 1)
     }
   }, [memberId])
 
   // Fetch all agency clients (to show available options)
   const fetchAvailableClients = useCallback(async () => {
-    setIsLoading(true)
+    setLoadingCount((c) => c + 1)
 
     try {
       const res = await fetch('/api/v1/clients?limit=100', {
@@ -85,7 +89,7 @@ export function useClientAssignment(memberId: string): UseClientAssignmentReturn
     } catch (err) {
       console.error('[useClientAssignment] fetchAvailableClients error:', err)
     } finally {
-      setIsLoading(false)
+      setLoadingCount((c) => c - 1)
     }
   }, [])
 
