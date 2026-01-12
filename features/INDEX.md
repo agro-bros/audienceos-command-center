@@ -2,7 +2,7 @@
 
 **Location:** `~/PAI/projects/command_center_audience_OS/features/`
 **Purpose:** Track status of all product features
-**Last Audit:** 2026-01-12 (RBAC Phase 4 complete: Client Assignment UI built and code reviewed)
+**Last Audit:** 2026-01-12 (Onboarding demo data seeded and E2E verified via Chrome)
 
 ---
 
@@ -44,7 +44,7 @@
 
 | Feature | Status | Spec File | Notes |
 |---------|--------|-----------|-------|
-| onboarding-intake-hub | 📝 B-1 Vision | [VISION-ONBOARDING-HUB](../docs/01-product/VISION-ONBOARDING-HUB.md) / [SCHEMA](../docs/04-technical/ONBOARDING-SCHEMA.md) | **B-1 COMPLETE (2026-01-09)**: Visual onboarding pipeline with Kanban view, client journey builder, intake form builder, SEO enrichment. Pre-flight 9/10. 5 new tables documented. DataForSEO integration verified. Next: B-2 Scope. |
+| onboarding-intake-hub | ✅ Complete | [VISION-ONBOARDING-HUB](../docs/01-product/VISION-ONBOARDING-HUB.md) / [SCHEMA](../docs/04-technical/ONBOARDING-SCHEMA.md) | **DEMO DATA SEEDED (2026-01-12)**: 4 onboarding instances with stage progression. Green Gardens (Intake), Peak Performance (Access), Harbor View (Audit), Metro Dental (Blocked). E2E verified via Chrome. Commit 43c4a36. |
 | seo-enriched-onboarding | 📝 Specced | [SEO-ENRICHED-ONBOARDING.md](SEO-ENRICHED-ONBOARDING.md) | Part of Onboarding & Intake Hub. Auto-fetch SEO data from DataForSEO. 4 integration points. $0.02/enrichment via chi-gateway. |
 | dark-mode | 🚧 Building | [DARK-MODE.md](DARK-MODE.md) | Light/dark mode toggle. Branch: feature/dark-mode-toggle. Phase 1: Color extraction. 2026-01-08. |
 | user-invitations | ⏳ Deferred | - | Data model ready (USER_INVITATION), API exists |
@@ -69,6 +69,7 @@
 
 | Date | Score | Gaps Fixed |
 |------|-------|------------|
+| 2026-01-12 | 10/10 | **ONBOARDING DEMO DATA**: Seeded 4 onboarding instances via Supabase MCP. E2E verified via Chrome - all stages displaying correctly. No console errors. Seed script committed (43c4a36). |
 | 2026-01-12 | 9/10 | **RBAC PHASE 4 - CLIENT ASSIGNMENT UI**: Built complete feature for assigning Members to specific clients. 4 new files (2 API routes, 1 hook, 1 modal), 4 modified. Code reviewed by validator agent. Fixed: race condition (atomic unique constraint), type safety (no `as any`), loading state (counter pattern). Build passes. Commits: 547e94f, a46dedd. Pending: E2E browser test. |
 | 2026-01-09 | 10/10 | **FULL E2E AUDIT PASSED**: All 9 modules verified working via Claude in Chrome. Dashboard (KPIs, charts), Pipeline (Kanban 20 clients), Clients (list+detail), Support Tickets (5 tickets), Intelligence Center (**AI Chat WORKING** - tested "How many clients at risk?" got intelligent response), Knowledge Base (9 docs), Automations (6 workflows), Integrations (4 connected), Settings (agency data loads). URL routing fixed (useEffect for hydration). Agency RLS fixed. No console errors. Commit 352cef2. |
 | 2026-01-06 | 10/10 | **SEND TO AI + OAUTH COORDINATION**: Shipped Send to AI integration (global chat opener, contextual prompts from dashboard tasks/clients). Added logout button to settings. Coordinated Trevor's OAuth/signup work (branch: trevor/oauth-signup). Killed CPU hog (next-server at 132% CPU). Commits: 43e6b48, 35f9e72, 3131525. Documentation updated across features/, RUNBOOK, active-tasks. |
@@ -110,4 +111,4 @@
 
 ---
 
-*Living Document - Last verified: 2026-01-12 (RBAC Phase 4: Client Assignment UI complete, code reviewed)*
+*Living Document - Last verified: 2026-01-12 (Onboarding demo data seeded, E2E verified via Chrome)*
