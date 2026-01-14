@@ -1,11 +1,25 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
+import { StageConfirmModal } from "@/components/stage-confirm-modal"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +42,7 @@ import {
   ArrowRight,
   UserPlus,
   Trash2,
+  Loader2,
 } from "lucide-react"
 
 interface ClientDetailPanelProps {
@@ -85,6 +100,9 @@ interface Note {
 }
 
 export function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
+  const router = useRouter()
+  const { toast } = useToast()
+
   const [isEditing, setIsEditing] = useState(false)
   const [noteText, setNoteText] = useState("")
   const [notes, setNotes] = useState<Note[]>(() => {
@@ -100,25 +118,36 @@ export function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
     return []
   })
 
+  // Modal state
+  const [showStageModal, setShowStageModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSendingNote, setIsSendingNote] = useState(false)
+
   // Handler functions
   const handleEdit = () => {
     setIsEditing(!isEditing)
-    // TODO: Toggle edit mode for inline editing
+    // Toggle edit mode for inline editing
   }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(client.id)
-    // TODO: Show toast notification
+    toast({
+      title: "Copied",
+      description: "Client ID copied to clipboard",
+      variant: "default",
+    })
   }
 
   const handleOpen = () => {
-    // TODO: Open client in new tab/view
-    console.log("Open client:", client.id)
+    // Open client in detail view
+    router.push(`/clients/${client.id}`)
   }
 
   const handleMove = () => {
-    // TODO: Open stage picker modal
-    console.log("Move client:", client.id)
+    // Open stage picker modal
+    setShowStageModal(true)
   }
 
   const handleAssign = () => {
@@ -127,13 +156,78 @@ export function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
   }
 
   const handleDelete = () => {
-    // TODO: Open delete confirmation modal
-    console.log("Delete client:", client.id)
+    // Open delete confirmation modal
+    setShowDeleteModal(true)
   }
 
-  const handleSendNote = () => {
+  const handleConfirmMove = async (notes?: string) => {
+    setIsMoving(true)
+    try {
+      const response = await fetchWithCsrf(`/api/v1/clients/${client.id}/stage`, {
+        method: "PUT",
+        body: JSON.stringify({ stage: client.stage }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to move client")
+      }
+
+      toast({
+        title: "Client moved",
+        description: `Client moved to ${client.stage}`,
+        variant: "default",
+      })
+
+      setShowStageModal(false)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to move client"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsMoving(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetchWithCsrf(`/api/v1/clients/${client.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to delete client")
+      }
+
+      toast({
+        title: "Client deleted",
+        description: "Client has been deactivated",
+        variant: "default",
+      })
+
+      setShowDeleteModal(false)
+      onClose()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete client"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleSendNote = async () => {
     if (!noteText.trim()) return
 
+    setIsSendingNote(true)
     const newNote: Note = {
       id: Date.now().toString(),
       text: noteText.trim(),
@@ -141,30 +235,44 @@ export function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
       timestamp: new Date()
     }
 
-    // Add note to list immediately (optimistic update)
-    setNotes(prev => [newNote, ...prev])
-    setNoteText("")
+    try {
+      // Add note to list immediately (optimistic update)
+      setNotes(prev => [newNote, ...prev])
+      setNoteText("")
 
-    // TODO: Save note to API when backend endpoint is ready
-    // fetch(`/api/v1/clients/${client.id}/notes`, {
-    //   method: 'POST',
-    //   credentials: 'include',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ text: newNote.text })
-    // })
-    // .then(response => {
-    //   if (!response.ok) throw new Error('Failed to save note')
-    //   return response.json()
-    // })
-    // .then(savedNote => {
-    //   // Update with server-generated ID if needed
-    //   setNotes(prev => prev.map(n => n.id === newNote.id ? { ...n, id: savedNote.id } : n))
-    // })
-    // .catch(error => {
-    //   console.error('Failed to save note:', error)
-    //   // Revert optimistic update on error
-    //   setNotes(prev => prev.filter(n => n.id !== newNote.id))
-    // })
+      // Save note to API
+      const response = await fetchWithCsrf(`/api/v1/clients/${client.id}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ text: newNote.text })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save note')
+      }
+
+      const savedNote = await response.json()
+      // Update with server-generated ID if needed
+      setNotes(prev => prev.map(n => n.id === newNote.id ? { ...n, id: savedNote.id } : n))
+
+      toast({
+        title: "Note saved",
+        description: "Your note has been added to the client",
+        variant: "default",
+      })
+    } catch (error) {
+      // Revert optimistic update on error
+      setNotes(prev => prev.filter(n => n.id !== newNote.id))
+      setNoteText(newNote.text)
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save note'
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingNote(false)
+    }
   }
 
   const handleAttachment = () => {
@@ -392,6 +500,46 @@ export function ClientDetailPanel({ client, onClose }: ClientDetailPanelProps) {
           </div>
         </div>
       </div>
+
+      {/* Stage Confirmation Modal */}
+      <StageConfirmModal
+        open={showStageModal}
+        onOpenChange={setShowStageModal}
+        clientName={client.name}
+        fromStage={client.stage as any}
+        toStage={client.stage as any}
+        onConfirm={handleConfirmMove}
+        onCancel={() => setShowStageModal(false)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate <span className="font-medium">{client.name}</span>? This action can be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteModal(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
