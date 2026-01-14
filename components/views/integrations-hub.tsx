@@ -24,6 +24,7 @@ type IntegrationCategory = "advertising" | "communication" | "analytics" | "crm"
 
 interface Integration {
   id: string
+  provider?: IntegrationProvider // Provider key for API calls (optional for future integrations)
   name: string
   description: string
   icon: React.ReactNode
@@ -164,6 +165,7 @@ function mapDbToUiIntegration(dbIntegration: DbIntegration): Integration {
 
   return {
     id: dbIntegration.id,
+    provider: dbIntegration.provider, // Include provider for API calls
     name: metadata.name,
     description: metadata.description,
     icon: metadata.icon,
@@ -216,7 +218,9 @@ function IntegrationCardComponent({ integration, onClick, onConnect }: Integrati
 
   const handleConnectClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onConnect?.(integration.id)
+    if (integration.provider) {
+      onConnect?.(integration.provider) // Use provider, not id (which could be UUID)
+    }
   }
 
   const showConnectButton = integration.status === "disconnected" || integration.status === "error"
@@ -393,6 +397,7 @@ export function IntegrationsHub() {
         const metadata = integrationMetadata[provider]
         return {
           id: provider,
+          provider, // Include provider for API calls
           name: metadata.name,
           description: metadata.description,
           icon: metadata.icon,

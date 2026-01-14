@@ -245,6 +245,7 @@ function getUniqueClients(docs: Document[]): string[] {
 }
 
 export function KnowledgeBase() {
+  const { toast } = useToast()
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
