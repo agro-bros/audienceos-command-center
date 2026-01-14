@@ -3,6 +3,9 @@
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSlideTransition } from "@/hooks/use-slide-transition"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
+import { useAutomationsStore } from "@/stores/automations-store"
 import { cn } from "@/lib/utils"
 import { ListHeader } from "@/components/linear"
 import {
@@ -25,6 +28,7 @@ import {
   Trash2,
   Copy,
   X,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +41,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Icons for integrations
 function SlackIcon({ className }: { className?: string }) {
@@ -217,43 +231,183 @@ const stepTypeColors: Record<string, string> = {
 }
 
 export function AutomationsHub() {
+  const { toast } = useToast()
+  const { toggleWorkflow, deleteWorkflow } = useAutomationsStore()
+
   const [selectedAutomation, setSelectedAutomation] = useState<AutomationTemplate | null>(null)
   const [selectedStep, setSelectedStep] = useState<AutomationStep | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [isTestingStep, setIsTestingStep] = useState(false)
+  const [isSavingStep, setIsSavingStep] = useState(false)
 
   const slideTransition = useSlideTransition()
 
   // Handler functions
-  const handleToggleStatus = (automation: AutomationTemplate) => {
+  const handleToggleStatus = async (automation: AutomationTemplate) => {
     const newStatus = automation.status === "active" ? "inactive" : "active"
-    // TODO: Update automation status via API
-    console.log("Toggle automation status:", automation.id, newStatus)
+    const isActive = newStatus === "active"
+
+    try {
+      const success = await toggleWorkflow(automation.id, isActive)
+      if (success) {
+        toast({
+          title: "Automation updated",
+          description: `Automation is now ${newStatus}`,
+          variant: "default",
+        })
+        // Update local state
+        if (selectedAutomation) {
+          setSelectedAutomation({ ...selectedAutomation, status: newStatus as "active" | "inactive" | "draft" })
+        }
+      } else {
+        throw new Error("Failed to toggle automation")
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to toggle automation"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (!selectedAutomation) return
-    // TODO: Duplicate automation via API
-    console.log("Duplicate automation:", selectedAutomation.id)
+    setIsDuplicating(true)
+
+    try {
+      const response = await fetchWithCsrf(`/api/v1/workflows/${selectedAutomation.id}/duplicate`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to duplicate automation")
+      }
+
+      toast({
+        title: "Automation duplicated",
+        description: `${selectedAutomation.name} has been duplicated`,
+        variant: "default",
+      })
+
+      // Close detail panel
+      setSelectedAutomation(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to duplicate automation"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedAutomation) return
+    setIsDeleting(true)
+
+    try {
+      const success = await deleteWorkflow(selectedAutomation.id)
+      if (success) {
+        toast({
+          title: "Automation deleted",
+          description: "The automation has been removed",
+          variant: "default",
+        })
+        setShowDeleteModal(false)
+        setSelectedAutomation(null)
+      } else {
+        throw new Error("Failed to delete automation")
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete automation"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleDelete = () => {
-    if (!selectedAutomation) return
-    // TODO: Show confirmation dialog, then delete via API
-    console.log("Delete automation:", selectedAutomation.id)
-    setSelectedAutomation(null)
+    setShowDeleteModal(true)
   }
 
-  const handleTestStep = () => {
-    if (!selectedStep) return
-    // TODO: Execute test for this step
-    console.log("Test step:", selectedStep.id)
+  const handleTestStep = async () => {
+    if (!selectedStep || !selectedAutomation) return
+    setIsTestingStep(true)
+
+    try {
+      const response = await fetchWithCsrf(`/api/v1/workflows/${selectedAutomation.id}/steps/${selectedStep.id}/test`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to test step")
+      }
+
+      const result = await response.json()
+      toast({
+        title: "Step tested",
+        description: `Test execution completed successfully`,
+        variant: "default",
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to test step"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsTestingStep(false)
+    }
   }
 
-  const handleSaveStep = () => {
-    if (!selectedStep) return
-    // TODO: Save step configuration via API
-    console.log("Save step:", selectedStep.id)
+  const handleSaveStep = async () => {
+    if (!selectedStep || !selectedAutomation) return
+    setIsSavingStep(true)
+
+    try {
+      const response = await fetchWithCsrf(`/api/v1/workflows/${selectedAutomation.id}/steps/${selectedStep.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: selectedStep.name,
+          config: selectedStep.config,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to save step")
+      }
+
+      toast({
+        title: "Step saved",
+        description: `${selectedStep.name} configuration has been updated`,
+        variant: "default",
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save step"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingStep(false)
+    }
   }
 
   // Calculate counts
@@ -405,14 +559,22 @@ export function AutomationsHub() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleDuplicate}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Duplicate
+                  <DropdownMenuItem onClick={handleDuplicate} disabled={isDuplicating || isDeleting}>
+                    {isDuplicating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-2" />
+                    )}
+                    {isDuplicating ? "Duplicating..." : "Duplicate"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                  <DropdownMenuItem onClick={handleDelete} className="text-destructive" disabled={isDeleting || isDuplicating}>
+                    {isDeleting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    {isDeleting ? "Deleting..." : "Delete"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -546,16 +708,23 @@ export function AutomationsHub() {
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleTestStep}
+                disabled={isTestingStep}
               >
-                <Play className="h-3 w-3 mr-1.5" />
-                Test Step
+                {isTestingStep ? (
+                  <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3 mr-1.5" />
+                )}
+                {isTestingStep ? "Testing..." : "Test Step"}
               </Button>
               <Button
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleSaveStep}
+                disabled={isSavingStep}
               >
-                Save
+                {isSavingStep && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
+                {isSavingStep ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>
@@ -567,6 +736,29 @@ export function AutomationsHub() {
         </motion.div>
       )}
       </AnimatePresence>
+
+      {/* Delete confirmation modal */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete automation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedAutomation?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
