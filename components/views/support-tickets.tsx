@@ -3,6 +3,8 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSlideTransition } from "@/hooks/use-slide-transition"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { cn } from "@/lib/utils"
 import {
   InboxItem,
@@ -68,8 +70,11 @@ export function SupportTickets() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false)
 
   const slideTransition = useSlideTransition()
+  const { toast } = useToast()
 
   // Get tickets from store
   const { tickets: storeTickets, fetchTickets, isLoading: _isLoading } = useTicketStore()
@@ -78,6 +83,47 @@ export function SupportTickets() {
   useEffect(() => {
     fetchTickets()
   }, [fetchTickets])
+
+  // Load ticket notes when a ticket is selected
+  useEffect(() => {
+    if (!selectedTicket) return
+
+    const loadTicketNotes = async () => {
+      setIsLoadingNotes(true)
+      try {
+        const response = await fetch(
+          `/api/v1/tickets/${selectedTicket.id}/notes`,
+          { credentials: 'include' }
+        )
+
+        if (response.ok) {
+          const { data: notes } = await response.json()
+
+          // Transform notes to activity items
+          const activities = notes.map((note: any) => ({
+            id: note.id,
+            type: 'comment' as const,
+            actor: {
+              name: `${note.author?.first_name || ''} ${note.author?.last_name || ''}`.trim() || 'Unknown',
+              initials: `${note.author?.first_name?.[0] || ''}${note.author?.last_name?.[0] || ''}`.toUpperCase() || 'U',
+              color: 'bg-blue-600',
+            },
+            timestamp: new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            content: note.content,
+          }))
+
+          // Update selected ticket with loaded notes
+          setSelectedTicket((prev) => prev ? { ...prev, activities } : null)
+        }
+      } catch (error) {
+        console.error('Failed to load ticket notes:', error)
+      } finally {
+        setIsLoadingNotes(false)
+      }
+    }
+
+    loadTicketNotes()
+  }, [selectedTicket?.id])
 
   // Transform store tickets to display format
   const displayTickets = useMemo(() => {
@@ -129,8 +175,65 @@ export function SupportTickets() {
     return tickets
   }, [activeFilter, searchQuery, displayTickets])
 
-  const handleComment = (_content: string) => {
-    // TODO: Implement comment creation API call
+  const handleComment = async (content: string) => {
+    if (!selectedTicket || !content.trim()) return
+
+    setIsSubmittingComment(true)
+    try {
+      const response = await fetchWithCsrf(
+        `/api/v1/tickets/${selectedTicket.id}/notes`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            content: content.trim(),
+            is_internal: false,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to post comment')
+      }
+
+      toast({
+        title: 'Comment posted',
+        description: 'Your comment has been added to the ticket.',
+        variant: 'default',
+      })
+
+      // Reload notes for the selected ticket to show the new comment
+      const notesResponse = await fetch(
+        `/api/v1/tickets/${selectedTicket.id}/notes`,
+        { credentials: 'include' }
+      )
+
+      if (notesResponse.ok) {
+        const { data: notes } = await notesResponse.json()
+        const activities = notes.map((note: any) => ({
+          id: note.id,
+          type: 'comment' as const,
+          actor: {
+            name: `${note.author?.first_name || ''} ${note.author?.last_name || ''}`.trim() || 'Unknown',
+            initials: `${note.author?.first_name?.[0] || ''}${note.author?.last_name?.[0] || ''}`.toUpperCase() || 'U',
+            color: 'bg-blue-600',
+          },
+          timestamp: new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          content: note.content,
+        }))
+
+        setSelectedTicket((prev) => prev ? { ...prev, activities } : null)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to post comment'
+      toast({
+        title: 'Error posting comment',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingComment(false)
+    }
   }
 
   return (
