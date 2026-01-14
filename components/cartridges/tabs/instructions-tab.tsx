@@ -8,23 +8,74 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Plus, Upload, Eye, Trash2, Loader2, FileText, BookOpen } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Plus, Upload, Eye, Trash2, Loader2, FileText, BookOpen, X } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { type InstructionCartridge } from "@/types/cartridges"
 
 export function InstructionsTab() {
+  const { toast } = useToast()
   const [instructionCartridges, setInstructionCartridges] = useState<InstructionCartridge[]>([])
   const [newName, setNewName] = useState("")
   const [newDescription, setNewDescription] = useState("")
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
+  const [isCreating, setIsCreating] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteInstructionId, setDeleteInstructionId] = useState<string | null>(null)
 
   const handleCreate = async () => {
     if (!newName.trim()) return
-    // TODO: API call to create instruction set
-    setNewName("")
-    setNewDescription("")
+
+    setIsCreating(true)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/instructions", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newName,
+          description: newDescription,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to create instruction set")
+      }
+
+      const newInstruction = await response.json()
+      setInstructionCartridges((prev) => [...prev, newInstruction])
+
+      toast({
+        title: "Instruction Set Created",
+        description: `"${newName}" has been created successfully`,
+      })
+
+      setNewName("")
+      setNewDescription("")
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create instruction set"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
-  const handleUpload = async (_instructionId: string) => {
+  const handleUpload = async (instructionId: string) => {
     const input = document.createElement("input")
     input.type = "file"
     input.multiple = true
@@ -33,7 +84,48 @@ export function InstructionsTab() {
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files
       if (!files || files.length === 0) return
-      // TODO: API call to upload documents for instruction: ${instructionId}
+
+      setIsUploading(true)
+      try {
+        const formData = new FormData()
+        Array.from(files).forEach((file) => {
+          formData.append("files", file)
+        })
+
+        const response = await fetch(
+          `/api/v1/cartridges/instructions/${instructionId}/upload`,
+          {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          }
+        )
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || "Failed to upload documents")
+        }
+
+        const updatedInstruction = await response.json()
+        setInstructionCartridges((prev) =>
+          prev.map((i) => (i.id === instructionId ? updatedInstruction : i))
+        )
+
+        toast({
+          title: "Documents Uploaded",
+          description: `${files.length} document(s) uploaded successfully`,
+        })
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to upload documents"
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      } finally {
+        setIsUploading(false)
+      }
     }
 
     input.click()
@@ -41,18 +133,85 @@ export function InstructionsTab() {
 
   const handleProcess = async (instructionId: string) => {
     setProcessingIds((prev) => new Set(prev).add(instructionId))
-    // TODO: API call to process instruction
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setProcessingIds((prev) => {
-      const next = new Set(prev)
-      next.delete(instructionId)
-      return next
-    })
+    try {
+      const response = await fetchWithCsrf(
+        `/api/v1/cartridges/instructions/${instructionId}/process`,
+        {
+          method: "POST",
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to process instruction")
+      }
+
+      const processedInstruction = await response.json()
+      setInstructionCartridges((prev) =>
+        prev.map((i) => (i.id === instructionId ? processedInstruction : i))
+      )
+
+      toast({
+        title: "Processing Complete",
+        description: "Your instruction set has been processed successfully",
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to process instruction"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(instructionId)
+        return next
+      })
+    }
   }
 
   const handleDelete = async (instructionId: string) => {
-    // TODO: API call to delete instruction
-    setInstructionCartridges((prev) => prev.filter((i) => i.id !== instructionId))
+    setDeleteInstructionId(instructionId)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteInstructionId) return
+
+    try {
+      const response = await fetchWithCsrf(
+        `/api/v1/cartridges/instructions/${deleteInstructionId}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to delete instruction")
+      }
+
+      setInstructionCartridges((prev) =>
+        prev.filter((i) => i.id !== deleteInstructionId)
+      )
+      setShowDeleteModal(false)
+      setDeleteInstructionId(null)
+
+      toast({
+        title: "Instruction Deleted",
+        description: "Your instruction set has been deleted",
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete instruction"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
   }
 
   const getStatusColor = (status: InstructionCartridge["processStatus"]) => {
@@ -91,9 +250,18 @@ export function InstructionsTab() {
             onChange={(e) => setNewDescription(e.target.value)}
             className="min-h-[80px]"
           />
-          <Button onClick={handleCreate} disabled={!newName.trim()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Instruction Set
+          <Button onClick={handleCreate} disabled={!newName.trim() || isCreating}>
+            {isCreating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Instruction Set
+              </>
+            )}
           </Button>
         </div>
 
@@ -188,6 +356,7 @@ export function InstructionsTab() {
                         size="sm"
                         variant="destructive"
                         onClick={() => handleDelete(instruction.id)}
+                        disabled={isCreating || isUploading}
                       >
                         <Trash2 className="mr-2 h-3 w-3" />
                         Delete
@@ -208,6 +377,27 @@ export function InstructionsTab() {
             <p className="text-sm mt-1">Create an instruction set and upload training documents</p>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Instruction Set</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this instruction set? This action cannot be undone and all associated training documents will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

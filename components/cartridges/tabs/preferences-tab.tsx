@@ -12,22 +12,100 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Check, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Check, Edit, Trash2, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { type PreferencesCartridge, getDefaultPreferences } from "@/types/cartridges"
 
 export function PreferencesTab() {
+  const { toast } = useToast()
   const [preferencesCartridge, setPreferencesCartridge] = useState<PreferencesCartridge | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(getDefaultPreferences())
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const handleSave = async () => {
-    // TODO: API call to save preferences cartridge
-    setIsEditing(false)
+    setIsSaving(true)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/preferences", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to save preferences")
+      }
+
+      const savedPreferences = await response.json()
+      setPreferencesCartridge(savedPreferences)
+
+      toast({
+        title: "Preferences Saved",
+        description: "Your content preferences have been updated successfully",
+      })
+
+      setIsEditing(false)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save preferences"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = async () => {
-    // TODO: API call to delete preferences
-    setPreferencesCartridge(null)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/preferences", {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to delete preferences")
+      }
+
+      setPreferencesCartridge(null)
+      setFormData(getDefaultPreferences())
+      setShowDeleteModal(false)
+
+      toast({
+        title: "Preferences Deleted",
+        description: "Your preferences cartridge has been deleted",
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete preferences"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const updateFormData = <K extends keyof typeof formData>(
@@ -201,16 +279,25 @@ export function PreferencesTab() {
 
             {/* Actions */}
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleSave}>
-                <Check className="mr-2 h-4 w-4" />
-                Save Preferences
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Save Preferences
+                  </>
+                )}
               </Button>
               {preferencesCartridge && (
                 <>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                     Cancel
                   </Button>
-                  <Button variant="destructive" onClick={handleDelete}>
+                  <Button variant="destructive" onClick={handleDelete} disabled={isSaving}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete All
                   </Button>
@@ -252,6 +339,35 @@ export function PreferencesTab() {
             </Button>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Preferences Cartridge</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete your preferences cartridge? This action cannot be undone and your AI assistant will lose all preference configurations.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

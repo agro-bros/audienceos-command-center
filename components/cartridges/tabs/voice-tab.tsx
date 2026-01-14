@@ -22,11 +22,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Mic, Plus, X, Settings, Check } from "lucide-react"
+import { Mic, Plus, X, Settings, Check, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { type VoiceCartridge, type VoiceParams, getDefaultVoiceParams } from "@/types/cartridges"
 
 export function VoiceTab() {
-  const [voiceCartridges, _setVoiceCartridges] = useState<VoiceCartridge[]>([])
+  const { toast } = useToast()
+  const [voiceCartridges, setVoiceCartridges] = useState<VoiceCartridge[]>([])
   const [_editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +38,7 @@ export function VoiceTab() {
   })
   const [voiceParams, setVoiceParams] = useState<VoiceParams>(getDefaultVoiceParams())
   const [isCreating, setIsCreating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const updateVoiceParams = (updates: Partial<VoiceParams>) => {
     setVoiceParams((prev) => ({
@@ -65,10 +69,54 @@ export function VoiceTab() {
   }
 
   const handleSave = async () => {
-    // TODO: API call to save voice cartridge
-    setIsCreating(false)
-    setFormData({ name: "", displayName: "", systemInstructions: "" })
-    setVoiceParams(getDefaultVoiceParams())
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Cartridge name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/voice", {
+        method: "POST",
+        body: JSON.stringify({
+          name: formData.name,
+          displayName: formData.displayName,
+          systemInstructions: formData.systemInstructions,
+          voiceParams,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to save voice cartridge")
+      }
+
+      const newCartridge = await response.json()
+      setVoiceCartridges((prev) => [...prev, newCartridge])
+
+      toast({
+        title: "Voice Cartridge Created",
+        description: `"${formData.displayName || formData.name}" has been created successfully`,
+      })
+
+      setIsCreating(false)
+      setFormData({ name: "", displayName: "", systemInstructions: "" })
+      setVoiceParams(getDefaultVoiceParams())
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save voice cartridge"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -404,9 +452,18 @@ export function VoiceTab() {
 
             {/* Actions */}
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleSave}>
-                <Check className="mr-2 h-4 w-4" />
-                Save Cartridge
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Save Cartridge
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -415,6 +472,7 @@ export function VoiceTab() {
                   setFormData({ name: "", displayName: "", systemInstructions: "" })
                   setVoiceParams(getDefaultVoiceParams())
                 }}
+                disabled={isSaving}
               >
                 Cancel
               </Button>

@@ -7,13 +7,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Upload, FileText, Eye, Trash2, Loader2, X } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { type StyleCartridge } from "@/types/cartridges"
 
 export function StyleTab() {
+  const { toast } = useToast()
   const [styleCartridge, setStyleCartridge] = useState<StyleCartridge | null>(null)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -26,20 +42,119 @@ export function StyleTab() {
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return
-    // TODO: API call to upload files for style analysis
-    setSelectedFiles([])
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      selectedFiles.forEach((file) => {
+        formData.append("files", file)
+      })
+
+      const response = await fetch("/api/v1/cartridges/style/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to upload files")
+      }
+
+      const uploadedCartridge = await response.json()
+      setStyleCartridge(uploadedCartridge)
+      setSelectedFiles([])
+
+      toast({
+        title: "Files Uploaded",
+        description: `${selectedFiles.length} file(s) uploaded successfully`,
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload files"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleAnalyze = async () => {
+    if (!styleCartridge) return
+
     setIsAnalyzing(true)
-    // TODO: API call to analyze style
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsAnalyzing(false)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/style/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          cartridgeId: styleCartridge.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to analyze style")
+      }
+
+      const analyzedCartridge = await response.json()
+      setStyleCartridge(analyzedCartridge)
+
+      toast({
+        title: "Analysis Complete",
+        description: "Your writing style has been analyzed successfully",
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to analyze style"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const handleDelete = async () => {
-    // TODO: API call to delete style cartridge
-    setStyleCartridge(null)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!styleCartridge) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetchWithCsrf("/api/v1/cartridges/style", {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to delete style cartridge")
+      }
+
+      setStyleCartridge(null)
+      setShowDeleteModal(false)
+
+      toast({
+        title: "Style Cartridge Deleted",
+        description: "Your style cartridge has been deleted",
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete style"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -90,14 +205,24 @@ export function StyleTab() {
                     size="sm"
                     variant="ghost"
                     onClick={() => removeFile(idx)}
+                    disabled={isUploading}
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
-              <Button onClick={handleUpload} className="w-full">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload {selectedFiles.length} File{selectedFiles.length > 1 ? "s" : ""}
+              <Button onClick={handleUpload} className="w-full" disabled={isUploading}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload {selectedFiles.length} File{selectedFiles.length > 1 ? "s" : ""}
+                  </>
+                )}
               </Button>
             </div>
           )}
@@ -148,9 +273,9 @@ export function StyleTab() {
                     </>
                   )}
                 </Button>
-                <Button variant="destructive" onClick={handleDelete}>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {isDeleting ? "Deleting..." : "Delete"}
                 </Button>
               </div>
             </div>
@@ -205,6 +330,35 @@ export function StyleTab() {
             <p className="text-sm mt-1">The AI will analyze your writing patterns</p>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Style Cartridge</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete your style cartridge? This action cannot be undone and your AI assistant will lose all learned writing style patterns.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

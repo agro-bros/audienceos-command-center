@@ -1,19 +1,36 @@
 "use client"
 
 import React, { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Check, Edit, Trash2, Loader2, Zap, FileText, Building2 } from "lucide-react"
 import { type BrandCartridge } from "@/types/cartridges"
 
 export function BrandTab() {
+  const { toast } = useToast()
   const [brandCartridge, setBrandCartridge] = useState<BrandCartridge | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isGeneratingBlueprint, setIsGeneratingBlueprint] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     companyName: "",
@@ -32,26 +49,145 @@ export function BrandTab() {
   }
 
   const handleSave = async () => {
-    // TODO: API call to save brand cartridge
-    setIsEditing(false)
+    setIsSaving(true)
+    try {
+      const response = await fetchWithCsrf('/api/v1/cartridges/brand', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to save brand cartridge')
+      }
+
+      const { data } = await response.json()
+      setBrandCartridge(data)
+      setIsEditing(false)
+
+      toast({
+        title: 'Brand saved',
+        description: 'Your brand cartridge has been saved successfully',
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save brand'
+      toast({
+        title: 'Error saving brand',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = async () => {
-    // TODO: API call to delete brand
-    setBrandCartridge(null)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetchWithCsrf('/api/v1/cartridges/brand', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to delete brand')
+      }
+
+      setBrandCartridge(null)
+      setShowDeleteModal(false)
+
+      toast({
+        title: 'Brand deleted',
+        description: 'Your brand cartridge has been deleted',
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete brand'
+      toast({
+        title: 'Error deleting brand',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleGenerateBlueprint = async () => {
     setIsGeneratingBlueprint(true)
-    // TODO: API call to generate 112-point blueprint
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    setIsGeneratingBlueprint(false)
+    try {
+      const response = await fetchWithCsrf('/api/v1/cartridges/brand/blueprint', {
+        method: 'POST',
+        body: JSON.stringify({ coreMessaging: formData.coreMessaging }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to generate blueprint')
+      }
+
+      const { data } = await response.json()
+      setBrandCartridge((prev) => prev ? { ...prev, bensonBlueprint: data } : null)
+
+      toast({
+        title: 'Blueprint generated',
+        description: 'Your 112-point blueprint has been created',
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate blueprint'
+      toast({
+        title: 'Error generating blueprint',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGeneratingBlueprint(false)
+    }
   }
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    // TODO: API call to upload logo
+
+    setIsUploadingLogo(true)
+    try {
+      const formDataObj = new FormData()
+      formDataObj.append('logo', file)
+
+      const response = await fetch('/api/v1/cartridges/brand/logo', {
+        method: 'POST',
+        body: formDataObj,
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to upload logo')
+      }
+
+      const { data } = await response.json()
+      setBrandCartridge((prev) => prev ? { ...prev, logoUrl: data.logoUrl } : null)
+
+      toast({
+        title: 'Logo uploaded',
+        description: 'Your brand logo has been uploaded successfully',
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload logo'
+      toast({
+        title: 'Error uploading logo',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingLogo(false)
+    }
   }
 
   // Calculate word count for core messaging
@@ -147,18 +283,18 @@ export function BrandTab() {
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button onClick={handleSave}>
-                  <Check className="mr-2 h-4 w-4" />
-                  Save Brand
+                <Button onClick={handleSave} disabled={isSaving || isUploadingLogo}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                  {isSaving ? 'Saving...' : 'Save Brand'}
                 </Button>
                 {brandCartridge && (
                   <>
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                       Cancel
                     </Button>
-                    <Button variant="destructive" onClick={handleDelete}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                      {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                      {isDeleting ? 'Deleting...' : 'Delete'}
                     </Button>
                   </>
                 )}
@@ -251,14 +387,14 @@ Example format:
             <span>{(wordCount / 1000).toFixed(1)}k words</span>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleSave}>
-              <Check className="mr-2 h-4 w-4" />
-              Save Core Messaging
+            <Button onClick={handleSave} disabled={isSaving || isUploadingLogo}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+              {isSaving ? 'Saving...' : 'Save Core Messaging'}
             </Button>
             <Button
               variant="outline"
               onClick={handleGenerateBlueprint}
-              disabled={isGeneratingBlueprint}
+              disabled={isGeneratingBlueprint || !formData.coreMessaging.trim()}
             >
               {isGeneratingBlueprint ? (
                 <>
@@ -377,6 +513,35 @@ Example format:
           </p>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Brand Cartridge</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your brand cartridge? This action cannot be undone and your AI assistant will lose all brand configuration.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
