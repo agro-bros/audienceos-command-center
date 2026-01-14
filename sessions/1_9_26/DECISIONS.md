@@ -12,7 +12,7 @@
 **Implications:**
 - All database operations now target `command_center` project
 - Old project references in documentation are outdated
-- Environment variables may need updating on Vercel to point to new project
+- Environment variables need updating on Vercel to point to new project
 
 ---
 
@@ -60,5 +60,37 @@
 
 **Implications:**
 - Backend OAuth configuration complete, awaiting frontend
-- Test page may be needed for backend verification without frontend
+- Test page created for backend verification
 - Handoff documentation important for coordination
+
+---
+
+## 2026-01-09 – CLAUDE.md as Local-Only File
+
+**Decision:** Keep CLAUDE.md untracked by git, local to each developer
+
+**Reason:**
+- Each developer maintains their own project context
+- Prevents overwrites when pulling from remote
+- Personal configuration shouldn't be shared
+
+**Implications:**
+- Added CLAUDE.md to .gitignore
+- Removed from git tracking (commit `ac6d5fe`)
+- Each developer responsible for maintaining their own copy
+
+---
+
+## 2026-01-09 – Secrets Not Stored in Documentation
+
+**Decision:** Replace actual OAuth credentials with placeholders in committed docs
+
+**Reason:**
+- GitHub secret scanning blocks pushes with credentials
+- Security best practice
+- Credentials already configured in Supabase Dashboard
+
+**Implications:**
+- Documentation references `[See Google Cloud Console]` for credentials
+- Actual credentials only in Supabase Dashboard and local .env.local
+- .env.local is gitignored
