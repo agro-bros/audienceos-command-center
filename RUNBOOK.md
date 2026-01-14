@@ -364,8 +364,8 @@ No additional action needed—just commit code, push, Vercel uses its env vars.
 ### Diiiploy-Gateway (MCP Aggregator) - CRITICAL ARCHITECTURE
 
 **Location:** `infrastructure/cloudflare/cc-gateway/`
-**Planned URL:** https://cc-gateway.roderic-andrews.workers.dev
-**Status:** Code exists, needs deployment
+**URL:** https://cc-gateway.roderic-andrews.workers.dev
+**Status:** ✅ Deployed (63 MCP tools)
 
 **Purpose:** MCP-based integration gateway. Instead of building OAuth flows for each service, we use a single gateway with 50+ MCP tools.
 
