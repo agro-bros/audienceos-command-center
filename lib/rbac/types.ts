@@ -20,7 +20,8 @@ export type ResourceType =
   | 'roles'
   | 'integrations'
   | 'analytics'
-  | 'ai-features';
+  | 'ai-features'
+  | 'cartridges';
 
 export type PermissionAction = 'read' | 'write' | 'delete' | 'manage';
 
