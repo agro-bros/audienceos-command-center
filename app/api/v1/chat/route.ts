@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 import { getSmartRouter } from '@/lib/chat/router';
 import { executeFunction, hgcFunctions } from '@/lib/chat/functions';
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission';
+import { createRouteHandlerClient } from '@/lib/supabase';
+import { getGeminiRAG } from '@/lib/rag';
+import { getMemoryInjector } from '@/lib/memory';
 import type { Citation } from '@/lib/chat/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // CRITICAL: Gemini 3 ONLY per project requirements
 const GEMINI_MODEL = 'gemini-3-flash-preview';
@@ -64,8 +69,16 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
     let citations: Citation[] = [];
 
     if (route === 'dashboard') {
+      // Create Supabase client for database queries (CRITICAL: was missing, causing mock data fallback)
+      const supabase = await createRouteHandlerClient(cookies);
       // Use function calling for dashboard queries
-      responseContent = await handleDashboardRoute(apiKey, message, agencyId, userId, functionCalls);
+      responseContent = await handleDashboardRoute(apiKey, message, agencyId, userId, functionCalls, supabase);
+    } else if (route === 'rag') {
+      // Use RAG for document search queries
+      responseContent = await handleRAGRoute(apiKey, message, agencyId, citations);
+    } else if (route === 'memory') {
+      // Use Memory for recall queries
+      responseContent = await handleMemoryRoute(apiKey, message, agencyId, userId);
     } else {
       // Use basic Gemini response for other routes (may include web grounding citations)
       responseContent = await handleCasualRoute(apiKey, message, route, citations);
@@ -165,13 +178,15 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
 
 /**
  * Handle dashboard route with function calling
+ * FIXED 2026-01-15: Now accepts supabase client to enable real database queries
  */
 async function handleDashboardRoute(
   apiKey: string,
   message: string,
   agencyId: string | undefined,
   userId: string | undefined,
-  functionCallsLog: Array<{ name: string; result: unknown }>
+  functionCallsLog: Array<{ name: string; result: unknown }>,
+  supabase: SupabaseClient
 ): Promise<string> {
   const genai = new GoogleGenAI({ apiKey });
 
@@ -210,11 +225,12 @@ async function handleDashboardRoute(
 
       console.log(`[Chat API] Function call: ${functionName}`, args);
 
-      // Execute the function
+      // Execute the function with Supabase client for real DB queries
       try {
         const result = await executeFunction(functionName, {
           agencyId: agencyId || 'demo-agency',
           userId: userId || 'demo-user',
+          supabase,  // CRITICAL FIX: Pass supabase client to enable real database queries
         }, args || {});
 
         functionCallsLog.push({ name: functionName, result });
@@ -245,7 +261,107 @@ Please provide a helpful, natural language summary of this data for the user.`,
 }
 
 /**
- * Handle casual/rag/web/memory routes with basic Gemini response
+ * Handle RAG route - document search using Gemini File Search
+ * ADDED 2026-01-15: Ported from HGC for knowledge base queries
+ */
+async function handleRAGRoute(
+  apiKey: string,
+  message: string,
+  agencyId: string | undefined,
+  citations: Citation[]
+): Promise<string> {
+  try {
+    const ragService = getGeminiRAG(apiKey);
+
+    const result = await ragService.search({
+      query: message,
+      agencyId: agencyId || 'demo-agency',
+      includeGlobal: true,
+      maxDocuments: 5,
+      minConfidence: 0.5,
+    });
+
+    // Add RAG citations
+    for (const ragCitation of result.citations) {
+      const citation: Citation = {
+        index: citations.length + 1,
+        title: ragCitation.documentName,
+        url: ragCitation.documentId,
+        source: 'rag',
+        snippet: ragCitation.text,
+      };
+      if (!citations.find(c => c.url === citation.url)) {
+        citations.push(citation);
+      }
+    }
+
+    console.log(`[Chat API] RAG search returned ${result.citations.length} citations, grounded: ${result.isGrounded}`);
+    return result.content;
+  } catch (error) {
+    console.error('[Chat API] RAG search failed:', error);
+    return "I couldn't search the knowledge base right now. Please try again or ask a different question.";
+  }
+}
+
+/**
+ * Handle Memory route - recall from Mem0 cross-session memory
+ * ADDED 2026-01-15: Ported from HGC for memory/recall queries
+ */
+async function handleMemoryRoute(
+  apiKey: string,
+  message: string,
+  agencyId: string | undefined,
+  userId: string | undefined
+): Promise<string> {
+  try {
+    const memoryInjector = getMemoryInjector();
+    const genai = new GoogleGenAI({ apiKey });
+
+    // Detect recall intent and get suggested search query
+    const recallDetection = memoryInjector.detectRecall(message);
+
+    // Search for relevant memories
+    const memoryInjection = await memoryInjector.injectMemories(
+      recallDetection.suggestedSearchQuery,
+      agencyId || 'demo-agency',
+      userId || 'demo-user'
+    );
+
+    if (memoryInjection.memories.length > 0) {
+      // Build response with memory context
+      const memoryContext = memoryInjection.memories
+        .map((m, i) => `[${i + 1}] ${m.content}`)
+        .join('\n');
+
+      // Ask Gemini to synthesize a response from memories
+      const memoryPrompt = `The user is asking about a previous conversation. Based on these memories from our past conversations:
+
+${memoryContext}
+
+User question: "${message}"
+
+Provide a helpful response that references our previous discussions. Be conversational and helpful.`;
+
+      const memoryResult = await genai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: memoryPrompt,
+        config: { temperature: 0.7 },
+      });
+
+      console.log(`[Chat API] Memory search returned ${memoryInjection.memories.length} memories`);
+      return memoryResult.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "I couldn't recall that specific conversation.";
+    } else {
+      return "I don't have any memories of us discussing that topic. Would you like to tell me about it so I can remember for next time?";
+    }
+  } catch (error) {
+    console.error('[Chat API] Memory search failed:', error);
+    return "I'm having trouble accessing my memories right now. Could you remind me what we discussed?";
+  }
+}
+
+/**
+ * Handle casual/web routes with basic Gemini response
  * Extracts citations from grounding metadata when available
  */
 async function handleCasualRoute(
