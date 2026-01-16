@@ -37,23 +37,28 @@ export const POST = withPermission({ resource: 'cartridges', action: 'write' })(
         )
       }
 
-      // Reset all defaults for this type in this agency
-      await supabase
-        .from('cartridges')
-        .update({ is_default: false })
-        .eq('agency_id', cartridge.agency_id)
-        .eq('type', type)
+      // Call transaction-safe RPC function to atomically reset defaults and set new default
+      const { data: result, error: rpcError } = await supabase.rpc(
+        'set_cartridge_default',
+        {
+          p_cartridge_id: id,
+          p_agency_id: cartridge.agency_id,
+          p_type: type,
+        }
+      )
 
-      // Set this one as default
-      const { error: updateError } = await supabase
-        .from('cartridges')
-        .update({ is_default: true })
-        .eq('id', id)
-
-      if (updateError) {
-        console.error('[Set Default Cartridge] UPDATE error:', updateError)
+      if (rpcError) {
+        console.error('[Set Default Cartridge] RPC error:', rpcError)
         return NextResponse.json(
-          { error: updateError.message },
+          { error: 'Failed to set default cartridge' },
+          { status: 400 }
+        )
+      }
+
+      if (result && !result.success) {
+        console.error('[Set Default Cartridge] Function error:', result.error)
+        return NextResponse.json(
+          { error: result.error || 'Failed to set default cartridge' },
           { status: 400 }
         )
       }
