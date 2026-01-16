@@ -201,6 +201,30 @@ DIIIPLOY_GATEWAY_API_KEY=   # For authenticated requests
 
 ---
 
+## Living Documents Protocol
+
+**Principle:** Update existing docs, never create dated orphan files
+
+| Document Type | Location | Purpose | Update Strategy |
+|---|---|---|---|
+| Product Requirements | `docs/01-product/PRD.md` | Feature specifications | Add to existing, never create new |
+| MVP Scope | `docs/01-product/MVP-PRD.md` | MVP boundaries | Update when scope changes |
+| Technical Data Model | `docs/04-technical/DATA-MODEL.md` | Database schema | Update when schema changes |
+| API Contracts | `docs/04-technical/API-CONTRACTS.md` | REST API spec | Update when endpoints change |
+| Validation & QA | `docs/04-technical/VALIDATION.md` | Test results, edge cases | Update each validation cycle |
+| Feature Specs | `features/INDEX.md` | Feature status tracker | Update as features progress |
+
+**Rules:**
+1. **No dates in filenames** - Living documents evolve, they don't get versioned
+2. **Update existing, don't create new** - One source of truth per document type
+3. **Sync to Drive after updates** - Use `docs_create_formatted` to keep Drive in sync
+4. **Timestamp inside docs only** - Track "Last validated" or "Last updated" inside the document, not filename
+
+**Example:** `ULTIMATE-VALIDATION-2026-01-16.md` ❌ WRONG
+**Correct:** `docs/04-technical/VALIDATION.md` with "Last validation: 2026-01-16" ✅
+
+---
+
 ## File Structure (Key Areas)
 
 ```
