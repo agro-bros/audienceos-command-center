@@ -87,7 +87,7 @@ async function fetchProfileDirect(
 
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/user?id=eq.${userId}&select=id,agency_id,first_name,last_name,email,avatar_url,role`,
+      `${supabaseUrl}/rest/v1/user?id=eq.${userId}&select=id,agency_id,first_name,last_name,email,avatar_url,role_id`,
       {
         method: 'GET',
         headers: {
@@ -118,7 +118,7 @@ export interface UserProfile {
   last_name: string
   email: string
   avatar_url: string | null
-  role: string
+  role_id: string
 }
 
 interface AuthState {
@@ -151,7 +151,7 @@ export function useAuth() {
     try {
       const { data, error } = await supabase
         .from('user')
-        .select('id, agency_id, first_name, last_name, email, avatar_url, role')
+        .select('id, agency_id, first_name, last_name, email, avatar_url, role_id')
         .eq('id', userId)
         .single()
 
@@ -184,7 +184,7 @@ export function useAuth() {
             last_name: 'User',
             email: 'demo@audienceos.dev',
             avatar_url: null,
-            role: 'admin',
+            role_id: 'demo-role-id',
           },
           session: null,
           isLoading: false,

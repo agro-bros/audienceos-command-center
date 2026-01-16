@@ -37,7 +37,7 @@ export const GET = withPermission({ resource: 'users', action: 'manage' })(
       let query = supabase
         .from('user')
         .select(`
-          id, email, first_name, last_name, role, avatar_url, is_active, last_active_at, created_at, role_id,
+          id, email, first_name, last_name, avatar_url, is_active, last_active_at, created_at, role_id,
           role_info:role_id (
             hierarchy_level
           )

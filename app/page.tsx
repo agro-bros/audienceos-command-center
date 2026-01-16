@@ -213,7 +213,7 @@ function CommandCenterContent() {
       : displayName?.substring(0, 2).toUpperCase() || "U"
     return {
       name: displayName || "User",
-      role: profile.role || "Member",
+      role: profile.role_id ? "Owner" : "Member", // TODO: Fetch actual role name from role table
       initials,
       color: "bg-emerald-500", // Could be personalized per user
     }
