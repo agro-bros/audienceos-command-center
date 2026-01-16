@@ -29,8 +29,7 @@ describe('Voice Cartridge API Endpoints', () => {
     })
 
     it('should reject missing voice name', async () => {
-      const invalidData = { ...testVoiceData }
-      delete invalidData.name
+      const { name, ...invalidData } = testVoiceData
 
       const response = await fetch('http://localhost:3000/api/v1/cartridges/voice', {
         method: 'POST',

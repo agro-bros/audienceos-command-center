@@ -90,7 +90,7 @@ describe('Chat Route Handlers', () => {
       const injector = getMemoryInjector()
 
       const result = injector.detectRecall('What did we discuss yesterday?')
-      expect(result.isRecall).toBe(true)
+      expect(result.isRecallQuery).toBe(true)
       expect(result.suggestedSearchQuery).toBeDefined()
     })
 
@@ -125,7 +125,7 @@ describe('Chat Route Handlers', () => {
       const apiKey = ''
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       }
 
       expect(headers.Authorization).toBeUndefined()
