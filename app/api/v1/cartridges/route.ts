@@ -5,7 +5,7 @@ import { createRouteHandlerClient } from '@/lib/supabase'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { withRateLimit, createErrorResponse } from '@/lib/security'
 
-// GET /api/v1/cartridges - List cartridges with optional filtering
+// GET /api/v1/cartridges - List cartridges with optional filtering and pagination
 export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
   async (request: AuthenticatedRequest) => {
     try {
@@ -15,14 +15,33 @@ export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
       const supabase = await createRouteHandlerClient(cookies)
       const agencyId = request.user.agencyId
 
-      // Build query
+      // Parse pagination parameters
       const { searchParams } = new URL(request.url)
+      const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100) // Max 100
+      const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0)
+
+      // Validate pagination parameters
+      if (limit < 1 || limit > 100) {
+        return NextResponse.json(
+          { error: 'limit must be between 1 and 100' },
+          { status: 400 }
+        )
+      }
+      if (offset < 0) {
+        return NextResponse.json(
+          { error: 'offset must be >= 0' },
+          { status: 400 }
+        )
+      }
+
+      // Build query with pagination and count
       let query = supabase
         .from('cartridges')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('agency_id', agencyId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
 
       // Apply filters
       const type = searchParams.get('type')
@@ -31,7 +50,7 @@ export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
       if (type) query = query.eq('type', type)
       if (tier) query = query.eq('tier', tier)
 
-      const { data: cartridges, error } = await query
+      const { data: cartridges, error, count } = await query
 
       if (error) {
         console.error('[Cartridges GET] Query error:', error)
@@ -41,7 +60,12 @@ export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
       return NextResponse.json({
         success: true,
         data: cartridges || [],
-        count: cartridges?.length || 0,
+        pagination: {
+          limit,
+          offset,
+          total: count || 0,
+          hasMore: offset + limit < (count || 0),
+        },
       })
     } catch (error) {
       console.error('[Cartridges GET] Unexpected error:', error)
