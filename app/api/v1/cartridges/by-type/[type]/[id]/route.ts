@@ -4,25 +4,34 @@ import { createRouteHandlerClient } from '@/lib/supabase'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
 
+const VALID_TYPES = ['voice', 'brand', 'style', 'instructions']
+
 /**
- * GET /api/v1/cartridges/brand/[id]
- * Fetch a single brand cartridge by ID
- * Verifies type='brand' to ensure type safety
+ * GET /api/v1/cartridges/by-type/[type]/[id]
+ * Fetch a single cartridge by type and ID
+ * Verifies type to ensure type safety
  */
 export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
-  async (request: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+  async (request: AuthenticatedRequest, { params }: { params: { type: string; id: string } }) => {
     try {
+      const { type, id } = params
+
+      // Validate type parameter
+      if (!VALID_TYPES.includes(type)) {
+        return createErrorResponse(400, 'Invalid type')
+      }
+
       const supabase = await createRouteHandlerClient(cookies)
 
       const { data: cartridge, error } = await supabase
         .from('cartridges')
         .select('*')
-        .eq('id', params.id)
-        .eq('type', 'brand')
+        .eq('id', id)
+        .eq('type', type)
         .single()
 
       if (error || !cartridge) {
-        return createErrorResponse(404, 'Brand cartridge not found')
+        return createErrorResponse(404, `${type} cartridge not found`)
       }
 
       return NextResponse.json({
@@ -30,26 +39,32 @@ export const GET = withPermission({ resource: 'cartridges', action: 'read' })(
         data: cartridge,
       })
     } catch (error) {
-      console.error('[Brand Cartridge GET] Unexpected error:', error)
+      console.error('[Cartridges by type] GET [id] Unexpected error:', error)
       return createErrorResponse(500, 'Internal server error')
     }
   }
 )
 
 /**
- * PATCH /api/v1/cartridges/brand/[id]
- * Update a brand cartridge
- * Can update: brand_name, brand_tagline, brand_values, brand_logo_url, name, description
- * Type is always 'brand' - enforced in WHERE clause for safety
+ * PATCH /api/v1/cartridges/by-type/[type]/[id]
+ * Update a cartridge by type and ID
+ * Type is always enforced in WHERE clause for safety
  */
 export const PATCH = withPermission({ resource: 'cartridges', action: 'write' })(
-  async (request: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+  async (request: AuthenticatedRequest, { params }: { params: { type: string; id: string } }) => {
     try {
       const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
       if (rateLimitResponse) return rateLimitResponse
 
       const csrfError = withCsrfProtection(request)
       if (csrfError) return csrfError
+
+      const { type, id } = params
+
+      // Validate type parameter
+      if (!VALID_TYPES.includes(type)) {
+        return createErrorResponse(400, 'Invalid type')
+      }
 
       const supabase = await createRouteHandlerClient(cookies)
       const body = await request.json()
@@ -63,36 +78,36 @@ export const PATCH = withPermission({ resource: 'cartridges', action: 'write' })
       const { error } = await supabase
         .from('cartridges')
         .update(updateData)
-        .eq('id', params.id)
-        .eq('type', 'brand')
+        .eq('id', id)
+        .eq('type', type)
 
       if (error) {
-        console.error('[Brand Cartridge PATCH] Error:', error)
-        return createErrorResponse(500, 'Failed to update brand cartridge')
+        console.error(`[Cartridges by type: ${type}] PATCH Error:`, error)
+        return createErrorResponse(500, `Failed to update ${type} cartridge`)
       }
 
       return NextResponse.json({
         success: true,
-        message: 'Brand cartridge updated',
+        message: `${type} cartridge updated`,
       })
     } catch (error) {
       if (error instanceof SyntaxError) {
         return createErrorResponse(400, 'Invalid JSON in request body')
       }
 
-      console.error('[Brand Cartridge PATCH] Unexpected error:', error)
+      console.error('[Cartridges by type] PATCH Unexpected error:', error)
       return createErrorResponse(500, 'Internal server error')
     }
   }
 )
 
 /**
- * DELETE /api/v1/cartridges/brand/[id]
- * Delete a brand cartridge
- * Type is always 'brand' - enforced in WHERE clause for safety
+ * DELETE /api/v1/cartridges/by-type/[type]/[id]
+ * Delete a cartridge by type and ID
+ * Type is always enforced in WHERE clause for safety
  */
 export const DELETE = withPermission({ resource: 'cartridges', action: 'write' })(
-  async (request: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+  async (request: AuthenticatedRequest, { params }: { params: { type: string; id: string } }) => {
     try {
       const rateLimitResponse = withRateLimit(request, { maxRequests: 30, windowMs: 60000 })
       if (rateLimitResponse) return rateLimitResponse
@@ -100,25 +115,32 @@ export const DELETE = withPermission({ resource: 'cartridges', action: 'write' }
       const csrfError = withCsrfProtection(request)
       if (csrfError) return csrfError
 
+      const { type, id } = params
+
+      // Validate type parameter
+      if (!VALID_TYPES.includes(type)) {
+        return createErrorResponse(400, 'Invalid type')
+      }
+
       const supabase = await createRouteHandlerClient(cookies)
 
       const { error } = await supabase
         .from('cartridges')
         .delete()
-        .eq('id', params.id)
-        .eq('type', 'brand')
+        .eq('id', id)
+        .eq('type', type)
 
       if (error) {
-        console.error('[Brand Cartridge DELETE] Error:', error)
-        return createErrorResponse(500, 'Failed to delete brand cartridge')
+        console.error(`[Cartridges by type: ${type}] DELETE Error:`, error)
+        return createErrorResponse(500, `Failed to delete ${type} cartridge`)
       }
 
       return NextResponse.json({
         success: true,
-        message: 'Brand cartridge deleted',
+        message: `${type} cartridge deleted`,
       })
     } catch (error) {
-      console.error('[Brand Cartridge DELETE] Unexpected error:', error)
+      console.error('[Cartridges by type] DELETE Unexpected error:', error)
       return createErrorResponse(500, 'Internal server error')
     }
   }
