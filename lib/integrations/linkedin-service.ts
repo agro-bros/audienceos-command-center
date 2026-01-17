@@ -20,6 +20,76 @@ import * as UnipileClient from '@/lib/unipile-client'
  * - Only critical failures (no token) cause early exit
  */
 export class LinkedInService {
+  static async sendMessage(
+    userId: string,
+    recipientId: string,
+    message: string
+  ): Promise<{ success: boolean; messageId: string }> {
+    try {
+      const supabase = await createClient()
+
+      // Step 1: Fetch user's agency_id for multi-tenant context
+      const { data: userData, error: userError } = await supabase
+        .from('user')
+        .select('agency_id')
+        .eq('id', userId)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error(`User not found or no agency context for user ${userId}`)
+      }
+
+      const agencyId = userData.agency_id
+
+      // Step 2: Fetch encrypted UniPile account ID
+      const { data: integration, error } = await supabase
+        .from('user_oauth_credential')
+        .select('access_token')
+        .eq('user_id', userId)
+        .eq('type', 'linkedin')
+        .single()
+
+      if (error || !integration) {
+        console.error('[LinkedIn Send] No LinkedIn integration found for user', { userId, error })
+        throw new Error('LinkedIn not connected for user')
+      }
+
+      // Step 3: Decrypt account ID
+      const accountIdEncrypted = deserializeEncryptedToken(integration.access_token)
+      if (!accountIdEncrypted) {
+        throw new Error('Failed to deserialize token')
+      }
+
+      const accountId = decryptToken(accountIdEncrypted)
+      if (!accountId) {
+        throw new Error('Failed to decrypt token')
+      }
+
+      console.log('[LinkedIn Send] Token decrypted successfully', { userId, accountId, recipientId })
+
+      // Step 4: Send message via UniPile
+      const result = await UnipileClient.sendDirectMessage(
+        accountId,
+        recipientId,
+        message
+      )
+
+      console.log('[LinkedIn Send] Message sent successfully', {
+        userId,
+        recipientId,
+        messageId: result.message_id,
+      })
+
+      return {
+        success: true,
+        messageId: result.message_id,
+      }
+    } catch (error) {
+      console.error('[LinkedIn Send] Fatal error:', error)
+      throw error
+    }
+  }
+
   static async syncMessages(userId: string) {
     try {
       const supabase = await createClient()

@@ -1,5 +1,43 @@
 # Active Tasks
 
+## 🔴 CURRENT: Task 8 Extension - LinkedIn DM Sending (Priority 1 Blocking)
+
+**Status:** IN PROGRESS - Autonomous Execution (Full completion expected)
+
+**Context:**
+CTO code review revealed Task 8 (LinkedIn OAuth) is incomplete - can READ messages but NOT SEND.
+Missing 70% of outbound features needed for feature parity with revOS.
+
+**Priority 1 Blocking Issues (THIS TASK):**
+1. Port `sendDirectMessage()` from revOS (80 lines, rate limit handling)
+2. Create POST `/api/v1/integrations/linkedin/send` endpoint
+3. Add `LinkedInService.sendMessage()` wrapper
+4. Handle LinkedIn-specific errors (429 rate limit, "not connected")
+
+**Implementation Plan (TDD):**
+- Phase A: ✅ Update memory systems (Mem0 + Handover + active-tasks)
+- Phase B: Write 20 tests FIRST (before code)
+- Phase C: Port sendDirectMessage() from revOS
+- Phase D: Implement LinkedInService.sendMessage()
+- Phase E: Create /send endpoint
+- Phase F: Run full test suite
+
+**Files to Create/Modify:**
+- lib/unipile-client.ts (ADD sendDirectMessage - 80 lines)
+- lib/integrations/linkedin-service.ts (ADD sendMessage - 30 lines)
+- app/api/v1/integrations/linkedin/send/route.ts (NEW - 40 lines)
+- __tests__/api/linkedin-send.test.ts (NEW - 20 tests)
+
+**Success Criteria:**
+- ✅ 20 new tests passing
+- ✅ 115 existing OAuth tests still passing
+- ✅ Build succeeds (0 errors)
+- ✅ DM sending works in mock + real modes
+- ✅ Rate limit + connection errors handled correctly
+- ✅ Commit with clear message
+
+---
+
 ## 📊 Session Summary (2026-01-16) - TIER 1.2 Multi-Org RBAC Validation & PAI System Learning ✅
 
 ### CONTEXT: Production Sprint Phase 1 Completion - COMPLETE ✅

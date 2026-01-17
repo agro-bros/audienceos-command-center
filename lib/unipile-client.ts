@@ -501,3 +501,95 @@ export async function checkConnectionStatus(
     return false
   }
 }
+
+/**
+ * Send a direct message via LinkedIn
+ * @param accountId - Unipile account ID
+ * @param recipientId - LinkedIn user ID to send DM to
+ * @param message - Message text to send
+ * @param clientCredentials - Optional per-client UniPile credentials
+ * @returns Response with message ID and status
+ */
+export async function sendDirectMessage(
+  accountId: string,
+  recipientId: string,
+  message: string,
+  clientCredentials?: UnipileCredentials | null
+): Promise<{ message_id: string; status: string; chat_id?: string }> {
+  try {
+    // Mock mode for testing
+    if (isMockMode()) {
+      console.log('[MOCK] Sending DM:', {
+        accountId,
+        recipientId,
+        messageLength: message.length,
+      })
+      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API delay
+
+      // Simulate occasional failure (10% chance)
+      if (Math.random() < 0.1) {
+        throw new Error('MOCK: Simulated rate limit exceeded')
+      }
+
+      return {
+        message_id: `mock_msg_${crypto.randomBytes(9).toString('base64url')}`,
+        status: 'sent',
+        chat_id: `mock_chat_${crypto.randomBytes(6).toString('base64url')}`,
+      }
+    }
+
+    const credentials = getUnipileCredentials(clientCredentials)
+
+    console.log('[UNIPILE_DM] Sending message:', { accountId, recipientId, messageLength: message.length })
+
+    // Unipile API: POST /api/v1/chats with attendees_ids array
+    // This creates a chat if it doesn't exist, or sends to existing chat
+    const response = await fetch(
+      `${credentials.dsn}/api/v1/chats`,
+      {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': credentials.apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          account_id: accountId,
+          attendees_ids: [recipientId],  // Array of recipient LinkedIn IDs
+          text: message,
+        }),
+      }
+    )
+
+    console.log('[UNIPILE_DM] Response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[UNIPILE_DM] Error response:', response.status, errorText)
+
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        throw new Error('RATE_LIMIT_EXCEEDED: LinkedIn daily DM limit reached')
+      }
+
+      // Handle "not connected" error - can only DM connections
+      if (response.status === 400 && errorText.includes('not connected')) {
+        throw new Error('NOT_CONNECTED: Can only send DMs to LinkedIn connections')
+      }
+
+      throw new Error(`Failed to send DM: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('[UNIPILE_DM] Success:', { chat_id: data.chat_id, provider_id: data.provider_id })
+
+    return {
+      message_id: data.provider_id || data.chat_id || data.id,
+      status: 'sent',
+      chat_id: data.chat_id,
+    }
+  } catch (error) {
+    console.error('[UNIPILE_DM] Error:', error)
+    throw error
+  }
+}
