@@ -26,6 +26,19 @@ export class GmailService {
 
       console.log('[Gmail Sync] Starting email sync for user', { userId })
 
+      // Step 0: Fetch user's agency_id for multi-tenant context
+      const { data: userData, error: userError } = await supabase
+        .from('user')
+        .select('agency_id')
+        .eq('id', userId)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error(`User not found or no agency context for user ${userId}`)
+      }
+
+      const agencyId = userData.agency_id
+
       // Step 1: Fetch user's encrypted Gmail tokens from database
       const { data: integration, error } = await supabase
         .from('user_oauth_credential')
@@ -66,7 +79,7 @@ export class GmailService {
         if (!thread.id) continue
 
         try {
-          await this.processThread(supabase, userId, thread.id, accessToken)
+          await this.processThread(supabase, userId, agencyId, thread.id, accessToken)
           processedCount++
         } catch (err) {
           console.error(`[Gmail Sync] Error processing thread ${thread.id}:`, err)
@@ -136,7 +149,13 @@ export class GmailService {
   /**
    * Process a single email thread and store communication records
    */
-  private static async processThread(supabase: any, userId: string, threadId: string, accessToken: string) {
+  private static async processThread(
+    supabase: any,
+    userId: string,
+    agencyId: string,
+    threadId: string,
+    accessToken: string
+  ) {
     try {
       console.log(`[Gmail Thread] Processing thread ${threadId}`)
 
@@ -163,24 +182,24 @@ export class GmailService {
           const subject = headers.find((h: any) => h.name === 'Subject')?.value || ''
           const date = headers.find((h: any) => h.name === 'Date')?.value || ''
 
-          // Store communication record (upsert prevents duplicates)
-          const { error } = await supabase.from('communication').upsert(
+          // Store to user_communication table with correct fields
+          const { error } = await supabase.from('user_communication').upsert(
             {
+              agency_id: agencyId,
               user_id: userId,
-              type: 'email',
-              external_id: message.id,
+              platform: 'gmail',
+              message_id: message.id,
+              thread_id: threadId,
               subject,
-              preview: message.snippet || '',
+              content: message.snippet || '',
               sender_email: from,
-              received_at: date ? new Date(date).toISOString() : new Date().toISOString(),
-              raw_data: {
-                threadId,
-                messageId: message.id,
+              is_inbound: true,
+              metadata: {
                 labels: message.labelIds || [],
               },
             },
             {
-              onConflict: 'external_id',
+              onConflict: 'user_id,platform,message_id',
             }
           )
 

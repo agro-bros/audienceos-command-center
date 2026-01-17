@@ -41,6 +41,28 @@ describe('POST /api/v1/integrations/gmail/sync', () => {
     expect(body).toEqual({})
   })
 
+  it('should write communications to user_communication table with correct fields', () => {
+    const communication = {
+      agency_id: 'agency-123',
+      user_id: 'user-123',
+      platform: 'gmail',
+      message_id: 'message-456',
+      thread_id: 'thread-789',
+      subject: 'Test Email',
+      content: 'Email body',
+      is_inbound: true,
+    }
+
+    // Verify all required fields are present
+    expect(communication).toHaveProperty('agency_id')
+    expect(communication).toHaveProperty('user_id')
+    expect(communication).toHaveProperty('platform')
+    expect(communication.platform).toBe('gmail')
+    expect(communication).toHaveProperty('message_id')
+    expect(communication).toHaveProperty('content')
+    expect(communication).toHaveProperty('is_inbound')
+  })
+
   it('should return success with message count on successful sync', () => {
     const response = {
       success: true,

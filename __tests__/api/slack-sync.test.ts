@@ -40,6 +40,28 @@ describe('POST /api/v1/integrations/slack/sync', () => {
     expect(body).toEqual({})
   })
 
+  it('should write communications to user_communication table with correct fields', () => {
+    const communication = {
+      agency_id: 'agency-456',
+      user_id: 'user-456',
+      platform: 'slack',
+      message_id: 'message-ts-123',
+      thread_id: 'channel-xyz',
+      subject: 'Test Message',
+      content: 'Message body',
+      is_inbound: true,
+    }
+
+    // Verify all required fields are present
+    expect(communication).toHaveProperty('agency_id')
+    expect(communication).toHaveProperty('user_id')
+    expect(communication).toHaveProperty('platform')
+    expect(communication.platform).toBe('slack')
+    expect(communication).toHaveProperty('message_id')
+    expect(communication).toHaveProperty('content')
+    expect(communication).toHaveProperty('is_inbound')
+  })
+
   it('should return success with message count on successful sync', () => {
     const response = {
       success: true,

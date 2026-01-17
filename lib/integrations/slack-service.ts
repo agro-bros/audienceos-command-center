@@ -25,6 +25,19 @@ export class SlackService {
     try {
       const supabase = await createClient()
 
+      // Step 0: Fetch user's agency_id for multi-tenant context
+      const { data: userData, error: userError } = await supabase
+        .from('user')
+        .select('agency_id')
+        .eq('id', userId)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error(`User not found or no agency context for user ${userId}`)
+      }
+
+      const agencyId = userData.agency_id
+
       // Step 1: Fetch encrypted Slack token
       const { data: integration, error } = await supabase
         .from('user_oauth_credential')
@@ -70,7 +83,7 @@ export class SlackService {
         if (!channel.id) continue
 
         try {
-          const processed = await this.processChannel(supabase, userId, channel.id, slack)
+          const processed = await this.processChannel(supabase, userId, agencyId, channel.id, slack)
           messagesProcessed += processed
         } catch (error) {
           // Log but continue with next channel
@@ -99,6 +112,7 @@ export class SlackService {
   private static async processChannel(
     supabase: any,
     userId: string,
+    agencyId: string,
     channelId: string,
     slack: WebClient
   ): Promise<number> {
@@ -122,18 +136,18 @@ export class SlackService {
         if (!message.user) continue
 
         try {
-          const external_id = `slack-${channelId}-${message.ts}`
-
-          const { error } = await supabase.from('communication').upsert(
+          const { error } = await supabase.from('user_communication').upsert(
             {
+              agency_id: agencyId,
               user_id: userId,
-              type: 'slack',
-              external_id,
+              platform: 'slack',
+              message_id: message.ts,
+              thread_id: channelId,
               subject: message.text?.substring(0, 100) || '',
-              preview: message.text || '',
+              content: message.text || '',
               sender_email: message.user || 'unknown',
-              received_at: new Date(parseInt(message.ts.split('.')[0]) * 1000).toISOString(),
-              raw_data: {
+              is_inbound: true,
+              metadata: {
                 channelId,
                 messageTs: message.ts,
                 user: message.user,
@@ -141,14 +155,14 @@ export class SlackService {
               },
             },
             {
-              onConflict: 'external_id',
+              onConflict: 'user_id,platform,message_id',
             }
           )
 
           if (!error) {
             stored++
           } else if (error) {
-            console.warn('[Slack Message] Failed to store message', { external_id, error })
+            console.warn('[Slack Message] Failed to store message', { message_id: message.ts, error })
           }
         } catch (error) {
           console.error('[Slack Message] Error storing message', { ts: message.ts, error })
