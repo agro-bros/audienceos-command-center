@@ -59,7 +59,7 @@ export function AgencyProfileSection() {
     setHasUnsavedChanges,
   } = useSettingsStore()
 
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "admin" || user?.role === "owner"
 
   // Local form state
   const [formData, setFormData] = useState<Partial<AgencySettings>>({})

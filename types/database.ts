@@ -9,7 +9,7 @@ export type CommunicationPlatform = 'email' | 'slack'
 export type IntegrationProvider = 'slack' | 'gmail' | 'google_ads' | 'meta_ads'
 export type OAuthProvider = 'gmail' | 'slack' | 'meta' | 'stripe' | 'linkedin'
 export type PreferenceCategory = string
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'owner' | 'admin' | 'manager' | 'member'
 export type WorkflowStatus = 'active' | 'paused' | 'disabled'
 
 // Onboarding types (from database enums)
@@ -2327,7 +2327,7 @@ export type Database = {
         | "escalation"
       ticket_priority: "low" | "medium" | "high" | "critical"
       ticket_status: "new" | "in_progress" | "waiting_client" | "resolved"
-      user_role: "admin" | "user"
+      user_role: "owner" | "admin" | "manager" | "member"
       workflow_status: "running" | "completed" | "failed"
     }
     CompositeTypes: {
@@ -2503,7 +2503,7 @@ export const Constants = {
       ],
       ticket_priority: ["low", "medium", "high", "critical"],
       ticket_status: ["new", "in_progress", "waiting_client", "resolved"],
-      user_role: ["admin", "user"],
+      user_role: ["owner", "admin", "manager", "member"],
       workflow_status: ["running", "completed", "failed"],
     },
   },

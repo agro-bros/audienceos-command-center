@@ -68,7 +68,7 @@ const initialSessions: Session[] = [
 export function SecuritySection() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "admin" || user?.role === "owner"
 
   const [domains, setDomains] = useState<AllowedDomain[]>(initialDomains)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)

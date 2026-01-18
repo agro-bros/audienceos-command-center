@@ -40,7 +40,7 @@ export function UserInvitationModal({
   const agencyId = profile?.agency_id
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState<UserRole>("user")
+  const [role, setRole] = useState<UserRole>("member")
   const [error, setError] = useState<string | null>(null)
 
   const validateEmail = (email: string): boolean => {
@@ -99,7 +99,7 @@ export function UserInvitationModal({
 
       // Reset form and close
       setEmail("")
-      setRole("user")
+      setRole("member")
       setError(null)
       onClose()
       onSuccess?.()
@@ -135,7 +135,7 @@ export function UserInvitationModal({
   const handleClose = () => {
     if (!isSubmitting) {
       setEmail("")
-      setRole("user")
+      setRole("member")
       setError(null)
       onClose()
     }
@@ -184,15 +184,23 @@ export function UserInvitationModal({
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="member">Member</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              <strong>User:</strong> Can manage clients and view reports
+              <strong>Owner:</strong> Full system access, billing, and team management
             </p>
             <p className="text-xs text-muted-foreground">
               <strong>Admin:</strong> Can manage team, settings, and agency configuration
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Manager:</strong> Can manage all clients and run reports
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Member:</strong> Can only access assigned clients
             </p>
           </div>
 

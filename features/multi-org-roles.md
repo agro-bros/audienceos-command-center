@@ -3,7 +3,7 @@
 **What:** Role-based access control system with granular permissions for multi-tenant agency management
 **Who:** Agency Owners and Admins managing team access; Members with restricted access
 **Why:** Enable fine-grained control over who can view, modify, or manage specific features and data
-**Status:** 📝 Specced
+**Status:** ✅ UI Updated to 4-tier RBAC (2026-01-18) - Needs E2E verification
 
 ---
 
@@ -1300,10 +1300,71 @@ role_change_volume:
 
 ---
 
+## Testing Findings (E2E Browser Test - 2026-01-18)
+
+### Summary
+**Verdict:** ✅ Fixed (2026-01-18) - UI now supports full 4-tier RBAC
+
+### Issues Found & Resolved
+
+| Issue | Severity | Description | Status |
+|-------|----------|-------------|--------|
+| **UI-001: Role Dropdown Limited** | 🔴 HIGH | Role dropdown only showed "Admin" and "User" | ✅ FIXED |
+| **UI-002: Naming Mismatch** | 🟡 MEDIUM | UI used "User" but spec defines "Member" | ✅ FIXED |
+| **UI-003: No Member Users** | 🔴 HIGH | Cannot create Member-role users | ✅ FIXED |
+| **UI-004: Missing Client Access Menu** | 🟡 MEDIUM | Code exists but hidden (only shows for Members) | ℹ️ Working as designed |
+| **DATA-001: Role Sync Issue** | 🟡 MEDIUM | Role dropdown sync with selected user | ⏳ Needs verification |
+
+### Fix Details (2026-01-18)
+
+**Files Modified:**
+1. `types/database.ts` - Updated `UserRole` type: `'owner' | 'admin' | 'manager' | 'member'`
+2. `types/database.ts` - Updated database enum `user_role` to match
+3. `types/settings.ts` - Updated `SETTINGS_PERMISSIONS` with all 4 roles
+4. `components/settings/sections/team-members-section.tsx`:
+   - Role dropdown now shows Owner, Admin, Manager, Member
+   - Role filter dropdown updated with all 4 options
+5. `components/settings/modals/user-invitation-modal.tsx`:
+   - Invitation modal now offers all 4 role options
+   - Added role descriptions for each tier
+   - Default role changed to "member"
+6. `components/settings/settings-layout.tsx`:
+   - Updated permission check fallback to "member"
+
+**Layer Status (Post-Fix):**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    LAYER STATUS                              │
+├──────────────────────┬──────────────────────────────────────┤
+│ Database Schema      │ ✅ 4-tier (role_id → roles table)    │
+│ Migration Files      │ ✅ Owner/Admin/Manager/Member        │
+│ RLS Policies         │ ✅ 20 policies for multi-tenant      │
+│ API Middleware       │ ✅ withPermission() wrapper          │
+│ TypeScript Types     │ ✅ Updated to 4-tier                 │
+│ UI Components        │ ✅ All 4 roles available             │
+│ User Menu            │ ✅ "Manage client access" shows for Members │
+└──────────────────────┴──────────────────────────────────────┘
+```
+
+### Remaining Verification Needed
+- [ ] Browser test role assignment (Owner → Member)
+- [ ] Test "Manage client access" menu appears for Member users
+- [ ] Verify ClientAssignmentModal works end-to-end
+
+### Test Environment
+- URL: https://audienceos-agro-bros.vercel.app/settings
+- Test User: Roderic Andrews (Owner)
+- Test Date: 2026-01-18
+- Tool: Claude in Chrome browser automation
+
+---
+
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-01-18 | **UI FIX:** Updated all role dropdowns to support 4-tier RBAC (Owner/Admin/Manager/Member) |
+| 2026-01-18 | Added E2E Testing Findings - identified spec-implementation gap |
 | 2026-01-05 | Created initial spec with comprehensive RBAC design |
 
 ---

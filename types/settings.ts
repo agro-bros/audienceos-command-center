@@ -136,25 +136,25 @@ export interface SettingsPermission {
 }
 
 export const SETTINGS_PERMISSIONS: SettingsPermission[] = [
-  { section: 'agency_profile', action: 'read', roles: ['admin', 'user'] },
-  { section: 'agency_profile', action: 'write', roles: ['admin'] },
-  { section: 'team_members', action: 'read', roles: ['admin', 'user'] },
-  { section: 'team_members', action: 'write', roles: ['admin'] },
-  { section: 'ai_configuration', action: 'read', roles: ['admin', 'user'] },
-  { section: 'ai_configuration', action: 'write', roles: ['admin'] },
-  { section: 'personal_preferences', action: 'read', roles: ['admin', 'user'] },
-  { section: 'personal_preferences', action: 'write', roles: ['admin', 'user'] },
-  { section: 'notifications', action: 'read', roles: ['admin', 'user'] },
-  { section: 'notifications', action: 'write', roles: ['admin', 'user'] },
-  { section: 'display_preferences', action: 'read', roles: ['admin', 'user'] },
-  { section: 'display_preferences', action: 'write', roles: ['admin', 'user'] },
-  { section: 'pipeline', action: 'read', roles: ['admin', 'user'] },
-  { section: 'pipeline', action: 'write', roles: ['admin'] },
-  { section: 'integrations', action: 'read', roles: ['admin', 'user'] },
-  { section: 'integrations', action: 'write', roles: ['admin'] },
-  { section: 'security', action: 'read', roles: ['admin', 'user'] },  // All users need logout access
-  { section: 'security', action: 'write', roles: ['admin'] },
-  { section: 'audit_log', action: 'read', roles: ['admin'] },
+  { section: 'agency_profile', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'agency_profile', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'team_members', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'team_members', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'ai_configuration', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'ai_configuration', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'personal_preferences', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'personal_preferences', action: 'write', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'notifications', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'notifications', action: 'write', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'display_preferences', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'display_preferences', action: 'write', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'pipeline', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'pipeline', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'integrations', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },
+  { section: 'integrations', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'security', action: 'read', roles: ['owner', 'admin', 'manager', 'member'] },  // All users need logout access
+  { section: 'security', action: 'write', roles: ['owner', 'admin'] },
+  { section: 'audit_log', action: 'read', roles: ['owner', 'admin'] },
 ]
 
 // =============================================================================

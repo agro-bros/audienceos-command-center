@@ -13,7 +13,7 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 interface UserInvitation {
   id: string
   email: string
-  role: "admin" | "user"
+  role: "owner" | "admin" | "manager" | "member"
   expires_at: string
   accepted_at: string | null
   agency_name?: string

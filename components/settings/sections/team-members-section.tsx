@@ -221,13 +221,15 @@ function MemberProfile({ member, onBack, onUpdate }: MemberProfileProps) {
               Permissions level in workspace
             </p>
           </div>
-          <Select value={role} onValueChange={(v) => setRole(v as "admin" | "user")}>
+          <Select value={role} onValueChange={(v) => setRole(v as "owner" | "admin" | "manager" | "member")}>
             <SelectTrigger className="w-[280px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="owner">Owner</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="member">Member</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -316,7 +318,7 @@ export function TeamMembersSection() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [inviteLinkEnabled, setInviteLinkEnabled] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all")
+  const [roleFilter, setRoleFilter] = useState<"all" | "owner" | "admin" | "manager" | "member">("all")
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null)
   const [memberForClientAccess, setMemberForClientAccess] = useState<TeamMember | null>(null)
@@ -519,7 +521,7 @@ export function TeamMembersSection() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2 min-w-[100px]">
-              {roleFilter === "all" ? "All" : roleFilter === "admin" ? "Admin" : "User"}
+              {roleFilter === "all" ? "All" : roleFilter.charAt(0).toUpperCase() + roleFilter.slice(1)}
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -527,11 +529,17 @@ export function TeamMembersSection() {
             <DropdownMenuItem onClick={() => setRoleFilter("all")}>
               All
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRoleFilter("owner")}>
+              Owner
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setRoleFilter("admin")}>
               Admin
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setRoleFilter("user")}>
-              User
+            <DropdownMenuItem onClick={() => setRoleFilter("manager")}>
+              Manager
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRoleFilter("member")}>
+              Member
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

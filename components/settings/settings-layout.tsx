@@ -44,7 +44,7 @@ export function SettingsLayout({ children, onBack, onBrandClick }: SettingsLayou
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
 
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "admin" || user?.role === "owner"
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -65,7 +65,7 @@ export function SettingsLayout({ children, onBack, onBrandClick }: SettingsLayou
       (p) => p.section === section && p.action === "read"
     )
     if (!permission) return false
-    return permission.roles.includes(user?.role || "user")
+    return permission.roles.includes(user?.role || "member")
   }
 
   // Filter workspace items based on permissions
