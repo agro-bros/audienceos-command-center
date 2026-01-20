@@ -13,7 +13,7 @@
  * TASK-010: Effective permission calculation for custom roles
  */
 
-import { createClient as createBrowserClient } from '@/lib/supabase';
+import { createClient as createBrowserClient, createServiceRoleClient } from '@/lib/supabase';
 import type {
   EffectivePermission,
   PermissionCheckResult,
@@ -78,8 +78,9 @@ class PermissionService {
       return cached.permissions;
     }
 
-    // Create client if not provided
-    const client = supabase || createBrowserClient();
+    // Create client - use service_role to bypass RLS for permission lookups
+    // Permission lookups are internal server operations, not user-facing queries
+    const client = createServiceRoleClient() || supabase || createBrowserClient();
 
     try {
       // Get user with role and permissions
@@ -499,7 +500,8 @@ class PermissionService {
       return null;
     }
 
-    const client = supabase || createBrowserClient();
+    // Use service_role to bypass RLS for hierarchy lookups
+    const client = createServiceRoleClient() || supabase || createBrowserClient();
 
     try {
       const { data: user, error } = await client
@@ -563,7 +565,8 @@ class PermissionService {
       return [];
     }
 
-    const client = supabase || createBrowserClient();
+    // Use service_role to bypass RLS for member access lookups
+    const client = createServiceRoleClient() || supabase || createBrowserClient();
 
     try {
       // Check if user is a Member
@@ -619,7 +622,8 @@ class PermissionService {
       return false;
     }
 
-    const client = supabase || createBrowserClient();
+    // Use service_role to bypass RLS for client access checks
+    const client = createServiceRoleClient() || supabase || createBrowserClient();
 
     try {
       const hierarchyLevel = await this.getUserHierarchyLevel(
