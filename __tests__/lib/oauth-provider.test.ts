@@ -68,7 +68,7 @@ function createMockSupabase(mockData: {
               error: filtered.length === 0 ? { code: 'PGRST116' } : null,
             }),
             // For getAllOAuthStatus (returns array)
-            then: async (resolve: Function) => resolve({
+            then: async (resolve: (result: { data: typeof filtered; error: null }) => void) => resolve({
               data: filtered,
               error: null,
             }),

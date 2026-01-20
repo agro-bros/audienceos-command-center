@@ -108,7 +108,7 @@ vi.mock('@/lib/security', () => ({
 
 // Mock RBAC
 vi.mock('@/lib/rbac/with-permission', () => ({
-  withPermission: () => (handler: Function) => handler,
+  withPermission: () => (handler: (...args: unknown[]) => unknown) => handler,
 }));
 
 // Mock cookies
