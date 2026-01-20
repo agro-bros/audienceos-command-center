@@ -25,3 +25,20 @@ export {
   type InstructionCartridge,
   type CartridgeContext,
 } from './cartridge-loader';
+
+export {
+  getOrCreateSession,
+  getSessionById,
+  getRecentSessions,
+  addMessage,
+  getSessionMessages,
+  getRecentMessages,
+  updateSessionContext,
+  updateSessionTitle,
+  closeSession,
+  formatMessagesForContext,
+  type ChatSession,
+  type ChatMessage,
+  type CreateSessionOptions,
+  type AddMessageOptions,
+} from './chat-history';
