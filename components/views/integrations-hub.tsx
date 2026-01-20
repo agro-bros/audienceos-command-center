@@ -296,8 +296,8 @@ export function IntegrationsHub() {
         throw new Error(`HTTP ${response.status}`)
       }
 
-      const { data } = await response.json()
-      setDbIntegrations(data || [])
+      const { data } = await response.json() as { data: DbIntegration[] | null }
+      setDbIntegrations(data ?? [])
     } catch (error) {
       console.error('Failed to fetch integration status:', error)
       toast.error('Failed to fetch integration status')
