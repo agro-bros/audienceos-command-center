@@ -4,13 +4,15 @@
  * Integrations Hub
  *
  * ============================================================
- * CRITICAL: AudienceOS uses DIIIPLOY-GATEWAY, NOT chi-gateway!
- * Chi-gateway is for personal PAI infrastructure only.
+ * DATA SOURCE: Supabase `integration` table via /api/v1/integrations
+ * STATUS: `is_connected` field determines connected/disconnected status
  * ============================================================
  *
- * This follows the "agency model" where diiiploy-gateway is the
- * single source of truth for integration tokens. The app only
- * reads status - clients connect during onboarding calls.
+ * This follows the "agency model" where each agency has their own
+ * integration records in Supabase. OAuth flows store tokens per-agency.
+ *
+ * Fixed 2026-01-20: Changed from diiiploy-gateway (single-tenant) to
+ * Supabase (multi-tenant) to properly show each agency's integrations.
  */
 
 import React, { useState, useMemo, useEffect } from "react"
@@ -25,9 +27,17 @@ import { IntegrationSettingsModal } from "@/components/linear/integration-settin
 import { IntegrationConnectModal } from "@/components/linear/integration-connect-modal"
 import { toast } from "sonner"
 import type { Database } from "@/types/database"
-import { fetchDiiiplopyGatewayHealth, type DiiiplopyGatewayHealthResponse } from "@/lib/integrations"
 
 type IntegrationProvider = Database['public']['Enums']['integration_provider']
+
+// Database integration record (from /api/v1/integrations)
+interface DbIntegration {
+  id: string
+  provider: IntegrationProvider
+  is_connected: boolean
+  last_sync_at?: string | null
+  config?: Record<string, unknown>
+}
 
 type IntegrationStatus = "connected" | "disconnected" | "error" | "syncing"
 type IntegrationCategory = "advertising" | "communication" | "analytics" | "crm" | "productivity"
@@ -266,25 +276,6 @@ function IntegrationCardSkeleton() {
 // Providers that can be connected from the UI (credential or OAuth-based)
 const credentialBasedProviders: IntegrationProvider[] = ['slack', 'gmail', 'google_ads', 'meta_ads']
 
-// Map diiiploy-gateway service names to our IntegrationProvider types
-const GATEWAY_SERVICE_TO_PROVIDER: Record<string, IntegrationProvider | null> = {
-  gmail: 'gmail',
-  google_ads: 'google_ads',
-  meta_ads: 'meta_ads',
-  // Services without matching provider (not shown as integrations)
-  calendar: null,
-  drive: null,
-  sheets: null,
-  render: null,
-  sentry: null,
-  netlify: null,
-  neon: null,
-  supabase: null,
-  mercury: null,
-  mem0: null,
-  browser: null,
-}
-
 export function IntegrationsHub() {
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<IntegrationCategory | "all">("all")
@@ -292,15 +283,23 @@ export function IntegrationsHub() {
   const [connectingProvider, setConnectingProvider] = useState<IntegrationProvider | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [gatewayHealth, setGatewayHealth] = useState<DiiiplopyGatewayHealthResponse | null>(null)
+  const [dbIntegrations, setDbIntegrations] = useState<DbIntegration[]>([])
 
-  // Fetch integration status from diiiploy-gateway
-  const fetchGatewayStatus = async () => {
+  // Fetch integration status from Supabase via /api/v1/integrations
+  const fetchIntegrationStatus = async () => {
     try {
-      const health = await fetchDiiiplopyGatewayHealth()
-      setGatewayHealth(health)
+      const response = await fetch('/api/v1/integrations', {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const { data } = await response.json()
+      setDbIntegrations(data || [])
     } catch (error) {
-      console.error('Failed to fetch gateway status:', error)
+      console.error('Failed to fetch integration status:', error)
       toast.error('Failed to fetch integration status')
     } finally {
       setIsLoading(false)
@@ -309,13 +308,13 @@ export function IntegrationsHub() {
   }
 
   useEffect(() => {
-    fetchGatewayStatus()
+    fetchIntegrationStatus()
   }, [])
 
   // Handle refresh button click
   const handleRefresh = () => {
     setIsRefreshing(true)
-    fetchGatewayStatus()
+    fetchIntegrationStatus()
     toast.success('Refreshing integration status...')
   }
 
@@ -333,37 +332,49 @@ export function IntegrationsHub() {
 
   // Handle successful credential connection
   function handleCredentialSuccess() {
-    fetchGatewayStatus()
+    fetchIntegrationStatus()
   }
 
-  // Build integrations list from gateway health + metadata
+  // Build integrations list from database records + metadata
   const allIntegrations = useMemo(() => {
     const integrations: Integration[] = []
 
-    // Map MVP providers with their gateway status
+    // Map MVP providers with their database status
     const mvpProviders: IntegrationProvider[] = ['slack', 'gmail', 'google_ads', 'meta_ads']
 
     for (const provider of mvpProviders) {
       const metadata = integrationMetadata[provider]
 
-      // Find gateway status for this provider
-      const gatewayService = gatewayHealth?.services.find(s => {
-        const mappedProvider = GATEWAY_SERVICE_TO_PROVIDER[s.service]
-        return mappedProvider === provider
-      })
+      // Find database record for this provider
+      const dbRecord = dbIntegrations.find(i => i.provider === provider)
 
-      // Determine status from gateway response
+      // Determine status from database is_connected field
       let status: IntegrationStatus = 'disconnected'
-      if (gatewayService) {
-        if (gatewayService.status === 'ok') {
-          status = 'connected'
-        } else if (gatewayService.status === 'error') {
-          status = 'error'
+      if (dbRecord) {
+        status = dbRecord.is_connected ? 'connected' : 'disconnected'
+      }
+
+      // Format last sync time if available
+      let lastSync: string | undefined
+      if (dbRecord?.last_sync_at) {
+        const syncDate = new Date(dbRecord.last_sync_at)
+        const now = new Date()
+        const diffMs = now.getTime() - syncDate.getTime()
+        const diffMins = Math.floor(diffMs / 60000)
+
+        if (diffMins < 1) {
+          lastSync = 'Just now'
+        } else if (diffMins < 60) {
+          lastSync = `${diffMins} min ago`
+        } else if (diffMins < 1440) {
+          lastSync = `${Math.floor(diffMins / 60)} hours ago`
+        } else {
+          lastSync = `${Math.floor(diffMins / 1440)} days ago`
         }
       }
 
       integrations.push({
-        id: provider,
+        id: dbRecord?.id || provider,
         provider,
         name: metadata.name,
         description: metadata.description,
@@ -371,14 +382,13 @@ export function IntegrationsHub() {
         color: metadata.color,
         category: metadata.category,
         status,
-        // Add gateway message for display
-        ...(gatewayService?.message && { lastSync: gatewayService.message }),
+        lastSync,
       })
     }
 
     // Add future integrations (always disconnected)
     return [...integrations, ...futureIntegrations]
-  }, [gatewayHealth])
+  }, [dbIntegrations])
 
   // Filter integrations by search and category
   const filteredIntegrations = useMemo(() => {
@@ -432,11 +442,6 @@ export function IntegrationsHub() {
               <span className="text-muted-foreground">
                 {errorCount} with errors
               </span>
-            </div>
-          )}
-          {gatewayHealth && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>via diiiploy-gateway v{gatewayHealth.gateway.version}</span>
             </div>
           )}
         </div>
@@ -534,7 +539,7 @@ export function IntegrationsHub() {
         } : null}
         isOpen={!!selectedIntegration}
         onClose={() => setSelectedIntegration(null)}
-        onRefetch={fetchGatewayStatus}
+        onRefetch={fetchIntegrationStatus}
       />
 
       {/* Integration Connect Modal (for credential-based integrations) */}
