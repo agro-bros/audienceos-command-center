@@ -2,7 +2,22 @@
 
 **Location:** `~/PAI/projects/command_center_audience_OS/features/`
 **Purpose:** Track status of all product features
-**Last Audit:** 2026-01-20 (Integration status fix deployed to production)
+**Last Audit:** 2026-01-20 (CTO audit + RevOS integration plan)
+
+---
+
+## 🔴 ACTIVE: RevOS + AudienceOS Unified Platform
+
+**Status:** PLANNED - Awaiting execution
+**Plan:** `docs/05-planning/UNIFIED-EXECUTION-PLAN.md`
+
+AudienceOS selected as foundation for unified platform with RevOS. Integration pending security hardening completion.
+
+| Week | Focus | Status |
+|------|-------|--------|
+| 1 | Security hardening | ⏳ Pending |
+| 2 | Schema migration + feature port | ⏳ Pending |
+| 3 | HGC adapter + app switcher | ⏳ Pending |
 
 ---
 

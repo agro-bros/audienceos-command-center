@@ -1,8 +1,37 @@
 # AudienceOS Command Center - RUNBOOK
 
-**Status:** Production active | 95% MVP complete | ✅ TIER 1.2 VALIDATED 2026-01-16
-**Last Updated:** 2026-01-18
+**Status:** Production active | 65-70% production ready | RevOS integration planned
+**Last Updated:** 2026-01-20
 **For strategy/status:** See CLAUDE.md | **For day-to-day ops:** This file | **For validation results:** See docs/04-technical/VALIDATION.md
+
+---
+
+## 🔴 ACTIVE TASK: RevOS + AudienceOS Unified Platform
+
+**Status:** PLANNED - Awaiting execution
+**Documentation:** `docs/05-planning/UNIFIED-EXECUTION-PLAN.md`
+
+### Quick Summary
+CTO-approved plan to merge RevOS and AudienceOS. **Security hardening must complete first.**
+
+### Execution Sequence
+1. **Week 1:** Security hardening (env fallbacks, rate limits, logger, token refresh)
+2. **Week 2:** Schema migration + feature port from RevOS
+3. **Week 3:** HGC AgentKit adapter + app switcher
+
+### Key Documents
+| Document | Location |
+|----------|----------|
+| Unified Plan | `docs/05-planning/UNIFIED-EXECUTION-PLAN.md` |
+| CTO Decision | `docs/05-planning/CTO-DECISION-2026-01-20.md` |
+| Security Tasks | `docs/05-planning/CTO-ACTION-PLAN.md` |
+| Audit Report | `docs/08-reports/PRODUCTION-READINESS-AUDIT.md` |
+
+### Week 1 Security Checklist (BLOCKING)
+- [ ] Fix `lib/crypto.ts` env fallbacks
+- [ ] Add rate limiting to mutation routes
+- [ ] Replace console.log with structured logger
+- [ ] Implement token refresh mechanism
 
 ---
 
