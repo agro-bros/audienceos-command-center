@@ -3,7 +3,37 @@
 **What:** OAuth connection management for Slack, Gmail, Google Ads, and Meta Ads with sync monitoring and health checks
 **Who:** Agency Admins and Account Managers managing external service connections
 **Why:** Centralized control over critical integrations that power communications and ad performance tracking
-**Status:** ✅ Complete (UI wired to backend 2026-01-10)
+**Status:** ✅ Complete (UI wired to backend 2026-01-10) | Status Display Fixed 2026-01-20
+
+---
+
+## Current State (2026-01-20)
+
+### Integration Status Display - FIXED
+
+**Problem:** UI showed "0 connected" despite database having integrations with `is_connected: TRUE`
+
+**Root Cause:**
+- `integrations-hub.tsx` was reading from diiiploy-gateway (single-tenant health endpoint)
+- Gateway returned `warning` status for OAuth services
+- UI status logic only mapped `ok` → connected, `error` → error
+- `warning` fell through to `disconnected`
+
+**Fix Applied:**
+- Removed gateway health dependency
+- Now fetches from `/api/v1/integrations` (Supabase with RLS)
+- Uses `is_connected` field from database directly
+- Added `DbIntegration` interface for type safety
+
+**Commits:**
+- `9e87678` - fix(integrations): read from Supabase instead of diiiploy-gateway
+- `579daf8` - fix(integrations): add type safety to API response
+
+**Key File:** `components/views/integrations-hub.tsx`
+
+### Multi-tenant Architecture Note
+
+Integration status MUST read from per-tenant data sources (Supabase with RLS) not shared infrastructure (gateway health). Gateway health checks are useful for connectivity testing, but NOT for displaying per-agency integration status.
 
 ---
 
