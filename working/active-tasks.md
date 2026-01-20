@@ -1,5 +1,35 @@
 # Active Tasks
 
+## 🔥 IN PROGRESS: Week 1 Security Hardening (2026-01-20)
+
+**Branch:** `security-hardening` (separate worktree at `../audienceos-security-hardening`)
+**Status:** Phase 1 of CTO-approved 3-week unified platform plan
+
+### Completed This Session:
+- ✅ `lib/crypto.ts` - Production guards, removed insecure fallback keys
+- ✅ `lib/env.ts` - NEW centralized env validation module
+- ✅ Gmail/Slack callback - Removed userId from all console logs
+- ✅ `get-clients.ts` - Throws in production instead of mock data
+
+### Remaining Week 1 Tasks:
+- [ ] Apply `withPermission` to 9 OAuth routes missing RBAC
+- [ ] Fix DEV MODE in: `get-alerts.ts`, `get-agency-stats.ts`, `get-recent-communications.ts`
+- [ ] Remove 200+ console.log statements exposing sensitive data
+- [ ] Add rate limiting to 34 unprotected auth routes
+
+### Commit: `86f5c08`
+```
+security: Week 1 hardening - crypto, env, console logs
+```
+
+### Exit Criteria (Week 1):
+- [ ] All OAuth routes protected with RBAC
+- [ ] Zero userId/integrationId in production logs
+- [ ] Zero hardcoded fallback keys
+- [ ] Centralized env validation in use
+
+---
+
 ## ✅ COMPLETED: Gmail/Slack Integration Fix (2026-01-20)
 
 **Status:** DEPLOYED TO PRODUCTION

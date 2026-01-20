@@ -9,6 +9,16 @@ import { getGeminiRAG } from '@/lib/rag';
 import { getMemoryInjector } from '@/lib/memory';
 import { initializeMem0Service } from '@/lib/memory/mem0-service';
 import { checkRateLimitDistributed } from '@/lib/security';
+import {
+  buildAppContext,
+  generateAppContextPrompt,
+  loadCartridgeContext,
+  generateCartridgeContextPrompt,
+  getOrCreateSession,
+  addMessage,
+  getSessionMessages,
+  formatMessagesForContext,
+} from '@/lib/chat/context';
 import type { Citation } from '@/lib/chat/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -17,6 +27,64 @@ const CHAT_RATE_LIMIT = { maxRequests: 10, windowMs: 60000 };
 
 // CRITICAL: Gemini 3 ONLY per project requirements
 const GEMINI_MODEL = 'gemini-3-flash-preview';
+
+/**
+ * Build rich system prompt with all context layers
+ * Combines: app structure, cartridges, chat history
+ */
+async function buildSystemPrompt(
+  supabase: SupabaseClient,
+  agencyId: string,
+  userId: string,
+  sessionId: string | undefined,
+  route: string
+): Promise<string> {
+  const parts: string[] = [];
+
+  // Base identity
+  parts.push(`You are an AI assistant for AudienceOS Command Center.
+You help agency teams manage their clients, view performance data, and navigate the app.
+This query was classified as: ${route}`);
+
+  // 1. App structure awareness (always include)
+  // Note: currentPage could be passed from frontend in request body for better context
+  const appContext = buildAppContext('dashboard'); // Default to dashboard view
+  const appPrompt = generateAppContextPrompt(appContext);
+  parts.push(appPrompt);
+
+  // 2. Training cartridges (brand, style, instructions)
+  try {
+    const cartridgeContext = await loadCartridgeContext(supabase, agencyId);
+    if (cartridgeContext.brand || cartridgeContext.style || (cartridgeContext.instructions?.length ?? 0) > 0) {
+      const cartridgePrompt = generateCartridgeContextPrompt(cartridgeContext);
+      parts.push(cartridgePrompt);
+    }
+  } catch (err) {
+    console.warn('[Chat API] Failed to load cartridge context:', err);
+  }
+
+  // 3. Chat history (recent messages for continuity)
+  if (sessionId) {
+    try {
+      const messages = await getSessionMessages(supabase, sessionId, 10);
+      if (messages.length > 0) {
+        const historyPrompt = formatMessagesForContext(messages);
+        parts.push(`\n## Recent Conversation\n${historyPrompt}`);
+      }
+    } catch (err) {
+      console.warn('[Chat API] Failed to load chat history:', err);
+    }
+  }
+
+  // 4. Citation instruction for web queries
+  if (route === 'web') {
+    parts.push(`\nWhen using information from web search, include inline citation markers like [1], [2], [3] in the text.
+Each citation number should reference a source you found.
+Example: "Google Ads typically has higher CTR [1] than Meta Ads in search campaigns [2]."`);
+  }
+
+  return parts.join('\n\n');
+}
 
 /**
  * Chat API v1 - AudienceOS Chat
@@ -78,7 +146,10 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       );
     }
 
-    // 3. Classify query with SmartRouter
+    // 3. Create Supabase client early (needed for context loading and all routes)
+    const supabase = await createRouteHandlerClient(cookies);
+
+    // 4. Classify query with SmartRouter
     let route = 'casual';
     let routeConfidence = 1.0;
     try {
@@ -91,16 +162,17 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       console.warn('[Chat API] Router failed, using casual route:', routerError);
     }
 
-    // 4. Handle based on route
+    // 5. Build rich system prompt with all context layers
+    const systemPrompt = await buildSystemPrompt(supabase, agencyId, userId, sessionId, route);
+
+    // 6. Handle based on route
     let responseContent: string;
     let functionCalls: Array<{ name: string; result: unknown }> = [];
     let citations: Citation[] = [];
 
     if (route === 'dashboard') {
-      // Create Supabase client for database queries (CRITICAL: was missing, causing mock data fallback)
-      const supabase = await createRouteHandlerClient(cookies);
       // Use function calling for dashboard queries
-      responseContent = await handleDashboardRoute(apiKey, message, agencyId, userId, functionCalls, supabase);
+      responseContent = await handleDashboardRoute(apiKey, message, agencyId, userId, functionCalls, supabase, systemPrompt);
     } else if (route === 'rag') {
       // Use RAG for document search queries
       responseContent = await handleRAGRoute(apiKey, message, agencyId, citations);
@@ -109,8 +181,13 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       responseContent = await handleMemoryRoute(apiKey, message, agencyId, userId);
     } else {
       // Use basic Gemini response for other routes (may include web grounding citations)
-      responseContent = await handleCasualRoute(apiKey, message, route, citations);
+      responseContent = await handleCasualRoute(apiKey, message, systemPrompt, citations);
     }
+
+    // 6b. Persist chat messages to database (fire-and-forget)
+    persistChatMessages(supabase, agencyId, userId, sessionId, message, responseContent).catch(
+      (err) => console.warn('[Chat API] Chat persistence failed (non-blocking):', err)
+    );
 
     // 4b. Store conversation in memory (fire-and-forget, don't block response)
     // Memory is dual-scoped: per-user AND per-agency via scoped userId
@@ -213,6 +290,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
 /**
  * Handle dashboard route with function calling
  * FIXED 2026-01-15: Now accepts supabase client to enable real database queries
+ * UPDATED 2026-01-20: Now accepts systemPrompt for rich context
  */
 async function handleDashboardRoute(
   apiKey: string,
@@ -220,7 +298,8 @@ async function handleDashboardRoute(
   agencyId: string | undefined,
   userId: string | undefined,
   functionCallsLog: Array<{ name: string; result: unknown }>,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  systemPrompt: string
 ): Promise<string> {
   const genai = new GoogleGenAI({ apiKey });
 
@@ -232,10 +311,10 @@ async function handleDashboardRoute(
     parameters: fn.parameters,
   })) as unknown as Array<{name: string; description: string; parameters?: object}>;
 
-  // First call: Let Gemini decide which function to call
+  // First call: Let Gemini decide which function to call (with full context)
   const response = await genai.models.generateContent({
     model: GEMINI_MODEL,
-    contents: message,
+    contents: `${systemPrompt}\n\nUser: ${message}`,
     config: {
       temperature: 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -397,33 +476,26 @@ Provide a helpful response that references our previous discussions. Be conversa
 /**
  * Handle casual/web routes with basic Gemini response
  * Extracts citations from grounding metadata when available
+ * UPDATED 2026-01-20: Now accepts rich systemPrompt with all context layers
  */
 async function handleCasualRoute(
   apiKey: string,
   message: string,
-  route: string,
+  systemPrompt: string,
   citations: Citation[]
 ): Promise<string> {
   const genai = new GoogleGenAI({ apiKey });
 
-  const systemPrompt = `You are an AI assistant for AudienceOS Command Center.
-You help agency teams manage their clients, view performance data, and navigate the app.
-
-When using information from web search, include inline citation markers like [1], [2], [3] in the text.
-Each citation number should reference a source you found.
-Example: "Google Ads typically has higher CTR [1] than Meta Ads in search campaigns [2]."
-
-Be concise and helpful. This query was classified as: ${route}`;
-
-  // Build request config
+  // Build request config with rich system prompt
   const requestConfig: any = {
     model: GEMINI_MODEL,
-    contents: `${systemPrompt}\n\nUser: ${message}`,
+    contents: `${systemPrompt}\n\nBe concise and helpful.\n\nUser: ${message}`,
     config: { temperature: 0.7 },
   };
 
   // Enable Google Search grounding for web queries (provides citations)
-  if (route === 'web') {
+  // Note: route detection is already handled in systemPrompt
+  if (systemPrompt.includes('classified as: web')) {
     requestConfig.config.tools = [{
       googleSearch: {},
     }];
@@ -534,6 +606,50 @@ function insertInlineCitations(
   }
 
   return result;
+}
+
+/**
+ * Persist chat messages to database for history
+ * Fire-and-forget: should not block the chat response
+ * ADDED 2026-01-20: Part of HGC context layer completion
+ */
+async function persistChatMessages(
+  supabase: SupabaseClient,
+  agencyId: string,
+  userId: string,
+  sessionId: string | undefined,
+  userMessage: string,
+  assistantResponse: string
+): Promise<void> {
+  try {
+    // Get or create session (if sessionId provided, function will find/reuse it)
+    const session = await getOrCreateSession(supabase, {
+      userId,
+      agencyId,
+      title: userMessage.substring(0, 100), // Use first message as title
+    });
+
+    // Add user message
+    await addMessage(supabase, {
+      sessionId: session.id,
+      agencyId,
+      role: 'user',
+      content: userMessage,
+    });
+
+    // Add assistant response
+    await addMessage(supabase, {
+      sessionId: session.id,
+      agencyId,
+      role: 'assistant',
+      content: assistantResponse,
+    });
+
+    console.log(`[Chat API] Messages persisted to session ${session.id}`);
+  } catch (error) {
+    // Don't throw - persistence is non-critical
+    console.warn('[Chat API] Chat persistence error:', error);
+  }
 }
 
 /**
