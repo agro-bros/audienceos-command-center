@@ -64,7 +64,7 @@ export async function getOAuthCredentials(
       .single();
 
     if (error || !data || !data.is_connected) {
-      console.log(`[OAuth] ${type} not connected for user ${userId}`);
+      // Not connected - do not log userId
       return null;
     }
 

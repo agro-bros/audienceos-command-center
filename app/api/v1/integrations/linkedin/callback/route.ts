@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(redirectUrl.toString())
     }
 
-    console.log('[LinkedIn Callback] Exchanging authorization code for account ID', { userId })
+    // Token exchange in progress - do not log userId
 
     const tokenResponse = await fetch('https://unipile.com/oauth/token', {
       method: 'POST',
@@ -161,13 +161,13 @@ export async function GET(request: NextRequest) {
     )
 
     if (dbError) {
-      console.error('[LinkedIn Callback] Failed to store credential', { userId, error: dbError })
+      console.error('[LinkedIn Callback] Failed to store credential', { error: dbError.message })
       const redirectUrl = new URL('/settings/integrations', request.url)
       redirectUrl.searchParams.set('error', 'storage_failed')
       return NextResponse.redirect(redirectUrl.toString())
     }
 
-    console.log('[LinkedIn Callback] Credential stored successfully', { userId })
+    // Credential stored successfully
 
     // Step 9: Trigger initial sync (async, fire and forget)
     // Note: In production, use a background queue (Bull, RabbitMQ, etc)
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log('[LinkedIn Callback] Authorization complete', { userId })
+    // Authorization complete
 
     // Step 10: Redirect to settings with success message
     const redirectUrl = new URL('/settings/integrations', request.url)

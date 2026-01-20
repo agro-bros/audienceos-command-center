@@ -50,7 +50,7 @@ export class LinkedInService {
         .single()
 
       if (error || !integration) {
-        console.error('[LinkedIn Send] No LinkedIn integration found for user', { userId, error })
+        console.error('[LinkedIn Send] No LinkedIn integration found', { error: error?.message })
         throw new Error('LinkedIn not connected for user')
       }
 
@@ -65,7 +65,7 @@ export class LinkedInService {
         throw new Error('Failed to decrypt token')
       }
 
-      console.log('[LinkedIn Send] Token decrypted successfully', { userId, accountId, recipientId })
+      // Token decrypted - do not log userId, accountId, or recipientId
 
       // Step 4: Send message via UniPile
       const result = await UnipileClient.sendDirectMessage(

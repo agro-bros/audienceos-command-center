@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[LinkedIn Sync] Starting sync for user', { userId })
+    // Sync in progress - do not log userId
 
     // Step 3: Call LinkedInService.syncMessages()
     const result = await LinkedInService.syncMessages(userId)
 
-    console.log('[LinkedIn Sync] Sync complete', { userId, ...result })
+    // Sync completed - only log non-sensitive metrics
 
     // Step 4: Return sync result
     return NextResponse.json(

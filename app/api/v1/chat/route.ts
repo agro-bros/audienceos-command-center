@@ -42,7 +42,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
     );
 
     if (!rateLimitResult.allowed) {
-      console.warn(`[Chat API] Rate limit exceeded for user ${userId}`);
+      // Rate limit exceeded - do not log userId
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment before sending another message.' },
         {
@@ -565,7 +565,7 @@ async function storeConversationMemory(
       importance: route === 'memory' ? 'high' : 'medium', // Memory recalls are high importance
     });
 
-    console.log(`[Chat API] Memory stored for user ${userId} (route: ${route})`);
+    // Memory stored - do not log userId
   } catch (error) {
     // Don't throw - memory storage is non-critical
     console.warn('[Chat API] Memory storage error:', error);

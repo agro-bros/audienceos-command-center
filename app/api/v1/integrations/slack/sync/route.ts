@@ -95,13 +95,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[Slack Sync] Sync requested', { userId })
+    // Sync in progress - do not log userId
 
     // Step 3: Call SlackService to sync channels
     // Using async/await (not callbacks) - awaits the service call
     const result = await SlackService.syncChannels(userId)
 
-    console.log('[Slack Sync] Sync completed', { userId, ...result })
+    // Sync completed - only log non-sensitive metrics
 
     // Step 4: Return success response
     return NextResponse.json(

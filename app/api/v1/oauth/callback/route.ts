@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
     const { access_token, refresh_token, expires_in, scope } = tokenData
 
     if (!access_token) {
-      console.error('[OAuth Callback] No access token in response:', tokenData)
+      console.error('[OAuth Callback] No access token in response - check provider configuration')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('No access token received')}`
       )

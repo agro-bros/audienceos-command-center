@@ -57,9 +57,9 @@ class PermissionService {
     agencyId: string,
     supabase?: SupabaseClient<any>
   ): Promise<EffectivePermission[]> {
-    // Validate inputs
+    // Validate inputs - do not log actual IDs
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-      console.error('[PermissionService] Invalid userId:', userId);
+      console.error('[PermissionService] Invalid userId provided');
       return [];
     }
     if (!agencyId || typeof agencyId !== 'string' || agencyId.trim() === '') {

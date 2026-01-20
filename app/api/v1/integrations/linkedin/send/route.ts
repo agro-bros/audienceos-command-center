@@ -119,12 +119,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[LinkedIn Send] Sending message for user', { userId, recipientId, messageLength: message.length })
+    // Sending message - do not log userId or recipientId
 
     // Step 4: Call LinkedInService.sendMessage()
     const result = await LinkedInService.sendMessage(userId, recipientId, message)
 
-    console.log('[LinkedIn Send] Message sent successfully', { userId, recipientId, messageId: result.messageId })
+    // Message sent - do not log userId or recipientId
 
     // Step 5: Return success response
     return NextResponse.json(
