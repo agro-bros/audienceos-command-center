@@ -15,6 +15,7 @@ import { createRouteHandlerClient } from '@/lib/supabase'
 import { withCsrfProtection, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { signOAuthState, verifyOAuthState as verifyOAuthStateSignature } from '@/lib/crypto'
+import { integrationLogger } from '@/lib/logger'
 
 interface GoogleTokenResponse {
   access_token: string
@@ -54,7 +55,7 @@ export const GET = withPermission({ resource: 'integrations', action: 'manage' }
       // Redirect user to Google
       return NextResponse.redirect(googleAuthURL.toString())
     } catch (error) {
-      console.error('[gmail-auth] OAuth initiation error:', error)
+      integrationLogger.error({ err: error }, 'OAuth initiation error')
       return createErrorResponse(500, 'Failed to initiate Gmail authorization')
     }
   }
@@ -105,7 +106,7 @@ export const POST = withPermission({ resource: 'integrations', action: 'manage' 
 
       if (!tokenResponse.ok) {
         const error = await tokenResponse.text()
-        console.error('[gmail-auth] Token exchange failed:', error)
+        integrationLogger.error({ error }, 'Token exchange failed')
         return createErrorResponse(500, `Token exchange failed: ${error}`)
       }
 
@@ -142,15 +143,11 @@ export const POST = withPermission({ resource: 'integrations', action: 'manage' 
         .single()
 
       if (upsertError) {
-        console.error('[gmail-auth] Upsert integration error:', upsertError)
+        integrationLogger.error({ err: upsertError }, 'Upsert integration error')
         return createErrorResponse(500, 'Failed to save integration')
       }
 
-      console.log('[gmail-auth] Gmail integration successful:', {
-        agencyId,
-        integrationId: integration.id,
-        expiresAt,
-      })
+      integrationLogger.info({ integrationId: integration.id, expiresAt }, 'Gmail integration successful')
 
       // Return success with integration details (exclude tokens)
       const { access_token: _at, refresh_token: _rt, ...safeIntegration } = integration
@@ -162,7 +159,7 @@ export const POST = withPermission({ resource: 'integrations', action: 'manage' 
         },
       })
     } catch (error) {
-      console.error('[gmail-auth] OAuth callback error:', error)
+      integrationLogger.error({ err: error }, 'OAuth callback error')
       return createErrorResponse(500, 'Failed to complete Gmail authorization')
     }
   }

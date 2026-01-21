@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
+import { integrationLogger } from '@/lib/logger'
 
 /**
  * GET /api/v1/integrations/slack/authorize
@@ -73,15 +74,10 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.append('redirect_uri', redirectUri)
     authUrl.searchParams.append('state', state)
 
-    console.log('[Slack Authorize] Redirecting to Slack OAuth', {
-      userId: user.id,
-      redirectUri,
-    })
-
     // Step 5: Redirect to Slack consent screen
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
-    console.error('[Slack Authorize] Unexpected error:', error)
+    integrationLogger.error({ err: error, provider: 'slack' }, 'OAuth authorization failed')
     return NextResponse.json(
       {
         error: 'Authorization initiation failed',

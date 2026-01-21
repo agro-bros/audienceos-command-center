@@ -9,6 +9,7 @@ import { getGeminiRAG } from '@/lib/rag';
 import { getMemoryInjector } from '@/lib/memory';
 import { initializeMem0Service } from '@/lib/memory/mem0-service';
 import { checkRateLimitDistributed } from '@/lib/security';
+import { chatLogger } from '@/lib/logger';
 import {
   buildAppContext,
   generateAppContextPrompt,
@@ -157,7 +158,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       const classification = await router.classifyQuery(message);
       route = classification.route;
       routeConfidence = classification.confidence;
-      console.log(`[Chat API] Route: ${route} (confidence: ${routeConfidence})`);
+      chatLogger.debug({ route, routeConfidence }, 'Route classification');
     } catch (routerError) {
       console.warn('[Chat API] Router failed, using casual route:', routerError);
     }
@@ -336,7 +337,7 @@ async function handleDashboardRoute(
         continue;
       }
 
-      console.log(`[Chat API] Function call: ${functionName}`, args);
+      chatLogger.debug({ functionName, hasArgs: !!args }, 'Function call');
 
       // Execute the function with Supabase client for real DB queries
       try {
@@ -408,7 +409,7 @@ async function handleRAGRoute(
       }
     }
 
-    console.log(`[Chat API] RAG search returned ${result.citations.length} citations, grounded: ${result.isGrounded}`);
+    chatLogger.debug({ citationCount: result.citations.length, isGrounded: result.isGrounded }, 'RAG search complete');
     return result.content;
   } catch (error) {
     console.error('[Chat API] RAG search failed:', error);
@@ -461,7 +462,7 @@ Provide a helpful response that references our previous discussions. Be conversa
         config: { temperature: 0.7 },
       });
 
-      console.log(`[Chat API] Memory search returned ${memoryInjection.memories.length} memories`);
+      chatLogger.debug({ memoryCount: memoryInjection.memories.length }, 'Memory search complete');
       return memoryResult.candidates?.[0]?.content?.parts?.[0]?.text ||
         "I couldn't recall that specific conversation.";
     } else {
@@ -645,7 +646,7 @@ async function persistChatMessages(
       content: assistantResponse,
     });
 
-    console.log(`[Chat API] Messages persisted to session ${session.id}`);
+    chatLogger.debug({ sessionId: session.id }, 'Messages persisted');
   } catch (error) {
     // Don't throw - persistence is non-critical
     console.warn('[Chat API] Chat persistence error:', error);

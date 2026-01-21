@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
+import { integrationLogger } from '@/lib/logger'
 
 /**
  * GET /api/v1/integrations/gmail/authorize
@@ -73,15 +74,10 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.append('access_type', 'offline')
     authUrl.searchParams.append('prompt', 'consent')
 
-    console.log('[Gmail Authorize] Redirecting to Google OAuth', {
-      userId: user.id,
-      redirectUri,
-    })
-
     // Step 5: Redirect to Google consent screen
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
-    console.error('[Gmail Authorize] Unexpected error:', error)
+    integrationLogger.error({ err: error, provider: 'gmail' }, 'OAuth authorization failed')
     return NextResponse.json(
       {
         error: 'Authorization initiation failed',

@@ -4,6 +4,7 @@ import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, sanitizeString, sanitizeEmail, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { sendOnboardingEmail } from '@/lib/email/onboarding'
+import { apiLogger } from '@/lib/logger'
 import { randomBytes } from 'crypto'
 import type { Database, Json } from '@/types/database'
 
@@ -74,7 +75,7 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
       const { data: instances, error } = await query
 
       if (error) {
-        console.error('Failed to fetch onboarding instances:', error)
+        apiLogger.error({ err: error }, 'Failed to fetch onboarding instances')
         // Include error details for debugging
         return createErrorResponse(500, `Failed to fetch onboarding instances: ${error.message}`)
       }
@@ -207,7 +208,7 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
           .single()
 
         if (clientError || !newClient) {
-          console.error('Failed to create client:', clientError)
+          apiLogger.error({ err: clientError }, 'Failed to create client')
           return createErrorResponse(500, `Failed to create client: ${clientError?.message || 'Unknown error'}`)
         }
 
@@ -249,7 +250,7 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
         .single()
 
       if (instanceError || !instance) {
-        console.error('Failed to create onboarding instance:', instanceError)
+        apiLogger.error({ err: instanceError }, 'Failed to create onboarding instance')
         return createErrorResponse(500, 'Failed to create onboarding instance')
       }
 
@@ -286,12 +287,7 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
         : null
 
       // Send welcome email (non-blocking - don't fail onboarding if email fails)
-      console.log('📬 Triggering onboarding email send for:', {
-        client: sanitizedName,
-        email: sanitizedEmail,
-        agency: agencyName,
-        hasSeoDa: !!seoSummary,
-      })
+      apiLogger.info({ client: sanitizedName, hasSeoDa: !!seoSummary }, 'Triggering onboarding email send')
 
       const emailResult = await sendOnboardingEmail({
         to: sanitizedEmail,
@@ -302,14 +298,9 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
       })
 
       if (!emailResult.success) {
-        console.warn(`⚠️  Onboarding email failed for ${sanitizedEmail}:`, {
-          error: emailResult.error,
-          messageId: emailResult.messageId,
-        })
+        apiLogger.warn({ error: emailResult.error, messageId: emailResult.messageId }, 'Onboarding email failed')
       } else {
-        console.log(`✅ Onboarding email queued for ${sanitizedEmail}:`, {
-          messageId: emailResult.messageId,
-        })
+        apiLogger.info({ messageId: emailResult.messageId }, 'Onboarding email queued')
       }
 
       return NextResponse.json({

@@ -38,6 +38,9 @@ export default [
       "react-hooks/set-state-in-effect": "off",
       // TanStack Virtual returns functions that can't be memoized - this is expected
       "react-hooks/incompatible-library": "off",
+      // Security: Discourage console.* in favor of structured logging
+      // Use lib/logger.ts instead for proper logging
+      "no-console": ["warn", { allow: [] }],
     },
     settings: {
       react: {

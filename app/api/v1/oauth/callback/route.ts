@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { verifyOAuthState, encryptToken, serializeEncryptedToken } from '@/lib/crypto'
+import { integrationLogger } from '@/lib/logger'
 import type { IntegrationProvider } from '@/types/database'
 
 // Token exchange endpoints for each provider
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth errors from provider
   if (error) {
-    console.error('[OAuth Callback] Provider error:', error, errorDescription)
+    integrationLogger.error({ error, errorDescription }, 'Provider OAuth error')
     return NextResponse.redirect(
       `${baseUrl}/integrations?error=${encodeURIComponent(errorDescription || error)}`
     )
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   // Validate required parameters
   if (!code || !state) {
-    console.error('[OAuth Callback] Missing code or state parameter')
+    integrationLogger.warn('Missing code or state parameter in OAuth callback')
     return NextResponse.redirect(
       `${baseUrl}/integrations?error=${encodeURIComponent('Missing authorization parameters')}`
     )
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
   // Verify state parameter (CSRF protection)
   const statePayload = verifyOAuthState(state)
   if (!statePayload) {
-    console.error('[OAuth Callback] Invalid state parameter - possible CSRF attack')
+    integrationLogger.warn('Invalid state parameter - possible CSRF attack')
     return NextResponse.redirect(
       `${baseUrl}/integrations?error=${encodeURIComponent('Invalid state - please try again')}`
     )
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
   const stateAge = Date.now() - statePayload.timestamp
   const maxAge = 10 * 60 * 1000 // 10 minutes
   if (stateAge > maxAge) {
-    console.error('[OAuth Callback] State expired:', stateAge, 'ms old')
+    integrationLogger.warn({ stateAge }, 'OAuth state expired')
     return NextResponse.redirect(
       `${baseUrl}/integrations?error=${encodeURIComponent('Authorization expired - please try again')}`
     )
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
     const { clientId, clientSecret } = getClientCredentials(provider as IntegrationProvider)
 
     if (!clientId || !clientSecret) {
-      console.error('[OAuth Callback] Missing client credentials for provider:', provider)
+      integrationLogger.error({ provider }, 'Missing client credentials for provider')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('OAuth not configured for this provider')}`
       )
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
     // Exchange authorization code for tokens
     const tokenEndpoint = TOKEN_ENDPOINTS[provider]
     if (!tokenEndpoint) {
-      console.error('[OAuth Callback] Unknown provider:', provider)
+      integrationLogger.error({ provider }, 'Unknown OAuth provider')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('Unknown provider')}`
       )
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
-      console.error('[OAuth Callback] Token exchange failed:', tokenResponse.status, errorData)
+      integrationLogger.error({ status: tokenResponse.status, error: errorData }, 'Token exchange failed')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('Failed to complete authorization')}`
       )
@@ -147,7 +148,7 @@ export async function GET(request: NextRequest) {
     const { access_token, refresh_token, expires_in, scope } = tokenData
 
     if (!access_token) {
-      console.error('[OAuth Callback] No access token in response - check provider configuration')
+      integrationLogger.error({ provider }, 'No access token in response')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('No access token received')}`
       )
@@ -193,20 +194,20 @@ export async function GET(request: NextRequest) {
       .eq('id', integrationId)
 
     if (updateError) {
-      console.error('[OAuth Callback] Database update failed:', updateError)
+      integrationLogger.error({ err: updateError, integrationId }, 'Database update failed')
       return NextResponse.redirect(
         `${baseUrl}/integrations?error=${encodeURIComponent('Failed to save credentials')}`
       )
     }
 
-    console.log('[OAuth Callback] Successfully connected:', provider, integrationId)
+    // Success logged via integrationLogger if needed
 
     // Redirect to integrations page with success message
     return NextResponse.redirect(
       `${baseUrl}/integrations?success=${encodeURIComponent(`${getProviderDisplayName(provider)} connected successfully`)}`
     )
   } catch (error) {
-    console.error('[OAuth Callback] Unexpected error:', error)
+    integrationLogger.error({ err: error }, 'OAuth callback unexpected error')
     return NextResponse.redirect(
       `${baseUrl}/integrations?error=${encodeURIComponent('An unexpected error occurred')}`
     )

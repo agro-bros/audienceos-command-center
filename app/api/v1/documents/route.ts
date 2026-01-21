@@ -6,6 +6,7 @@ import { createRouteHandlerClient, getAuthenticatedUser } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { geminiFileService } from '@/lib/gemini/file-service'
+import { apiLogger } from '@/lib/logger'
 import type { DocumentCategory, IndexStatus } from '@/types/database'
 
 /**
@@ -243,10 +244,10 @@ export const POST = withPermission({ resource: 'knowledge-base', action: 'write'
           })
           .eq('id', documentId)
 
-        console.log(`[Documents API] Document ${documentId} indexed in Gemini: ${geminiFileId}`)
+        apiLogger.info({ documentId, geminiFileId }, 'Document indexed in Gemini')
       } catch (geminiError) {
         // Log error but don't fail the upload - document is still in Supabase
-        console.error(`[Documents API] Gemini indexing failed for ${documentId}:`, geminiError)
+        apiLogger.error({ documentId, err: geminiError }, 'Gemini indexing failed')
 
         // Mark as failed so it can be retried via /process endpoint
         await supabase
