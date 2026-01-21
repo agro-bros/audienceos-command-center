@@ -46,12 +46,9 @@ export function AppSwitcher({ collapsed }: AppSwitcherProps) {
                       audience
                     </span>
                     <span
-                      className="text-[17px] font-light tracking-tight"
+                      className="text-[17px] font-light tracking-tight bg-clip-text text-transparent"
                       style={{
-                        background: activeConfig.gradient,
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
+                        backgroundImage: activeConfig.gradient,
                       }}
                     >
                       OS
@@ -63,12 +60,9 @@ export function AppSwitcher({ collapsed }: AppSwitcherProps) {
                       rev
                     </span>
                     <span
-                      className="text-[17px] font-light tracking-tight"
+                      className="text-[17px] font-light tracking-tight bg-clip-text text-transparent"
                       style={{
-                        background: activeConfig.gradient,
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
+                        backgroundImage: activeConfig.gradient,
                       }}
                     >
                       OS
@@ -84,12 +78,9 @@ export function AppSwitcher({ collapsed }: AppSwitcherProps) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="text-[15px] font-semibold"
+                className="text-[15px] font-semibold bg-clip-text text-transparent"
                 style={{
-                  background: activeConfig.gradient,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
+                  backgroundImage: activeConfig.gradient,
                 }}
               >
                 {activeConfig.shortName}
@@ -127,12 +118,9 @@ export function AppSwitcher({ collapsed }: AppSwitcherProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span
-                    className="font-medium"
+                    className="font-medium bg-clip-text text-transparent"
                     style={{
-                      background: config.gradient,
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      backgroundClip: "text",
+                      backgroundImage: config.gradient,
                     }}
                   >
                     {config.name}
