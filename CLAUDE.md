@@ -23,6 +23,7 @@
 | Product requirements | `docs/01-product/PRD.md` |
 | Data model | `docs/04-technical/DATA-MODEL.md` |
 | API contracts | `docs/04-technical/API-CONTRACTS.md` |
+| Feature plans | `docs/05-planning/[feature]/PLAN.md` |
 | HGC audit | `docs/HOLY_GRAIL_CHAT_AUDIT.md` |
 | Session handover | `HANDOVER.md` |
 
