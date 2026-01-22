@@ -1,299 +1,215 @@
-# AudienceOS Command Center - Session Handover
+# SITREP: RevOS + AudienceOS Integration
 
-**Last Session:** 2026-01-20
-**Status:** Production active | RBAC 403 + KB Gemini auto-upload fixed | Demo ready
-
----
-
-## CRITICAL FIX: HGC Knowledge Base "No Documents Found" ✅
-
-**Status:** FIXED
-**Priority:** HIGH
-**Fixed:** 2026-01-20
-
-### Problem
-
-HGC chat showing "No documents found for this query" when users ask knowledge base questions.
-
-### Root Cause
-
-Documents were uploaded to Supabase Storage and metadata created in `document` table, but **never uploaded to Gemini File API**. The RAG service queries Gemini's `files.list()`, which returned empty.
-
-**Broken Flow:**
-```
-Upload → Supabase Storage → document table (pending) → ❌ STOPPED
-```
-
-### Fix
-
-Modified `app/api/v1/documents/route.ts` to auto-trigger Gemini File API upload after document creation:
-
-1. Added `encodeDisplayName()` function to encode agency/client metadata in Gemini displayName
-2. Added fire-and-forget Gemini upload after document record created
-3. Updated `app/api/v1/documents/process/route.ts` to use same encoding for consistency
-
-**Fixed Flow:**
-```
-Upload → Supabase Storage → document table → Gemini File API → ✅ RAG works
-```
-
-### Key Code Changes
-
-```typescript
-// Fire-and-forget Gemini upload after document create
-const encodedDisplayName = encodeDisplayName(agencyId, scope, clientId, title.trim())
-;(async () => {
-  const geminiFileId = await geminiFileService.uploadFile(buffer, file.type, encodedDisplayName)
-  await supabase.from('document').update({ gemini_file_id: geminiFileId, index_status: 'indexed' }).eq('id', documentId)
-})()
-```
-
-### Verification
-
-- ✅ Build passes
-- ✅ 22 document tests pass
-- ✅ 446 cartridge tests pass (468 total)
+**Date:** 2026-01-22
+**Project:** command_center_audience_OS
+**Repo:** `agro-bros/audienceos-command-center`
+**Branch:** `main` (clean, pushed)
 
 ---
 
-## CRITICAL FIX: RBAC 403 Permission Errors ✅
+## CURRENT STATE
 
-**Status:** FIXED
-**Priority:** DEFCON 1 (Demo blocker)
-**Fixed:** 2026-01-20
-**Commit:** `553179c`
+### What Just Completed: Phase 0 - Database Schema Prep
 
-### Problem
+| Task | Status | Commit |
+|------|--------|--------|
+| Create RevOS tables SQL (025) | Done | `fa7f40d` |
+| Create unified cartridge SQL (026) | Done | `fa7f40d` |
+| Add RLS policies to all new tables | Done | `fa7f40d` |
+| Create TypeScript types (`lib/revos/types.ts`) | Done | `fa7f40d` |
+| **Make migrations idempotent** | Done | `15f9b8b` |
+| Add verification scripts | Done | `15f9b8b` |
 
-All protected API endpoints returning 403 PERMISSION_DENIED:
-- `/api/v1/clients` - 403
-- `/api/v1/chat` - 403
-- `/api/v1/settings/preferences` - 403
+**Critical Discovery:** Runtime verification found all 12 RevOS tables **already exist** in production Supabase. Migrations were made idempotent with `IF NOT EXISTS` and `DROP ... IF EXISTS` patterns to handle this.
 
-Users with valid roles (Admin, Owner) still getting 403 errors.
+### Week 1 Security Hardening: COMPLETE
 
-### Root Cause
+| Fix | Commit |
+|-----|--------|
+| Remove crypto.ts fallbacks | `10851f7` |
+| Add structured logging (Pino) | `73cb652` |
+| Replace console statements in OAuth | `ee6066d` |
+| Add rate limiting to OAuth endpoints | `af0f68c` |
+| Add OAuth token refresh utilities | `39133bf` |
 
-RLS policies blocked the permission service's nested JOIN query:
-```
-user → role → role_permission → permission
-```
+---
 
-Even though RBAC data existed (45 role_permissions, 52 permissions, 5 roles), the anon key couldn't read them due to RLS blocking the join.
+## WHAT'S NEXT: Phase 1 - Integration (Week 2)
 
-### Fix
+### Day 1: Apply Migrations + Verify (NEXT)
 
-Changed `lib/rbac/permission-service.ts` to use `createServiceRoleClient()` for all permission lookup operations. This bypasses RLS for internal server-side permission checks.
-
-```typescript
-// BEFORE (broken)
-const client = supabase || createBrowserClient();
-
-// AFTER (fixed)
-const client = createServiceRoleClient() || supabase || createBrowserClient();
-```
-
-Applied to 4 methods: `getUserPermissions`, `getUserHierarchyLevel`, `getMemberAccessibleClientIds`, `hasMemberClientAccess`
-
-### Verification
-
-- ✅ Build passes
-- ✅ Deployed via `npx vercel --prod`
-- ✅ Clients page loads 23 clients
-- ✅ HGC chat accessible
-
-### Deployment Note
-
-⚠️ `v0-audience-os-command-center` in `chase-6917s-projects` was NOT connected to GitHub. Deployed via Vercel CLI:
 ```bash
-npx vercel link --scope chase-6917s-projects --project v0-audience-os-command-center --yes
-npx vercel --prod --yes
+# 1. Apply migrations to production Supabase
+supabase link --project-ref ebxshdqfaqupnvpghodi
+supabase db push
+
+# 2. Verify RLS policies work
+npx ts-node scripts/verify-supabase-ready.ts
+
+# 3. Create /api/health endpoint (optional but recommended)
+```
+
+### Days 2-4: Feature Port
+
+| Day | Task | Source |
+|-----|------|--------|
+| 2 | Port 11 chips | From RevOS `lib/chips/` |
+| 3 | Port MarketingConsole + WorkflowExecutor | From RevOS `lib/console/` |
+| 4 | Port LinkedIn cartridge + update Mem0 | From RevOS |
+
+**Target File Structure After Port:**
+```
+lib/
+├── chips/                    # FROM RevOS (11 files)
+│   ├── base-chip.ts
+│   ├── write-chip.ts
+│   ├── dm-chip.ts
+│   └── ...
+├── console/                  # FROM RevOS
+│   ├── marketing-console.ts
+│   └── workflow-executor.ts
+├── cartridges/               # MERGED
+│   └── unified-cartridge.ts
+├── memory/                   # UPDATE to 3-part format
+│   └── mem0-service.ts
+└── revos/                    # ALREADY EXISTS
+    └── types.ts              # TypeScript types (done)
+```
+
+### Day 5: Integration Testing
+
+- Unit tests for all ported features
+- Integration tests with Supabase
+- Build must pass, lint clean
+
+---
+
+## KEY FILES
+
+| Purpose | Path |
+|---------|------|
+| Project context | `CLAUDE.md` |
+| Session handover | `HANDOVER.md` |
+| Master plan | `docs/05-planning/UNIFIED-EXECUTION-PLAN.md` |
+| Migration 025 (RevOS tables) | `supabase/migrations/025_add_revos_tables.sql` |
+| Migration 026 (unified cartridge) | `supabase/migrations/026_unify_cartridges.sql` |
+| TypeScript types | `lib/revos/types.ts` |
+| Verification scripts | `scripts/verify-*.ts` |
+
+---
+
+## VERIFICATION SCRIPTS (Use These!)
+
+```bash
+# Check migration SQL syntax
+npx ts-node scripts/verify-migration-syntax.ts
+
+# Check Mem0 3-part format
+npx ts-node scripts/verify-mem0-format.ts
+
+# Check TypeScript types compile
+npx ts-node scripts/verify-revos-types.ts
+
+# Check Supabase readiness (what tables exist)
+npx ts-node scripts/verify-supabase-ready.ts
+
+# Full build verification
+npm run build
 ```
 
 ---
 
-## Completed Task: HGC Transplant - All 7 Blockers ✅
+## CRITICAL CONTEXT
 
-**Status:** COMPLETE
-**Priority:** HIGH
-**Completed:** 2026-01-20
+### 1. Tables Already Exist
+All 12 RevOS tables already exist in Supabase (from a previous session). Migrations are now idempotent and will not fail.
 
-### Summary
+### 2. Mem0 3-Part Format
+Memory keys must use: `agencyId::clientId::userId` (not 2-part)
 
-All 7 HGC (Holy Grail Chat) context layer blockers have been fixed, tested, and committed.
-
-### Blockers Completed
-
-| # | Blocker | Implementation | Tests | Commit |
-|---|---------|----------------|-------|--------|
-| 1 | Rate Limiting | `app/api/v1/chat/route.ts` | ✅ | `612e157` |
-| 2 | Memory Storage | `app/api/v1/chat/route.ts` (fire-and-forget) | 5 tests | `e0141e6` |
-| 3 | App Self-Awareness | `lib/chat/context/app-structure.ts` | 13 tests | `5d8ec9d` |
-| 4 | Cartridge Context | `lib/chat/context/cartridge-loader.ts` | 14 tests | `becda7d` |
-| 5 | Chat History | `lib/chat/context/chat-history.ts` | 9 tests | `53c8b54` |
-| 6 | OAuth Provider | `lib/chat/functions/oauth-provider.ts` | 9 tests | `aa5cd31` |
-| 7 | Google Workspace | `lib/chat/functions/google-workspace.ts` | 9 tests | `2120d7f` |
-
-### Key Architecture Decisions
-
-- **Multi-tenant OAuth:** Direct Google APIs with user tokens (not diiiploy-gateway single-tenant)
-- **Dual-scoped memory:** `{agencyId}:{userId}` format in Mem0
-- **Fire-and-forget:** Memory storage is non-blocking
-- **Graceful degradation:** Functions return "not connected" when integrations missing
-- **5-minute cache TTL:** Cartridge context cached for performance
-
-### Files Created (7 new modules)
-
-```
-lib/chat/context/
-├── app-structure.ts      # App navigation awareness
-├── cartridge-loader.ts   # Brand/style/instructions
-├── chat-history.ts       # Session persistence
-└── index.ts              # Exports
-
-lib/chat/functions/
-├── oauth-provider.ts     # Token decryption for functions
-└── google-workspace.ts   # Gmail, Calendar, Drive
+```typescript
+function buildScopedUserId(agencyId: string, userId: string, clientId?: string | null): string {
+  const client = clientId || '_';
+  const user = userId || '_';
+  return `${agencyId}::${client}::${user}`;
+}
 ```
 
-### Final Step Complete: Context Wired into Chat Route ✅
+### 3. Supabase Credentials
+- **Project Ref:** `ebxshdqfaqupnvpghodi`
+- **Production:** Uses env vars `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 
-**Commit:** `21777d8`
-
-The context modules are now fully wired into the chat route:
-- `buildSystemPrompt()` combines all 3 context layers (app structure, cartridges, chat history)
-- `handleCasualRoute` and `handleDashboardRoute` use rich system prompt
-- `persistChatMessages()` saves conversation to database
-- Build passes, 1,459 tests passing
-
-**HGC Transplant: FULLY COMPLETE**
+### 4. Deployment
+Vercel webhooks broken after repo transfer. Deploy manually:
+```bash
+npx vercel --prod
+```
 
 ---
 
-## Previous Task: RevOS + AudienceOS Unified Platform
+## RECENT COMMITS (for context)
 
-**Status:** PLANNED - Awaiting execution
-**Priority:** HIGH
-**Timeline:** 3 weeks (when activated)
-**Documentation:** `docs/05-planning/UNIFIED-EXECUTION-PLAN.md`
-
-### Summary
-
-CTO-approved plan to merge RevOS and AudienceOS into a unified platform:
-- **Foundation:** AudienceOS codebase + Supabase
-- **Added from RevOS:** LinkedIn integration, 11 AgentKit chips, campaign/lead management
-- **Shared:** HGC Monorepo with dual backends (Gemini + AgentKit)
-
-### Key Decision: Security First
-
-Before integration work begins, AudienceOS must complete security hardening:
-1. Fix `lib/crypto.ts` env fallbacks
-2. Add rate limiting to mutation routes
-3. Replace console.log with structured logger
-4. Implement token refresh mechanism
-
-### Related Documents
-
-| Document | Location | Purpose |
-|----------|----------|---------|
-| Unified Execution Plan | `docs/05-planning/UNIFIED-EXECUTION-PLAN.md` | Full 3-week roadmap |
-| CTO Decision | `docs/05-planning/CTO-DECISION-2026-01-20.md` | Approval with conditions |
-| Security Hardening | `docs/05-planning/CTO-ACTION-PLAN.md` | Week 1 security tasks |
-| Production Audit | `docs/08-reports/PRODUCTION-READINESS-AUDIT.md` | Current state assessment |
-| CC2 Integration Plan | `~/.claude/plans/virtual-swimming-firefly.md` | Original RevOS integration plan |
+```
+15f9b8b fix: make RevOS migrations idempotent + add verification scripts
+fa7f40d feat: Phase 0 - Database schema prep for RevOS integration
+2dcc635 docs: update active-tasks.md - Week 1 Security complete
+39133bf feat: add OAuth token refresh utilities
+af0f68c security: add rate limiting to OAuth endpoints
+ee6066d security: replace console statements with structured logger
+73cb652 feat(security): add structured logging with Pino
+10851f7 security: remove crypto.ts fallbacks
+```
 
 ---
 
-## What Happened This Session (2026-01-20)
+## COMMANDS
 
-### 1. Integration Status Fix ✅
+```bash
+# Dev server
+npm run dev
 
-**Problem:** UI showed "0 connected" despite database having 5 integrations with `is_connected: TRUE`
+# Build (ALWAYS run before committing)
+npm run build
 
-**Root Cause:** UI read from diiiploy-gateway health endpoint (single-tenant) which returned `warning` status for OAuth services.
+# Tests
+npm test
 
-**Fix:** Removed gateway dependency, fetch from Supabase API directly.
+# Link Supabase
+supabase link --project-ref ebxshdqfaqupnvpghodi
 
-**Commits:**
-- `9e87678` - fix(integrations): read from Supabase instead of diiiploy-gateway
-- `579daf8` - fix(integrations): add type safety to API response
-- `714e56f` - chore: remove coverage and test artifacts from tracking
+# Push migrations
+supabase db push
 
-### 2. Production Readiness Audit ✅
-
-**Current: 65-70% production ready**
-
-| Category | Issues | Critical |
-|----------|--------|----------|
-| Console logging | 100+ statements | 18 (log user IDs, tokens) |
-| TODO/Stubs | 32 items | 9 blocking features |
-| Rate limiting | 27 unprotected routes | 6 (chat, sync, SEO) |
-| Env validation | 15+ gaps | 4 (empty fallbacks) |
-
-### 3. RevOS + AudienceOS Unified Plan ✅
-
-Created and approved comprehensive 3-week integration plan:
-
-| Week | Focus | Owner |
-|------|-------|-------|
-| 1 | Security hardening | AudienceOS CTO |
-| 2 | Schema migration + feature port | Chi CTO |
-| 3 | HGC adapter + app switcher | Both |
+# Deploy to production
+npx vercel --prod
+```
 
 ---
 
-## Current Repository State
+## EXIT CRITERIA FOR PHASE 1
 
-| Aspect | Status |
-|--------|--------|
-| Branch | main |
-| Clean | Yes |
-| Build | Passes (0 TypeScript errors) |
-| Lint | 0 errors, 223 warnings |
-| Tests | 1,393 unit passing, 16/17 E2E |
-| Coverage | 51.45% |
-| Production | https://v0-audience-os-command-center.vercel.app |
+- [ ] Migrations applied to production Supabase (or verified already applied)
+- [ ] RLS policies verified working
+- [ ] All 11 chips ported and callable
+- [ ] WorkflowExecutor loads from `console_workflow` table
+- [ ] MarketingConsole generates content
+- [ ] Mem0 uses 3-part format throughout
+- [ ] Build passes, lint clean
 
 ---
 
-## Quick Wins (When Resuming)
+## RISKS
 
-| Task | File | Time |
-|------|------|------|
-| Remove `|| ''` fallbacks | `lib/crypto.ts` | 30min |
-| Add `no-console` ESLint rule | `.eslintrc.js` | 15min |
-| Create health check endpoint | `app/api/health/route.ts` | 1h |
-| Fix unused router reference | `app/signup/page.tsx:25` | 15min |
-
----
-
-## Key Files
-
-| Need | Location |
-|------|----------|
-| Strategy | `CLAUDE.md` |
-| Unified Plan | `docs/05-planning/UNIFIED-EXECUTION-PLAN.md` |
-| Feature Status | `features/INDEX.md` |
-| Audit Report | `docs/08-reports/PRODUCTION-READINESS-AUDIT.md` |
-| Operations | `RUNBOOK.md` |
+| Risk | Mitigation |
+|------|------------|
+| RevOS source code location unknown | Ask user where RevOS codebase is |
+| Chip dependencies missing | Check RevOS package.json |
+| Supabase migration conflicts | Migrations are now idempotent |
 
 ---
 
-## Deployment Notes
-
-⚠️ **Vercel Webhooks Broken** - After repo transfer from `growthpigs/` to `agro-bros/`, Git webhooks don't auto-deploy.
-
-**Workaround:** `npx vercel --prod`
+**Ready for handover.** Start with `supabase db push` to apply migrations, then verify with `scripts/verify-supabase-ready.ts`.
 
 ---
 
-## Known Gaps
-
-1. **Security Hardening** - 27 routes missing rate limits, env fallbacks
-2. **Feature Blockers** - 9 TODO comments block core features
-3. **HGC Context** - Chat doesn't receive page/client context
-4. **Token Refresh** - OAuth tokens expire after 1h, no refresh
-
----
-
-*Living Document - Last updated: 2026-01-20 (CTO Session)*
+*Last Updated: 2026-01-22*
