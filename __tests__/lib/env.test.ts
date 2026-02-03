@@ -71,8 +71,17 @@ describe('Environment Validation', () => {
   describe('IS_PRODUCTION detection', () => {
     it('should detect production environment', async () => {
       process.env.NODE_ENV = 'production'
+      // All requiredInProd() vars must be set — importing lib/env eagerly
+      // evaluates serverEnv which throws for any missing production var
       process.env.OAUTH_STATE_SECRET = 'prod-secret'
       process.env.TOKEN_ENCRYPTION_KEY = 'prod-key'
+      process.env.INTERNAL_API_KEY = 'prod-internal-key'
+      process.env.SUPABASE_SERVICE_ROLE_KEY = 'prod-service-key'
+      process.env.GOOGLE_CLIENT_ID = 'prod-google-id'
+      process.env.GOOGLE_CLIENT_SECRET = 'prod-google-secret'
+      process.env.GOOGLE_AI_API_KEY = 'prod-google-ai-key'
+      process.env.SLACK_CLIENT_ID = 'prod-slack-id'
+      process.env.SLACK_CLIENT_SECRET = 'prod-slack-secret'
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 
