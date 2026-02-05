@@ -1099,6 +1099,72 @@ export type Database = {
           },
         ]
       }
+      user_communication: {
+        Row: {
+          id: string
+          agency_id: string
+          user_id: string
+          platform: Database["public"]["Enums"]["user_communication_platform"]
+          message_id: string
+          thread_id: string | null
+          sender_email: string | null
+          sender_name: string | null
+          subject: string | null
+          content: string
+          is_inbound: boolean
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          agency_id: string
+          user_id: string
+          platform: Database["public"]["Enums"]["user_communication_platform"]
+          message_id: string
+          thread_id?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          content: string
+          is_inbound?: boolean
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          agency_id?: string
+          user_id?: string
+          platform?: Database["public"]["Enums"]["user_communication_platform"]
+          message_id?: string
+          thread_id?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          content?: string
+          is_inbound?: boolean
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_communication_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_communication_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_snapshot: {
         Row: {
           agency_id: string
@@ -2292,6 +2358,7 @@ export type Database = {
       chat_route: "rag" | "web" | "memory" | "casual" | "dashboard"
       client_access_permission: "read" | "write"
       communication_platform: "slack" | "gmail"
+      user_communication_platform: "slack" | "gmail"
       document_category:
         | "installation"
         | "tech"
@@ -2465,6 +2532,7 @@ export const Constants = {
       chat_route: ["rag", "web", "memory", "casual", "dashboard"],
       client_access_permission: ["read", "write"],
       communication_platform: ["slack", "gmail"],
+      user_communication_platform: ["slack", "gmail"],
       document_category: [
         "installation",
         "tech",

@@ -73,7 +73,10 @@ function mapPlatformToType(platform: string): 'email' | 'call' | 'meeting' | 'no
 
 /**
  * Get recent communications for a client
- * Uses Supabase when available, falls back to mock data
+ * Dual-query: reads from both client-scoped `communication` table
+ * and user-scoped `user_communication` table (synced Gmail/Slack messages),
+ * bridging them by matching the client's contact_email against sender_email.
+ * Falls back to mock data when Supabase is unavailable.
  */
 export async function getRecentCommunications(
   context: ExecutorContext,
@@ -95,7 +98,8 @@ export async function getRecentCommunications(
     const supabase = createClient();
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    let query = supabase
+    // --- Query 1: Client-scoped communications (original table) ---
+    let clientQuery = supabase
       .from('communication')
       .select(`
         id, platform, subject, content, sender_email, sender_name,
@@ -110,30 +114,80 @@ export async function getRecentCommunications(
     // Platform filter maps to type
     if (args.type) {
       if (args.type === 'email') {
-        query = query.eq('platform', 'gmail');
+        clientQuery = clientQuery.eq('platform', 'gmail');
       } else if (args.type === 'meeting' || args.type === 'call') {
-        query = query.eq('platform', 'slack');
+        clientQuery = clientQuery.eq('platform', 'slack');
       }
     }
 
-    const { data, error } = await query;
+    // --- Query 2: User-scoped communications (synced Gmail/Slack) ---
+    // Bridge: look up client's contact_email, then match against user_communication.sender_email
+    const { data: clientData } = await supabase
+      .from('client')
+      .select('contact_email')
+      .eq('id', args.client_id)
+      .single();
 
-    if (error) {
-      console.warn('[Supabase] get_recent_communications error:', error.message);
-      throw error;
+    const clientEmail = clientData?.contact_email;
+
+    // Run both queries in parallel
+    const [clientResult, userResult] = await Promise.all([
+      clientQuery,
+      clientEmail
+        ? supabase
+            .from('user_communication')
+            .select('id, platform, subject, content, sender_email, sender_name, is_inbound, created_at')
+            .eq('agency_id', agencyId)
+            .eq('sender_email', clientEmail)
+            .gte('created_at', cutoffDate)
+            .order('created_at', { ascending: false })
+            .limit(limit)
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+
+    if (clientResult.error) {
+      console.warn('[Supabase] communication query error:', clientResult.error.message);
+    }
+    if (userResult.error) {
+      console.warn('[Supabase] user_communication query error:', userResult.error.message);
     }
 
-    if (data && data.length > 0) {
-      console.info('[Supabase] get_recent_communications returned', data.length, 'results');
-      return data.map((row) => ({
-        id: row.id,
-        type: mapPlatformToType(row.platform),
-        subject: row.subject ?? undefined,
-        summary: row.content?.substring(0, 200) ?? undefined,
-        from: row.is_inbound ? (row.sender_email ?? undefined) : undefined,
-        to: !row.is_inbound ? (row.sender_email ?? undefined) : undefined,
-        date: row.received_at,
-      }));
+    // Map client-scoped results
+    const clientComms: CommunicationSummary[] = (clientResult.data || []).map((row) => ({
+      id: row.id,
+      type: mapPlatformToType(row.platform),
+      subject: row.subject ?? undefined,
+      summary: row.content?.substring(0, 200) ?? undefined,
+      from: row.is_inbound ? (row.sender_email ?? undefined) : undefined,
+      to: !row.is_inbound ? (row.sender_email ?? undefined) : undefined,
+      date: row.received_at,
+    }));
+
+    // Map user-scoped results (synced inbox messages)
+    const userComms: CommunicationSummary[] = (userResult.data || []).map((row) => ({
+      id: row.id,
+      type: mapPlatformToType(row.platform),
+      subject: row.subject ?? undefined,
+      summary: row.content?.substring(0, 200) ?? undefined,
+      from: row.is_inbound ? (row.sender_email ?? undefined) : undefined,
+      to: !row.is_inbound ? (row.sender_email ?? undefined) : undefined,
+      date: row.created_at,
+    }));
+
+    // Merge and deduplicate by id, sort by date descending
+    const seen = new Set<string>();
+    const merged = [...clientComms, ...userComms]
+      .filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+
+    if (merged.length > 0) {
+      console.info('[Supabase] get_recent_communications returned', merged.length, 'results (client:', clientComms.length, '+ synced:', userComms.length, ')');
+      return merged;
     }
   } catch (error) {
     console.warn('[Fallback] get_recent_communications using mock data:', error);
