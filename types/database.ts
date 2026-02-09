@@ -553,6 +553,60 @@ export type Database = {
           },
         ]
       }
+      client_slack_channel: {
+        Row: {
+          agency_id: string
+          client_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          message_count: number
+          slack_channel_id: string
+          slack_channel_name: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          message_count?: number
+          slack_channel_id: string
+          slack_channel_name: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          message_count?: number
+          slack_channel_id?: string
+          slack_channel_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_slack_channel_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_slack_channel_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartridges: {
         Row: {
           id: string

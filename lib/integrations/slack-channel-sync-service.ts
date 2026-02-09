@@ -35,12 +35,11 @@ export async function syncAllChannels(
   supabase: SupabaseClient
 ): Promise<SyncResult[]> {
   // Get all active channel mappings for this agency
-  // Note: client_slack_channel not yet in generated types — will be after migration + type regen
-  const { data: channels, error } = await (supabase as any)
+const { data: channels, error } = await supabase
     .from('client_slack_channel')
     .select('client_id, slack_channel_id, slack_channel_name, last_sync_at')
     .eq('agency_id', agencyId)
-    .eq('is_active', true) as { data: Array<{ client_id: string; slack_channel_id: string; slack_channel_name: string; last_sync_at: string | null }> | null; error: any }
+    .eq('is_active', true)
 
   if (error || !channels?.length) {
     return []
@@ -107,7 +106,7 @@ export async function syncChannel(
 
     if (userMessages.length === 0) {
       // Update sync timestamp even if no new messages
-      await (supabase as any)
+      await supabase
         .from('client_slack_channel')
         .update({ last_sync_at: new Date().toISOString() })
         .eq('agency_id', agencyId)
@@ -146,7 +145,7 @@ export async function syncChannel(
     }
 
     // Update sync metadata
-    await (supabase as any)
+    await supabase
       .from('client_slack_channel')
       .update({ last_sync_at: new Date().toISOString() })
       .eq('agency_id', agencyId)

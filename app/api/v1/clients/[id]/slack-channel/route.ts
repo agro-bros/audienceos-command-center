@@ -21,8 +21,7 @@ export const GET = withPermission({ resource: 'clients', action: 'read' })(
       const { id: clientId } = await params
       const supabase = await createRouteHandlerClient(cookies)
 
-      // Note: client_slack_channel not yet in generated types — will be after migration + type regen
-      const { data, error } = await (supabase as any)
+const { data, error } = await supabase
         .from('client_slack_channel')
         .select('*')
         .eq('client_id', clientId)
@@ -54,11 +53,11 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
       const supabase = await createRouteHandlerClient(cookies)
 
       // Check if channel already exists
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from('client_slack_channel')
         .select('id, slack_channel_id, slack_channel_name, is_active')
         .eq('client_id', clientId)
-        .maybeSingle() as { data: { id: string; slack_channel_id: string; slack_channel_name: string; is_active: boolean } | null }
+        .maybeSingle()
 
       if (existing?.is_active) {
         return NextResponse.json(

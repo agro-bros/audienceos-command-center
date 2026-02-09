@@ -93,8 +93,7 @@ export async function createSlackChannelForClient(params: CreateChannelParams): 
     }
 
     // Store the mapping in Supabase
-    // Note: client_slack_channel not yet in generated types — will be after migration + type regen
-    const { data: record, error: dbError } = await (supabase as any)
+const { data: record, error: dbError } = await supabase
       .from('client_slack_channel')
       .upsert(
         {
@@ -130,12 +129,12 @@ export async function archiveSlackChannelForClient(
   supabase: SupabaseClient
 ): Promise<{ ok: boolean; error?: string }> {
   // Get existing channel mapping
-  const { data: mapping } = await (supabase as any)
+  const { data: mapping } = await supabase
     .from('client_slack_channel')
     .select('id, slack_channel_id')
     .eq('client_id', clientId)
     .eq('is_active', true)
-    .maybeSingle() as { data: { id: string; slack_channel_id: string } | null }
+    .maybeSingle()
 
   if (!mapping) {
     return { ok: true } // No channel to archive
@@ -158,7 +157,7 @@ export async function archiveSlackChannelForClient(
   }
 
   // Mark inactive in DB regardless (preserve historical data)
-  await (supabase as any)
+  await supabase
     .from('client_slack_channel')
     .update({ is_active: false })
     .eq('id', mapping.id)
