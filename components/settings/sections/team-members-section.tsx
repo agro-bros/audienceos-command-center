@@ -53,6 +53,7 @@ import { ClientAssignmentModal } from "@/components/settings/modals/client-assig
 import { toast } from "sonner"
 import type { TeamMember } from "@/types/settings"
 import { RoleHierarchyLevel } from "@/types/rbac"
+import { fetchWithCsrf } from "@/lib/csrf"
 
 function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
@@ -108,9 +109,8 @@ function MemberProfile({ member, onBack, onUpdate }: MemberProfileProps) {
 
     setIsSaving(true)
     try {
-      const response = await fetch(`/api/v1/settings/users/${member.id}`, {
+      const response = await fetchWithCsrf(`/api/v1/settings/users/${member.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
@@ -123,7 +123,7 @@ function MemberProfile({ member, onBack, onUpdate }: MemberProfileProps) {
         throw new Error(error.error || 'Failed to update user')
       }
 
-      const updated = await response.json()
+      const { data: updated } = await response.json()
       toast.success('Profile updated successfully')
       onUpdate({ ...member, ...updated })
       onBack()

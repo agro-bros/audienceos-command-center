@@ -1,6 +1,6 @@
 /**
  * Individual User Management API
- * PATCH /api/v1/settings/users/[id] - Update user role or status
+ * PATCH /api/v1/settings/users/[id] - Update user profile, role, or status
  * DELETE /api/v1/settings/users/[id] - Deactivate or delete user
  */
 
@@ -62,13 +62,33 @@ export const PATCH = withPermission({ resource: 'users', action: 'manage' })(
         return createErrorResponse(400, 'Invalid JSON body')
       }
 
-      const { role, is_active } = body as { role?: unknown; is_active?: unknown }
+      const { role, is_active, first_name, last_name } = body as {
+        role?: unknown
+        is_active?: unknown
+        first_name?: unknown
+        last_name?: unknown
+      }
       const updates: Record<string, unknown> = {}
+
+      // Handle name changes
+      if (first_name !== undefined) {
+        if (typeof first_name !== 'string' || first_name.trim().length === 0 || first_name.length > 100) {
+          return createErrorResponse(400, 'First name must be a non-empty string (max 100 chars)')
+        }
+        updates.first_name = first_name.trim()
+      }
+
+      if (last_name !== undefined) {
+        if (typeof last_name !== 'string' || last_name.trim().length === 0 || last_name.length > 100) {
+          return createErrorResponse(400, 'Last name must be a non-empty string (max 100 chars)')
+        }
+        updates.last_name = last_name.trim()
+      }
 
       // Handle role change
       if (role !== undefined) {
-        if (typeof role !== 'string' || !['admin', 'user'].includes(role)) {
-          return createErrorResponse(400, 'Role must be "admin" or "user"')
+        if (typeof role !== 'string' || !['owner', 'admin', 'manager', 'member'].includes(role)) {
+          return createErrorResponse(400, 'Role must be "owner", "admin", "manager", or "member"')
         }
 
         // Prevent removing the last admin
