@@ -34,6 +34,17 @@ function mapStatus(storeStatus: string): "open" | "in_progress" | "waiting" | "r
   }
 }
 
+// Map store priority to UI priority (DB uses "critical", UI uses "urgent")
+function mapPriority(storePriority: string): "low" | "medium" | "high" | "urgent" {
+  switch (storePriority) {
+    case "low": return "low"
+    case "medium": return "medium"
+    case "high": return "high"
+    case "critical": return "urgent"
+    default: return "medium"
+  }
+}
+
 // Transform store tickets to component format
 function transformStoreTicket(storeTicket: StoreTicket): Ticket {
   return {
@@ -45,7 +56,7 @@ function transformStoreTicket(storeTicket: StoreTicket): Ticket {
       initials: storeTicket.client?.name?.substring(0, 2).toUpperCase() || "UC",
       color: "bg-blue-600",
     },
-    priority: storeTicket.priority as "low" | "medium" | "high" | "urgent",
+    priority: mapPriority(storeTicket.priority),
     status: mapStatus(storeTicket.status),
     assignee: storeTicket.assignee ? {
       name: `${storeTicket.assignee.first_name || ""} ${storeTicket.assignee.last_name || ""}`.trim() || "Unassigned",
@@ -316,13 +327,9 @@ export function SupportTickets() {
   return (
     <>
     <div className="flex h-full overflow-hidden">
-      {/* Ticket list - shrinks when detail panel is open */}
-      <motion.div
-        initial={false}
-        animate={{ width: selectedTicket ? 280 : "100%" }}
-        transition={slideTransition}
-        className="flex flex-col border-r border-border overflow-hidden"
-        style={{ minWidth: selectedTicket ? 280 : undefined, flexShrink: selectedTicket ? 0 : undefined }}
+      {/* Ticket list - flex-1 keeps it filling available space */}
+      <div
+        className="flex-1 flex flex-col border-r border-border overflow-hidden"
       >
         <ListHeader
           title="Support Tickets"
@@ -390,18 +397,18 @@ export function SupportTickets() {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Ticket detail panel */}
+      {/* Ticket detail panel - fixed width, slides in from right */}
       <AnimatePresence mode="wait">
         {selectedTicket && (
           <motion.div
             key="ticket-detail-panel"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 480, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={slideTransition}
-            className="flex-1 flex flex-col bg-background overflow-hidden"
+            className="flex flex-col bg-background overflow-hidden shrink-0"
           >
             <TicketDetailPanel
               ticket={selectedTicket}
