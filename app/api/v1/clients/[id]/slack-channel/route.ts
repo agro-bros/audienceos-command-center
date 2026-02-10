@@ -5,8 +5,9 @@
  * DELETE /api/v1/clients/[id]/slack-channel?linkId=uuid - Unlink a specific channel
  */
 
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { createRouteHandlerClient } from '@/lib/supabase'
 import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
@@ -178,9 +179,18 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
           return createErrorResponse(500, 'Failed to save channel mapping')
         }
 
-        // Fire-and-forget: sync messages from the newly linked channel
-        syncChannel(agencyId, clientId, slackChannelId, null, supabase)
-          .catch((err) => console.error('[slack-channel] Auto-sync after link failed:', err))
+        // Sync messages after response is sent (survives Vercel serverless lifecycle)
+        after(async () => {
+          try {
+            const serviceSupabase = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            )
+            await syncChannel(agencyId, clientId, slackChannelId, null, serviceSupabase)
+          } catch (err) {
+            console.error('[slack-channel] Auto-sync after link failed:', err)
+          }
+        })
 
         return NextResponse.json({ data: record }, { status: 201 })
       }
@@ -204,10 +214,20 @@ export const POST = withPermission({ resource: 'clients', action: 'write' })(
         return NextResponse.json({ error: result.error }, { status: result.status || 500 })
       }
 
-      // Fire-and-forget: sync messages from the newly created channel
+      // Sync messages after response is sent (survives Vercel serverless lifecycle)
       if (result.data?.slack_channel_id) {
-        syncChannel(agencyId, clientId, result.data.slack_channel_id, null, supabase)
-          .catch((err) => console.error('[slack-channel] Auto-sync after create failed:', err))
+        const channelIdToSync = result.data.slack_channel_id
+        after(async () => {
+          try {
+            const serviceSupabase = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            )
+            await syncChannel(agencyId, clientId, channelIdToSync, null, serviceSupabase)
+          } catch (err) {
+            console.error('[slack-channel] Auto-sync after create failed:', err)
+          }
+        })
       }
 
       return NextResponse.json({ data: result.data }, { status: 201 })
