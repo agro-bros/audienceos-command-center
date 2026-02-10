@@ -2564,6 +2564,19 @@ export type Database = {
           count: number
         }[]
       }
+      // Manually added — this RPC function is used by cartridges but not
+      // returned by Supabase type generation (may be defined via raw SQL)
+      set_cartridge_default: {
+        Args: {
+          p_cartridge_id: string
+          p_agency_id: string
+          p_type: string
+        }
+        Returns: {
+          success: boolean
+          error?: string
+        }
+      }
     }
     Enums: {
       ad_platform: "google_ads" | "meta_ads"
