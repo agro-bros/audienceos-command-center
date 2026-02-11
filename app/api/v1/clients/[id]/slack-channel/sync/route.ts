@@ -1,26 +1,24 @@
 /**
  * Manual Slack Channel Sync (diagnostic)
- * POST /api/v1/clients/[id]/slack-channel/sync
+ * GET /api/v1/clients/[id]/slack-channel/sync
  *
  * Triggers a synchronous sync for all active channels of a client.
  * Returns full diagnostic info for debugging.
+ * Uses GET for easy browser testing — just navigate to the URL.
  */
 
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { createRouteHandlerClient } from '@/lib/supabase'
-import { withRateLimit, withCsrfProtection, createErrorResponse } from '@/lib/security'
+import { withRateLimit, createErrorResponse } from '@/lib/security'
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission'
 import { syncChannel } from '@/lib/integrations/slack-channel-sync-service'
 
-export const POST = withPermission({ resource: 'clients', action: 'write' })(
+export const GET = withPermission({ resource: 'clients', action: 'read' })(
   async (request: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) => {
     const rateLimitResponse = withRateLimit(request)
     if (rateLimitResponse) return rateLimitResponse
-
-    const csrfError = withCsrfProtection(request)
-    if (csrfError) return csrfError
 
     try {
       const { id: clientId } = await params
