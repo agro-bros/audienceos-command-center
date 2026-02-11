@@ -13,7 +13,9 @@ const TENANT_ID = process.env.DIIIPLOY_TENANT_ID || ''
 
 interface SlackMessage {
   type: string
+  subtype?: string
   user?: string
+  bot_id?: string
   text: string
   ts: string
   thread_ts?: string
@@ -74,7 +76,7 @@ export async function syncChannel(
 ): Promise<SyncResult> {
   try {
     // Build Gateway URL with optional oldest timestamp for incremental sync
-    let url = `${GATEWAY_URL}/slack/history?channel=${channelId}&limit=100`
+    let url = `${GATEWAY_URL}/slack/history?channel=${channelId}&limit=200`
     if (lastSyncAt) {
       // Convert ISO timestamp to Unix epoch for Slack API
       const unixTimestamp = (new Date(lastSyncAt).getTime() / 1000).toString()
@@ -99,9 +101,10 @@ export async function syncChannel(
       return { channelId, clientId, messagesAdded: 0, error: data.error || 'Failed to fetch messages' }
     }
 
-    // Filter to actual user messages (skip system messages, bot messages etc.)
+    // Filter to user messages — skip system messages (channel_join, channel_leave, etc.)
+    // and bot messages, but keep all human-authored messages including those with mentions
     const userMessages = data.messages.filter(
-      (m) => m.type === 'message' && m.text && !m.text.startsWith('<@') // skip bot pings
+      (m) => m.type === 'message' && m.text && !m.subtype && !m.bot_id
     )
 
     if (userMessages.length === 0) {
