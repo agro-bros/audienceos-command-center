@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { fetchWithCsrf } from "@/lib/csrf"
 
 interface MemoryItem {
   id: string
@@ -121,9 +122,8 @@ export function MemoryPanel() {
   const handleDeleteMemory = async (memoryId: string) => {
     setDeletingId(memoryId)
     try {
-      const response = await fetch("/api/v1/memory", {
+      const response = await fetchWithCsrf("/api/v1/memory", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memoryId }),
       })
       if (response.ok) {
@@ -140,9 +140,8 @@ export function MemoryPanel() {
   const handleDeleteAll = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/v1/memory", {
+      const response = await fetchWithCsrf("/api/v1/memory", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deleteAll: true }),
       })
       if (response.ok) {

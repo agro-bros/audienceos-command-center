@@ -32,6 +32,7 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { fetchWithCsrf } from "@/lib/csrf"
 import { useStreamingText } from "./use-streaming-text"
 import { TypingCursor } from "./typing-cursor"
 import type { ChatMessage as ChatMessageType, RouteType, Citation, SessionContext, SuggestedMemory } from "@/lib/chat/types"
@@ -605,10 +606,8 @@ export function ChatInterface({
   const handleConfirmMemory = async (messageId: string, memory: SuggestedMemory) => {
     setConfirmingSuggestion(messageId)
     try {
-      await fetch("/api/v1/memory", {
+      await fetchWithCsrf("/api/v1/memory", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           content: memory.content,
           type: memory.type,
