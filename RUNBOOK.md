@@ -857,7 +857,7 @@ No additional action needed—just commit code, push, Vercel uses its env vars.
 ### Diiiploy-Gateway (MCP Aggregator) - CRITICAL ARCHITECTURE
 
 **Location:** `infrastructure/cloudflare/cc-gateway/`
-**URL:** https://cc-gateway.roderic-andrews.workers.dev
+**URL:** https://cc-gateway.diiiploy.workers.dev
 **Status:** ✅ Deployed (63 MCP tools)
 
 **Purpose:** MCP-based integration gateway. Instead of building OAuth flows for each service, we use a single gateway with 50+ MCP tools.
@@ -899,7 +899,7 @@ Users need to enter their own tokens during onboarding:
 - Meta: App ID, App Secret
 
 ### diiiploy-gateway (Legacy Reference)
-**URL:** https://diiiploy-gateway.roderic-andrews.workers.dev
+**URL:** https://diiiploy-gateway.diiiploy.workers.dev
 
 **Purpose:** Centralized API gateway for third-party integrations (Google Ads, DataForSEO, etc.)
 
@@ -926,7 +926,7 @@ Users need to enter their own tokens during onboarding:
 **Fix Location:** `lib/sync/google-ads-sync.ts` → getKeywordIdeas function
 **Verification:**
 ```bash
-curl -s https://diiiploy-gateway.roderic-andrews.workers.dev/health | jq .tools
+curl -s https://diiiploy-gateway.diiiploy.workers.dev/health | jq .tools
 # Should include 7 DataForSEO tools with fix
 ```
 

@@ -123,7 +123,7 @@
 
 2. Deploy diiiploy-gateway:
    - `wrangler deploy` with new Slack route
-   - Test via `curl https://diiiploy-gateway.roderic-andrews.workers.dev/health`
+   - Test via `curl https://diiiploy-gateway.diiiploy.workers.dev/health`
 
 3. Implement AudienceOS Slack sync:
    - Route: `app/api/v1/integrations/sync/slack`

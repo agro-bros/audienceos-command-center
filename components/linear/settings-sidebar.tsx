@@ -143,6 +143,7 @@ export const intelligenceSettingsGroups: SettingsGroup[] = [
       { id: "cartridges", label: "Training Cartridges" },
       { id: "prompts", label: "Custom Prompts" },
       { id: "training-data", label: "AI Training Data" },
+      { id: "memory", label: "Memory" },
     ],
   },
 ]

@@ -47,6 +47,8 @@ const TIME_PATTERNS = [
 export class MemoryInjector {
   private maxMemories: number = 5;
   private minRelevanceScore: number = 0.5;
+  private maxTokenBudget: number = 500; // ~500 tokens to avoid prompt bloat
+  private deduplicationThreshold: number = 0.85; // Jaccard similarity threshold
 
   /**
    * Detect if query is asking about memories
@@ -135,11 +137,17 @@ export class MemoryInjector {
 
   /**
    * Inject relevant memories into system prompt
+   *
+   * Applies 3 layers of filtering:
+   *   1. Relevance score (from Mem0 vector search)
+   *   2. Deduplication (removes near-duplicate memories)
+   *   3. Token budgeting (caps total injected text at ~500 tokens)
    */
   async injectMemories(
     query: string,
     agencyId: string,
-    userId: string
+    userId: string,
+    clientId?: string
   ): Promise<MemoryInjection> {
     // Auto-initialize if not already done
     let mem0 = getMem0Service();
@@ -156,14 +164,33 @@ export class MemoryInjector {
       }
     }
 
-    // Search for relevant memories
+    // Fetch user-level memories
     const searchResult = await mem0.searchMemories({
       query,
       agencyId,
       userId,
-      limit: this.maxMemories,
+      limit: this.maxMemories * 2,
       minScore: this.minRelevanceScore,
     });
+
+    // If client context is provided, also fetch client-scoped memories and merge
+    if (clientId) {
+      try {
+        const clientResult = await mem0.searchMemories({
+          query,
+          agencyId,
+          userId,
+          clientId,
+          limit: this.maxMemories,
+          minScore: this.minRelevanceScore,
+        });
+        // Merge client memories (higher priority — prepend so they rank first)
+        searchResult.memories = [...clientResult.memories, ...searchResult.memories];
+        searchResult.totalFound += clientResult.totalFound;
+      } catch {
+        // Client memory search failed — continue with user-level results
+      }
+    }
 
     if (searchResult.memories.length === 0) {
       return {
@@ -173,17 +200,93 @@ export class MemoryInjector {
       };
     }
 
+    // 1. Deduplicate near-identical memories
+    let memories = this.deduplicateMemories(searchResult.memories);
+
+    // 2. Weight by importance (high > medium > low) + relevance score
+    memories = this.rankMemories(memories);
+
+    // 3. Apply token budget — stop adding once budget is reached
+    memories = this.applyTokenBudget(memories);
+
     // Build context block
-    const contextBlock = this.buildContextBlock(searchResult.memories);
-    const relevanceExplanation = this.buildRelevanceExplanation(
-      searchResult.memories
-    );
+    const contextBlock = this.buildContextBlock(memories);
+    const relevanceExplanation = this.buildRelevanceExplanation(memories);
 
     return {
       contextBlock,
-      memories: searchResult.memories,
+      memories,
       relevanceExplanation,
     };
+  }
+
+  /**
+   * Remove near-duplicate memories using word-level Jaccard similarity
+   */
+  private deduplicateMemories(memories: Memory[]): Memory[] {
+    const deduplicated: Memory[] = [];
+
+    for (const memory of memories) {
+      const isDuplicate = deduplicated.some(
+        (existing) => this.jaccardSimilarity(existing.content, memory.content) >= this.deduplicationThreshold
+      );
+      if (!isDuplicate) {
+        deduplicated.push(memory);
+      }
+    }
+
+    return deduplicated;
+  }
+
+  /**
+   * Word-level Jaccard similarity: |A ∩ B| / |A ∪ B|
+   */
+  private jaccardSimilarity(a: string, b: string): number {
+    const wordsA = new Set(a.toLowerCase().split(/\s+/));
+    const wordsB = new Set(b.toLowerCase().split(/\s+/));
+    let intersection = 0;
+    for (const word of wordsA) {
+      if (wordsB.has(word)) intersection++;
+    }
+    const union = wordsA.size + wordsB.size - intersection;
+    return union === 0 ? 0 : intersection / union;
+  }
+
+  /**
+   * Rank memories by combined importance + relevance score
+   */
+  private rankMemories(memories: Memory[]): Memory[] {
+    const importanceWeight: Record<string, number> = {
+      high: 0.3,
+      medium: 0.1,
+      low: 0,
+    };
+
+    return [...memories].sort((a, b) => {
+      const scoreA = (a.score || 0) + (importanceWeight[a.metadata.importance || 'medium'] || 0);
+      const scoreB = (b.score || 0) + (importanceWeight[b.metadata.importance || 'medium'] || 0);
+      return scoreB - scoreA;
+    });
+  }
+
+  /**
+   * Limit memories to fit within token budget (~4 chars per token estimate)
+   */
+  private applyTokenBudget(memories: Memory[]): Memory[] {
+    const charsPerToken = 4;
+    const maxChars = this.maxTokenBudget * charsPerToken;
+    let totalChars = 0;
+    const budgeted: Memory[] = [];
+
+    for (const memory of memories) {
+      const memoryChars = memory.content.length + (memory.metadata.topic?.length || 0) + 30; // overhead
+      if (totalChars + memoryChars > maxChars && budgeted.length > 0) break;
+      totalChars += memoryChars;
+      budgeted.push(memory);
+      if (budgeted.length >= this.maxMemories) break;
+    }
+
+    return budgeted;
   }
 
   /**
@@ -252,16 +355,18 @@ export class MemoryInjector {
     query: string,
     agencyId: string,
     userId: string,
-    baseSystemPrompt: string
+    baseSystemPrompt: string,
+    clientId?: string
   ): Promise<{ systemPrompt: string; usedMemories: Memory[] }> {
     // Check if this is a recall query
     const recall = this.detectRecall(query);
 
-    // Get relevant memories
+    // Get relevant memories (user-level + client-scoped if applicable)
     const injection = await this.injectMemories(
       recall.isRecallQuery ? recall.suggestedSearchQuery : query,
       agencyId,
-      userId
+      userId,
+      clientId
     );
 
     // Build enhanced system prompt
@@ -330,12 +435,23 @@ export class MemoryInjector {
   /**
    * Update configuration
    */
-  configure(options: { maxMemories?: number; minRelevanceScore?: number }): void {
+  configure(options: {
+    maxMemories?: number;
+    minRelevanceScore?: number;
+    maxTokenBudget?: number;
+    deduplicationThreshold?: number;
+  }): void {
     if (options.maxMemories !== undefined) {
       this.maxMemories = options.maxMemories;
     }
     if (options.minRelevanceScore !== undefined) {
       this.minRelevanceScore = options.minRelevanceScore;
+    }
+    if (options.maxTokenBudget !== undefined) {
+      this.maxTokenBudget = options.maxTokenBudget;
+    }
+    if (options.deduplicationThreshold !== undefined) {
+      this.deduplicationThreshold = options.deduplicationThreshold;
     }
   }
 }

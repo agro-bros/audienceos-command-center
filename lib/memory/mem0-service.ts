@@ -3,6 +3,7 @@
  *
  * Integrates with Mem0 MCP for cross-session memory.
  * Provides tenant + user scoped memory operations.
+ * Full CRUD: add, search, list, get, update, delete, history, entities.
  */
 
 import type {
@@ -13,10 +14,13 @@ import type {
   MemorySearchResult,
   MemoryAddRequest,
   MemoryStats,
+  MemoryListResponse,
+  MemoryHistoryEntry,
+  MemoryEntity,
 } from './types';
 
 /**
- * Mem0 MCP interface (matches diiiploy-gateway)
+ * Mem0 MCP interface (matches diiiploy-gateway's 9 MCP tools)
  * CRITICAL: AudienceOS uses DIIIPLOY-GATEWAY, NOT chi-gateway!
  */
 interface Mem0MCPClient {
@@ -24,7 +28,23 @@ interface Mem0MCPClient {
   searchMemories: (params: {
     query: string;
     userId: string;
+    topK?: number;
   }) => Promise<Array<{ id: string; content: string; score?: number }>>;
+  getMemory: (params: { memoryId: string }) => Promise<{
+    id: string; memory: string; user_id?: string; created_at?: string; updated_at?: string;
+  }>;
+  listMemories: (params: {
+    userId?: string; page?: number; pageSize?: number;
+  }) => Promise<{ results: Array<{ id: string; memory: string; user_id?: string; created_at?: string; updated_at?: string }>; count?: number }>;
+  updateMemory: (params: { memoryId: string; content: string }) => Promise<{
+    id: string; memory: string;
+  }>;
+  deleteMemory: (params: { memoryId: string }) => Promise<{ success: boolean; deleted: string }>;
+  deleteAllMemories: (params: { userId: string }) => Promise<{ success: boolean; userId: string }>;
+  getMemoryHistory: (params: { memoryId: string }) => Promise<Array<{
+    id: string; memory_id: string; old_memory?: string; new_memory?: string; event: string; created_at?: string;
+  }>>;
+  getEntities: () => Promise<Array<{ type: string; id: string; name?: string; count?: number }>>;
 }
 
 /**
@@ -208,6 +228,168 @@ export class Mem0Service {
       totalFound: results.length,
       searchTimeMs: Date.now() - startTime,
     };
+  }
+
+  /**
+   * Get a single memory by ID
+   */
+  async getMemory(memoryId: string): Promise<Memory | null> {
+    try {
+      const result = await this.mcpClient.getMemory({ memoryId });
+      const { content, metadata } = parseMemoryContent(result.memory);
+      return {
+        id: result.id,
+        content,
+        metadata: {
+          agencyId: metadata.agencyId || '',
+          userId: metadata.userId || result.user_id || '',
+          type: (metadata.type as MemoryType) || 'conversation',
+          ...metadata,
+        },
+        createdAt: result.created_at ? new Date(result.created_at) : new Date(),
+        updatedAt: result.updated_at ? new Date(result.updated_at) : new Date(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * List all memories for a user (paginated)
+   */
+  async listMemories(
+    agencyId: string,
+    userId: string,
+    page: number = 1,
+    pageSize: number = 50,
+    clientId?: string
+  ): Promise<MemoryListResponse> {
+    const scopedUserId = buildScopedUserId(agencyId, userId, clientId);
+
+    const result = await this.mcpClient.listMemories({
+      userId: scopedUserId,
+      page,
+      pageSize,
+    });
+
+    const results = result.results || [];
+    const memories: Memory[] = results.map((r) => {
+      const { content, metadata } = parseMemoryContent(r.memory);
+      return {
+        id: r.id,
+        content,
+        metadata: {
+          agencyId: metadata.agencyId || agencyId,
+          clientId: metadata.clientId || clientId,
+          userId: metadata.userId || userId,
+          type: (metadata.type as MemoryType) || 'conversation',
+          ...metadata,
+        },
+        createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+        updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+      };
+    });
+
+    return {
+      memories,
+      page,
+      pageSize,
+      total: result.count || memories.length,
+    };
+  }
+
+  /**
+   * Update a memory's content
+   */
+  async updateMemory(memoryId: string, content: string, metadata?: Partial<MemoryMetadata>): Promise<Memory | null> {
+    try {
+      const encodedContent = metadata
+        ? encodeMemoryContent(content, metadata)
+        : content;
+
+      const result = await this.mcpClient.updateMemory({
+        memoryId,
+        content: encodedContent,
+      });
+
+      const parsed = parseMemoryContent(result.memory);
+      return {
+        id: result.id,
+        content: parsed.content,
+        metadata: {
+          agencyId: parsed.metadata.agencyId || '',
+          userId: parsed.metadata.userId || '',
+          type: (parsed.metadata.type as MemoryType) || 'conversation',
+          ...parsed.metadata,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Delete a single memory
+   */
+  async deleteMemory(memoryId: string): Promise<boolean> {
+    try {
+      const result = await this.mcpClient.deleteMemory({ memoryId });
+      return result.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Delete all memories for a scope (user/agency/client)
+   */
+  async clearMemories(agencyId: string, userId: string, clientId?: string): Promise<boolean> {
+    const scopedUserId = buildScopedUserId(agencyId, userId, clientId);
+    try {
+      const result = await this.mcpClient.deleteAllMemories({ userId: scopedUserId });
+      this.invalidateCache(scopedUserId);
+      return result.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get memory change history
+   */
+  async getMemoryHistory(memoryId: string): Promise<MemoryHistoryEntry[]> {
+    try {
+      const results = await this.mcpClient.getMemoryHistory({ memoryId });
+      return results.map((r) => ({
+        id: r.id,
+        memoryId: r.memory_id,
+        oldContent: r.old_memory || '',
+        newContent: r.new_memory || '',
+        event: r.event as 'created' | 'updated' | 'deleted',
+        timestamp: r.created_at ? new Date(r.created_at) : new Date(),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * List Mem0 entities
+   */
+  async getEntities(): Promise<MemoryEntity[]> {
+    try {
+      const results = await this.mcpClient.getEntities();
+      return results.map((r) => ({
+        type: r.type as 'user' | 'agent' | 'app',
+        id: r.id,
+        name: r.name,
+        memoryCount: r.count,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -436,80 +618,88 @@ export function resetMem0Service(): void {
 
 /**
  * Diiiploy-gateway HTTP client for Mem0
- * Calls diiiploy-gateway's mem0_add and mem0_search MCP tools
+ * Calls diiiploy-gateway's 9 mem0_* MCP tools via JSON-RPC
  * CRITICAL: AudienceOS uses DIIIPLOY-GATEWAY, NOT chi-gateway!
  */
 function createDiiiplopyGatewayMem0Client(): Mem0MCPClient {
-  const gatewayUrl = process.env.DIIIPLOY_GATEWAY_URL || 'https://diiiploy-gateway.roderic-andrews.workers.dev';
+  const gatewayUrl = process.env.DIIIPLOY_GATEWAY_URL || 'https://diiiploy-gateway.diiiploy.workers.dev';
   const apiKey = process.env.DIIIPLOY_GATEWAY_API_KEY || '';
 
+  async function callTool(toolName: string, args: Record<string, unknown>): Promise<any> {
+    // MCP handler lives at /mcp on the gateway
+    const mcpUrl = gatewayUrl.replace(/\/$/, '') + '/mcp';
+    const response = await fetch(mcpUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        params: { name: toolName, arguments: args },
+        id: Date.now(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Diiiploy-gateway error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.result?.content?.[0]?.text;
+    if (text) {
+      return JSON.parse(text);
+    }
+    return data.result || {};
+  }
+
   return {
-    addMemory: async (params: { content: string; userId: string }) => {
-      const response = await fetch(gatewayUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'tools/call',
-          params: {
-            name: 'mem0_add',
-            arguments: params,
-          },
-          id: Date.now(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Diiiploy-gateway error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const text = data.result?.content?.[0]?.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        return { id: parsed.id || crypto.randomUUID() };
-      }
-      return { id: crypto.randomUUID() };
+    addMemory: async (params) => {
+      const result = await callTool('mem0_add', params);
+      return { id: result.id || crypto.randomUUID() };
     },
 
-    searchMemories: async (params: { query: string; userId: string }) => {
-      const response = await fetch(gatewayUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'tools/call',
-          params: {
-            name: 'mem0_search',
-            arguments: params,
-          },
-          id: Date.now(),
-        }),
-      });
+    searchMemories: async (params) => {
+      const result = await callTool('mem0_search', params);
+      // Mem0 returns { results: [...] } or array directly
+      const results = result.results || result || [];
+      return results.map((r: { id?: string; memory_id?: string; memory?: string; content?: string; score?: number }) => ({
+        id: r.id || r.memory_id || crypto.randomUUID(),
+        content: r.memory || r.content || '',
+        score: r.score,
+      }));
+    },
 
-      if (!response.ok) {
-        throw new Error(`Diiiploy-gateway error: ${response.status}`);
-      }
+    getMemory: async (params) => {
+      return callTool('mem0_get', params);
+    },
 
-      const data = await response.json();
-      const text = data.result?.content?.[0]?.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        // Mem0 returns { results: [...] } or array directly
-        const results = parsed.results || parsed || [];
-        return results.map((r: { id?: string; memory_id?: string; memory?: string; content?: string; score?: number }) => ({
-          id: r.id || r.memory_id || crypto.randomUUID(),
-          content: r.memory || r.content || '',
-          score: r.score,
-        }));
-      }
-      return [];
+    listMemories: async (params) => {
+      const result = await callTool('mem0_list', params);
+      return { results: result.results || result || [], count: result.count };
+    },
+
+    updateMemory: async (params) => {
+      return callTool('mem0_update', params);
+    },
+
+    deleteMemory: async (params) => {
+      return callTool('mem0_delete', params);
+    },
+
+    deleteAllMemories: async (params) => {
+      return callTool('mem0_delete_all', params);
+    },
+
+    getMemoryHistory: async (params) => {
+      const result = await callTool('mem0_history', params);
+      return result || [];
+    },
+
+    getEntities: async () => {
+      const result = await callTool('mem0_entities', {});
+      return result.results || result || [];
     },
   };
 }

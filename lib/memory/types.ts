@@ -118,3 +118,44 @@ export interface MemoryStats {
  * Memory management action
  */
 export type MemoryAction = 'delete' | 'archive' | 'update_importance';
+
+/**
+ * Memory update request
+ */
+export interface MemoryUpdateRequest {
+  memoryId: string;
+  content: string;
+  metadata?: Partial<MemoryMetadata>;
+}
+
+/**
+ * Memory history entry — tracks how a memory evolved over time
+ */
+export interface MemoryHistoryEntry {
+  id: string;
+  memoryId: string;
+  oldContent: string;
+  newContent: string;
+  event: 'created' | 'updated' | 'deleted';
+  timestamp: Date;
+}
+
+/**
+ * Mem0 entity (user, agent, app)
+ */
+export interface MemoryEntity {
+  type: 'user' | 'agent' | 'app';
+  id: string;
+  name?: string;
+  memoryCount?: number;
+}
+
+/**
+ * Paginated memory list response
+ */
+export interface MemoryListResponse {
+  memories: Memory[];
+  page: number;
+  pageSize: number;
+  total: number;
+}

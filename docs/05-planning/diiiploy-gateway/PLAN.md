@@ -33,7 +33,7 @@ The app currently has its own OAuth flow for Google Workspace, but:
 
 ```typescript
 // CRITICAL: AudienceOS uses diiiploy-gateway, NOT chi-gateway!
-const DIIIPLOY_GATEWAY_URL = 'https://diiiploy-gateway.roderic-andrews.workers.dev'
+const DIIIPLOY_GATEWAY_URL = 'https://diiiploy-gateway.diiiploy.workers.dev'
 
 export async function getIntegrationStatus(): Promise<IntegrationStatus[]> {
   const response = await fetch(`${DIIIPLOY_GATEWAY_URL}/health/full`)
@@ -89,7 +89,7 @@ Add section:
 **CRITICAL: AudienceOS uses DIIIPLOY-GATEWAY, NOT chi-gateway!**
 
 Diiiploy-gateway (Cloudflare Worker) is the single source of truth for integrations:
-- **Endpoint:** https://diiiploy-gateway.roderic-andrews.workers.dev
+- **Endpoint:** https://diiiploy-gateway.diiiploy.workers.dev
 - **Health Check:** `/health/full` returns per-service status
 - **Token Storage:** Cloudflare KV (not in app database)
 

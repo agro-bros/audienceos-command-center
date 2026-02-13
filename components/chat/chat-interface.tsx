@@ -28,11 +28,13 @@ import {
   LayoutDashboard,
   X,
   ExternalLink,
+  Brain,
+  CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useStreamingText } from "./use-streaming-text"
 import { TypingCursor } from "./typing-cursor"
-import type { ChatMessage as ChatMessageType, RouteType, Citation, SessionContext } from "@/lib/chat/types"
+import type { ChatMessage as ChatMessageType, RouteType, Citation, SessionContext, SuggestedMemory } from "@/lib/chat/types"
 
 // Panel dimensions
 const PANEL_WIDTH = "85%"
@@ -82,6 +84,10 @@ export function ChatInterface({
     fileName?: string
   }>({ stage: "idle", progress: 0, message: "" })
   const [isDragOver, setIsDragOver] = useState(false)
+
+  // Memory suggestion state — tracks dismissed/confirmed suggestions by message ID
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set())
+  const [confirmingSuggestion, setConfirmingSuggestion] = useState<string | null>(null)
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -284,6 +290,7 @@ export function ChatInterface({
           route: messageData.route,
           citations: messageData.citations || [],
           suggestions: messageData.suggestions,
+          suggestedMemory: messageData.suggestedMemory,
         }
 
         setMessages((prev) => [...prev, assistantMessage])
@@ -352,7 +359,7 @@ export function ChatInterface({
                 break
 
               case 'complete': {
-                // Final message with citations
+                // Final message with citations and memory suggestions
                 const messageData = parsed.message
 
                 const assistantMessage: ChatMessageType = {
@@ -363,6 +370,7 @@ export function ChatInterface({
                   route: messageData.route || metadata.route,
                   citations: messageData.citations || [],
                   suggestions: messageData.suggestions,
+                  suggestedMemory: messageData.suggestedMemory,
                 }
 
                 setMessages((prev) => [...prev, assistantMessage])
@@ -593,6 +601,33 @@ export function ChatInterface({
     await sendChatMessage(suggestion)
   }
 
+  // Memory suggestion handlers
+  const handleConfirmMemory = async (messageId: string, memory: SuggestedMemory) => {
+    setConfirmingSuggestion(messageId)
+    try {
+      await fetch("/api/v1/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          content: memory.content,
+          type: memory.type,
+          importance: memory.importance,
+          topic: memory.topic,
+        }),
+      })
+      setDismissedSuggestions((prev) => new Set(prev).add(messageId))
+    } catch (err) {
+      console.error("[Chat] Memory confirm error:", err)
+    } finally {
+      setConfirmingSuggestion(null)
+    }
+  }
+
+  const handleDismissMemory = (messageId: string) => {
+    setDismissedSuggestions((prev) => new Set(prev).add(messageId))
+  }
+
   // CSS Keyframes for slide animations
   useEffect(() => {
     const styleId = "cc-chat-animations"
@@ -789,6 +824,37 @@ export function ChatInterface({
                       ))}
                     </div>
                   )}
+
+                  {/* Memory Suggestion Bar */}
+                  {msg.role === "assistant" &&
+                    msg.suggestedMemory &&
+                    !dismissedSuggestions.has(msg.id) && (
+                      <div className="max-w-[85%] mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs">
+                        <Brain className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span className="text-amber-200/80 flex-1 truncate">
+                          Remember this {msg.suggestedMemory.type}?
+                        </span>
+                        <button
+                          onClick={() => handleConfirmMemory(msg.id, msg.suggestedMemory!)}
+                          disabled={confirmingSuggestion === msg.id}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {confirmingSuggestion === msg.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-3 w-3" />
+                          )}
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => handleDismissMemory(msg.id)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-white/10 text-gray-400 transition-colors cursor-pointer"
+                        >
+                          <X className="h-3 w-3" />
+                          No
+                        </button>
+                      </div>
+                    )}
 
                   {/* Suggestion Pills */}
                   {msg.role === "assistant" &&

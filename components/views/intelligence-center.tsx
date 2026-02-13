@@ -17,6 +17,7 @@ import {
 } from "@/components/dashboard"
 import { cn } from "@/lib/utils"
 import { CartridgesPage } from "@/components/cartridges"
+import { MemoryPanel } from "@/components/chat/memory-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -940,7 +941,17 @@ export function IntelligenceCenter({ onBack, initialSection = "overview", initia
         </SettingsContentSection>
       )}
 
-      {!["overview", "chat", "activity", "cartridges", "prompts", "training-data", "history"].includes(activeSection) && (
+      {/* Memory Management */}
+      {activeSection === "memory" && (
+        <SettingsContentSection title="AI Memory">
+          <p className="text-xs text-muted-foreground mb-4">
+            View and manage what the AI remembers across conversations. Memories are automatically created from decisions, preferences, and important discussions.
+          </p>
+          <MemoryPanel />
+        </SettingsContentSection>
+      )}
+
+      {!["overview", "chat", "activity", "cartridges", "prompts", "training-data", "history", "memory"].includes(activeSection) && (
         <SettingsContentSection title="Coming Soon">
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <p className="text-muted-foreground">

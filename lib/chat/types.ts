@@ -44,6 +44,17 @@ export interface RouterContext {
 }
 
 /**
+ * Suggested memory from AI detection
+ * Shown to user for confirmation before storing
+ */
+export interface SuggestedMemory {
+  content: string;
+  type: 'decision' | 'preference' | 'task' | 'insight';
+  importance: 'high' | 'medium' | 'low';
+  topic?: string;
+}
+
+/**
  * Chat message
  */
 export interface ChatMessage {
@@ -54,6 +65,7 @@ export interface ChatMessage {
   route?: RouteType;
   citations?: Citation[];
   suggestions?: string[];
+  suggestedMemory?: SuggestedMemory;
   metadata?: MessageMetadata;
 }
 

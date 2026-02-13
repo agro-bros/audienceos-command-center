@@ -6,7 +6,7 @@ import { executeFunction, hgcFunctions } from '@/lib/chat/functions';
 import { withPermission, type AuthenticatedRequest } from '@/lib/rbac/with-permission';
 import { createRouteHandlerClient } from '@/lib/supabase';
 import { getGeminiRAG } from '@/lib/rag';
-import { getMemoryInjector } from '@/lib/memory';
+import { getMemoryInjector, summarizeConversation, shouldSummarize } from '@/lib/memory';
 import { initializeMem0Service } from '@/lib/memory/mem0-service';
 import { checkRateLimitDistributed } from '@/lib/security';
 import { chatLogger } from '@/lib/logger';
@@ -57,7 +57,8 @@ async function buildSystemPrompt(
   agencyId: string,
   userId: string,
   sessionId: string | undefined,
-  route: string
+  route: string,
+  clientId?: string
 ): Promise<string> {
   const parts: string[] = [];
 
@@ -96,7 +97,30 @@ This query was classified as: ${route}`);
     }
   }
 
-  // 4. Citation instruction for web queries
+  // 4. Client-scoped memory context (when user is viewing a specific client)
+  if (clientId) {
+    try {
+      const mem0 = initializeMem0Service();
+      const clientMemories = await mem0.searchMemories({
+        query: 'client context preferences decisions',
+        agencyId,
+        userId,
+        clientId,
+        limit: 5,
+        minScore: 0.3,
+      });
+      if (clientMemories.memories.length > 0) {
+        const memoryLines = clientMemories.memories.map(
+          (m, i) => `[${i + 1}] ${m.content}`
+        );
+        parts.push(`\n<client_context>\nThe user is currently working with a specific client. Here are relevant memories for this client:\n${memoryLines.join('\n')}\nUse this context to provide client-specific answers.\n</client_context>`);
+      }
+    } catch (err) {
+      console.warn('[Chat API] Failed to load client memories:', err);
+    }
+  }
+
+  // 5. Citation instruction for web queries
   if (route === 'web') {
     parts.push(`\nWhen using information from web search, include inline citation markers like [1], [2], [3] in the text.
 Each citation number should reference a source you found.
@@ -147,7 +171,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
 
     // 1. Parse request body
     const body = await request.json();
-    const { message, sessionId, stream = false } = body;
+    const { message, sessionId, stream = false, clientId } = body;
 
     if (!message) {
       return NextResponse.json(
@@ -182,8 +206,8 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       console.warn('[Chat API] Router failed, using casual route:', routerError);
     }
 
-    // 5. Build rich system prompt with all context layers
-    const systemPrompt = await buildSystemPrompt(supabase, agencyId, userId, sessionId, route);
+    // 5. Build rich system prompt with all context layers (including client-scoped memories)
+    const systemPrompt = await buildSystemPrompt(supabase, agencyId, userId, sessionId, route, clientId);
 
     // 6. Handle based on route
     let responseContent: string;
@@ -198,7 +222,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       responseContent = await handleRAGRoute(apiKey, message, agencyId, citations, supabase);
     } else if (route === 'memory') {
       // Use Memory for recall queries
-      responseContent = await handleMemoryRoute(apiKey, message, agencyId, userId);
+      responseContent = await handleMemoryRoute(apiKey, message, agencyId, userId, clientId);
     } else {
       // Use basic Gemini response for other routes (may include web grounding citations)
       responseContent = await handleCasualRoute(apiKey, message, systemPrompt, citations);
@@ -209,11 +233,41 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
       (err) => console.warn('[Chat API] Chat persistence failed (non-blocking):', err)
     );
 
-    // 4b. Store conversation in memory (fire-and-forget, don't block response)
-    // Memory is dual-scoped: per-user AND per-agency via scoped userId
-    storeConversationMemory(agencyId, userId, sessionId, message, responseContent, route).catch(
-      (err) => console.warn('[Chat API] Memory storage failed (non-blocking):', err)
-    );
+    // 6c. Detect if this exchange contains a high-value memory (decision/preference/task)
+    const memoryInjector = getMemoryInjector();
+    const memoryDetection = memoryInjector.shouldStoreMemory(message, responseContent);
+
+    // 6d. Store conversation in memory (fire-and-forget, don't block response)
+    // Only auto-store as low-importance background context when a suggestion is shown,
+    // so we don't duplicate with the user-confirmed high-importance version.
+    if (!memoryDetection.should) {
+      storeConversationMemory(agencyId, userId, sessionId, message, responseContent, route, clientId).catch(
+        (err) => console.warn('[Chat API] Memory storage failed (non-blocking):', err)
+      );
+    }
+
+    // 6e. Session summarization — extract insights after every N messages (fire-and-forget)
+    if (sessionId) {
+      getSessionMessages(supabase, sessionId, 100).then((sessionMsgs) => {
+        if (shouldSummarize(sessionMsgs.length)) {
+          const formatted = sessionMsgs.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }));
+          summarizeConversation(formatted, agencyId, userId, sessionId, clientId).catch(
+            (err) => console.warn('[Chat API] Summarization failed (non-blocking):', err)
+          );
+        }
+      }).catch(() => { /* session fetch failed — skip summarization */ });
+    }
+
+    // Build suggested memory for the client (if detected)
+    const suggestedMemory = memoryDetection.should ? {
+      content: `${message} → ${responseContent.substring(0, 200)}${responseContent.length > 200 ? '...' : ''}`,
+      type: memoryDetection.type,
+      importance: memoryDetection.importance,
+      topic: route,
+    } : undefined;
 
     // 5. Return response (streaming or JSON)
     if (stream === true) {
@@ -258,6 +312,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
                 routeConfidence,
                 functionCalls: functionCalls.length > 0 ? functionCalls : undefined,
                 citations: citations.length > 0 ? citations : [],
+                suggestedMemory,
               },
             });
             controller.enqueue(encoder.encode(`data: ${completeData}\n\n`));
@@ -281,7 +336,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
         },
       });
     } else {
-      // Existing JSON response (unchanged - Phase 1 backwards compatibility)
+      // Existing JSON response (Phase 1 backwards compatibility)
       return NextResponse.json({
         message: {
           id: `msg-${Date.now()}`,
@@ -292,6 +347,7 @@ export const POST = withPermission({ resource: 'ai-features', action: 'write' })
           routeConfidence,
           functionCalls: functionCalls.length > 0 ? functionCalls : undefined,
           citations: citations.length > 0 ? citations : [],
+          suggestedMemory,
         },
         sessionId: sessionId || `session-${Date.now()}`,
       });
@@ -479,7 +535,8 @@ async function handleMemoryRoute(
   apiKey: string,
   message: string,
   agencyId: string | undefined,
-  userId: string | undefined
+  userId: string | undefined,
+  clientId?: string
 ): Promise<string> {
   try {
     const memoryInjector = getMemoryInjector();
@@ -488,11 +545,12 @@ async function handleMemoryRoute(
     // Detect recall intent and get suggested search query
     const recallDetection = memoryInjector.detectRecall(message);
 
-    // Search for relevant memories
+    // Search for relevant memories (user-level + client-scoped if applicable)
     const memoryInjection = await memoryInjector.injectMemories(
       recallDetection.suggestedSearchQuery,
       agencyId || 'demo-agency',
-      userId || 'demo-user'
+      userId || 'demo-user',
+      clientId
     );
 
     if (memoryInjection.memories.length > 0) {
@@ -728,7 +786,8 @@ async function storeConversationMemory(
   sessionId: string | undefined,
   userMessage: string,
   assistantResponse: string,
-  route: string
+  route: string,
+  clientId?: string
 ): Promise<void> {
   try {
     const mem0Service = initializeMem0Service();
@@ -740,10 +799,11 @@ async function storeConversationMemory(
       content: conversationContent,
       agencyId,
       userId,
+      clientId,
       sessionId: sessionId || `session-${Date.now()}`,
       type: 'conversation',
       topic: route,
-      importance: route === 'memory' ? 'high' : 'medium', // Memory recalls are high importance
+      importance: route === 'memory' ? 'high' : 'medium',
     });
 
     // Memory stored - do not log userId

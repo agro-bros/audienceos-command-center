@@ -16,6 +16,10 @@ export {
   getMemoryInjector,
   resetMemoryInjector,
 } from './memory-injector';
+export {
+  summarizeConversation,
+  shouldSummarize,
+} from './conversation-summarizer';
 
 export type {
   Memory,
@@ -28,4 +32,8 @@ export type {
   RecallDetection,
   MemoryStats,
   MemoryAction,
+  MemoryUpdateRequest,
+  MemoryHistoryEntry,
+  MemoryEntity,
+  MemoryListResponse,
 } from './types';
